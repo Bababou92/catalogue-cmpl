@@ -15,7 +15,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from PIL import Image
 
-from . import catalog, errlog, importer, isbn as isbnlib, pages as pagelib, render_pdf, render_pptx, render_png, sources, store, version
+from . import catalog, errlog, importer, isbn as isbnlib, pages as pagelib, render_pdf, render_pptx, render_png, sources, store, updater, version
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 APP_ID = "cmpl-catalogue"
@@ -466,11 +466,37 @@ class Handler(BaseHTTPRequestHandler):
                         save()
                 return self._send(200, {"state": public_state()})
             if path == "/api/clear":
+                n = 0
                 with LOCK:
                     CAT["books"] = []
                     CAT["meta"] = {"titre": "", "date": ""}
                     save()
-                return self._send(200, {"state": public_state()})
+                if b.get("cache"):
+                    store.clear_cache()
+                if b.get("covers_folder"):
+                    n = sources.delete_cover_files(store.load_settings().get("covers_dir", ""))
+                return self._send(200, {"state": public_state(), "deleted": n})
+            if path == "/api/update/status":
+                return self._send(200, updater.status())
+            if path == "/api/update/check":
+                if updater.STATE["state"] not in ("downloading", "ready", "checking"):
+                    updater.start_check(0.0, silent=False)
+                return self._send(200, updater.status())
+            if path == "/api/update/start":
+                updater.start_download()
+                return self._send(200, updater.status())
+            if path == "/api/update/cancel":
+                updater.cancel()
+                return self._send(200, updater.status())
+            if path == "/api/update/apply":
+                try:
+                    updater.apply()
+                except Exception as e:
+                    updater._set(state="error", error=f"Installation impossible : {e}")
+                    return self._send(200, updater.status())
+                self._send(200, updater.status())
+                threading.Timer(0.4, lambda: os._exit(0)).start()
+                return
             if path == "/api/meta":
                 with LOCK:
                     CAT["meta"].update({k: str(v) for k, v in b.items() if k in ("titre", "date")})
@@ -493,6 +519,15 @@ class Handler(BaseHTTPRequestHandler):
                         x["cover_origin"] = x["cover_origin"][:-1]
                         save()
                     return self._send(200, {"book": catalog.public(x)})
+            if path == "/api/cover/confirm_all":
+                n = 0
+                with LOCK:
+                    for x in CAT["books"]:
+                        if (x.get("cover_origin") or "").endswith("?") and x.get("cover_path"):
+                            x["cover_origin"] = x["cover_origin"][:-1]
+                            n += 1
+                    save()
+                return self._send(200, {"n": n, "state": public_state()})
             if path == "/api/preview":
                 return self._send(200, preview(b.get("page", 0), int(b.get("dpi", 90))))
             if path == "/api/generate":
@@ -545,8 +580,13 @@ def already_running():
         return False
 
 
-def main(open_browser=True):
+def main(open_browser=True, relance=False):
     import webbrowser
+    if relance:                                   # on attend que l'ancienne version ait libéré le port
+        for _ in range(60):
+            if not already_running():
+                break
+            time.sleep(0.25)
     if already_running():
         if open_browser:
             webbrowser.open(f"http://127.0.0.1:{PORT}/")
@@ -559,6 +599,8 @@ def main(open_browser=True):
     port = server.server_address[1]
     threading.Thread(target=_watchdog, daemon=True).start()
     errlog.install_thread_hook()
+    updater.cleanup_old()
+    updater.start_check(delay=2.5)
     url = f"http://127.0.0.1:{port}/"
     if sys.stdout:
         print(f"Générateur de catalogue CMPL : {url}\nFerme l'onglet pour arrêter.")

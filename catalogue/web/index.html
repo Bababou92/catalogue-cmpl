@@ -40,6 +40,7 @@
   .listhead{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
   .listhead b{flex:1}
   .legend{font-size:12px;color:var(--muted)}
+  .listhead{flex-wrap:wrap;row-gap:4px}.listhead b{flex:1 1 100%}
   .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#bbb;flex:none}
   .dot.vert{background:var(--ok)}.dot.orange{background:#e8a317}.dot.rouge{background:var(--bad)}.dot.gris{background:#b7bdc9}
   .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:8px;overflow:hidden}
@@ -53,6 +54,16 @@
   .plist{display:grid;grid-template-columns:1fr 110px;gap:6px 10px;align-items:center;max-height:55vh;overflow:auto}.plist .t{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.plist input{padding:5px 8px}
   .clog{margin-top:6px;font-size:12px;color:var(--muted)}.clog summary{cursor:pointer}
   .iaNote{margin-top:5px;font-size:12.5px;color:var(--warn);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .upd{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:9px 18px;background:#fff7e0;border-bottom:1px solid #e8d28a;color:#5a4400;font-size:14px}
+  .upd .grow{flex:1;min-width:200px}
+  .upd .bar{height:8px;border-radius:4px;background:#ecdfb0;overflow:hidden;flex:1;min-width:160px;max-width:320px}
+  .upd .bar i{display:block;height:100%;width:0;background:var(--accent-2);transition:width .3s}
+  .upd button{font:inherit;font-size:13.5px;padding:5px 12px;border-radius:6px;border:1px solid #c9ae5a;background:#fff;color:#4a3800;cursor:pointer}
+  .upd button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  #ver{cursor:pointer;text-decoration:underline dotted}
+  .cinfo2{font-size:11.5px;color:var(--muted);margin-top:1px}
+  .chk{display:flex;gap:8px;align-items:flex-start;font-weight:400;font-size:13.5px;margin-top:8px}.chk input{margin-top:3px}
+  .maint{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
   .calert{font-size:12px;color:var(--bad);margin-top:1px}
   .cstat{font-size:12px;display:flex;gap:6px;align-items:center;margin-top:1px}
   .cstat.orange{color:var(--warn)}.cstat.rouge{color:var(--bad)}.cstat.vert{color:var(--ok)}.cstat.gris{color:var(--muted)}
@@ -128,6 +139,7 @@
   <input type="file" id="f-import" accept=".xlsx,.csv,.txt,.tsv,.slk" class="hide">
   <input type="file" id="f-cover" accept="image/*" class="hide">
 </header>
+<div class="upd hide" id="upd"></div>
 <main id="main">
   <div id="left">
     <div id="progress" class="progress hide"><span id="pg-txt">Récupération…</span><div class="bar"><i id="pg-bar"></i></div><button class="btn small" id="pg-cancel">Arrêter</button></div>
@@ -181,6 +193,8 @@
       <ol class="steps"><li>Va sur <b>console.anthropic.com</b> et connecte-toi (compte distinct de claude.ai).</li>
         <li><b>Settings → Billing</b> : achète du crédit (5 $ suffisent pour des années).</li>
         <li><b>Settings → API Keys → Create Key</b> : copie la clé tout de suite (elle ne s'affiche qu'une fois) et colle-la ici.</li></ol></details>
+    <label>Maintenance</label>
+    <div class="maint"><button class="btn small" id="s-upd">Vérifier les mises à jour</button><button class="btn small" id="s-refetch">Tout rechercher à nouveau</button><button class="btn small" id="s-okcov">Valider toutes les couvertures</button></div>
     <label>Dossier où créer les catalogues</label>
     <div class="row2"><input type="text" id="s-out"><button class="btn small" id="s-browse1">Parcourir…</button></div>
     <label>Dossier des couvertures <small>— tes images nommées avec l'ISBN (ex. 9782100870165.jpg) y sont reprises automatiquement</small></label>
@@ -199,6 +213,14 @@
     <div class="hint" style="margin-top:8px">Un prix par ligne, en euros (ex. 24,90). Tab pour passer au livre suivant.</div>
   </div>
   <div class="mfoot"><button class="btn primary" id="mp-ok">Terminé</button></div>
+</div></div>
+
+<div class="modal hide" id="m-upd"><div class="mbox" style="max-width:480px">
+  <div class="mhead"><h3 id="mu-title">Mises à jour</h3></div>
+  <div class="mbody"><div id="mu-body"></div>
+    <label class="chk" style="margin-top:14px"><input type="checkbox" id="mu-opt"> <span id="mu-optlab"></span></label>
+    <div class="hint" id="mu-hint" style="margin-left:24px">Le bandeau jaune en haut de la page continuera de signaler les mises à jour.</div></div>
+  <div class="mfoot"><button class="btn" id="mu-later">Plus tard</button><button class="btn primary" id="mu-go">Mettre à jour</button></div>
 </div></div>
 
 <div class="modal hide" id="m-confirm"><div class="mbox">
@@ -257,6 +279,7 @@ function headHTML(b){
     <div class="cinfo"><div class="ctitle">${esc(b.titre || "(titre à saisir)")}</div>
       <div class="csub">${esc(b.isbn)}${authors ? " · " + esc(authors) : ""}</div>
       <div class="cstat ${b.statut}"><span class="dot ${b.statut}"></span>${esc(b.statut_txt)}</div>
+      ${(b.infos || []).length ? `<div class="cinfo2">ℹ ${esc(b.infos.join(" · "))}</div>` : ""}
       ${b.alerte ? `<div class="calert">⚠ ${esc(b.alerte)} (Dilicom)</div>` : ""}</div>
     <div class="cbtns"><button data-act="up" title="Monter">▲</button><button data-act="down" title="Descendre">▼</button><button data-act="del" title="Retirer du catalogue">✕</button></div>`;
 }
@@ -345,6 +368,12 @@ function renderNotes(){
     const d = document.createElement("div"); d.className = "note warn";
     d.innerHTML = `${np} livre${np > 1 ? "s" : ""} sans prix. <a href="#" id="n-prix">Saisir les prix</a>`; box.appendChild(d);
     $("n-prix").onclick = e => { e.preventDefault(); openPrix(); };
+  }
+  const nv = S.books.filter(b => b.has_cover && (b.cover_origin || "").endsWith("?")).length;
+  if (nv > 1) {
+    const d = document.createElement("div"); d.className = "note warn";
+    d.innerHTML = `${nv} couvertures à vérifier. <a href="#" id="n-okcov">Toutes les valider</a> <span class="hint">(vérifie d'abord à l'aperçu)</span>`; box.appendChild(d);
+    $("n-okcov").onclick = async e => { e.preventDefault(); if (await confirmBox("Valider toutes les couvertures ?", "<div>Tu confirmes que les couvertures trouvées automatiquement sont les bonnes ?</div>", "Tout valider", "Annuler")) confirmAllCovers(); };
   }
   if (S.books.length && !S.settings.google_key_set) {
     box.insertAdjacentHTML("afterbegin", `<div class="note warn">Pas de clé Google Books : tu n'auras ni les résumés ni les dates exactes. <a href="#" id="n-set">Ajouter la clé</a></div>`);
@@ -458,7 +487,13 @@ $("ma-ok").onclick = async () => {
 };
 $("b-new").onclick = async () => {
   if (!S.books.length) return;
-  if (await confirmBox("Vider le catalogue ?", "<div>Tous les livres seront retirés de la liste (les couvertures enregistrées restent dans leur dossier).</div>", "Vider", "Garder")) { sel = null; page = 0; setState((await api("/api/clear")).state); }
+  const ok = await confirmBox("Vider le catalogue ?", `<div>Tous les livres seront retirés de la liste.</div>
+    <label class="chk"><input type="checkbox" id="n-cache" checked> <span>Oublier aussi les recherches mémorisées (Google, BnF) et les couvertures téléchargées : repart de zéro, utile pour les essais.</span></label>
+    <label class="chk"><input type="checkbox" id="n-cov"> <span>Supprimer aussi mes images du dossier des couvertures (celles nommées avec un ISBN).</span></label>`, "Vider", "Garder");
+  if (ok) {
+    const r = await api("/api/clear", {cache: $("n-cache").checked, covers_folder: $("n-cov").checked});
+    sel = null; page = 0; setState(r.state); toast(r.deleted ? `✓ Catalogue vidé, ${r.deleted} image${r.deleted > 1 ? "s" : ""} supprimée${r.deleted > 1 ? "s" : ""}` : "✓ Catalogue vidé");
+  }
 };
 
 // ------------------------------------------------------------ récupération
@@ -569,6 +604,17 @@ $("ms-x").onclick = $("ms-cancel").onclick = () => hide("m-set");
 $("s-browse1").onclick = async () => { const r = await api("/api/browse", {initial: $("s-out").value}); if (r.path) $("s-out").value = r.path; };
 $("s-browse2").onclick = async () => { const r = await api("/api/browse", {initial: $("s-cov").value}); if (r.path) $("s-cov").value = r.path; };
 $("s-opencov").onclick = () => api("/api/open_folder", {path: $("s-cov").value, create: true});
+$("s-upd").onclick = () => { hide("m-set"); updManual(); };
+$("s-refetch").onclick = async () => {
+  if (!S.books.length) return toast("Le catalogue est vide.");
+  hide("m-set");
+  if (await confirmBox("Tout rechercher à nouveau ?", "<div>Le programme interroge de nouveau Google, la BnF et les sites de couvertures pour tous les livres. Ce que tu as saisi à la main est conservé.</div>", "Rechercher", "Annuler")) startFetch(S.books.map(b => b.isbn), true);
+};
+$("s-okcov").onclick = async () => { hide("m-set"); await confirmAllCovers(); };
+async function confirmAllCovers(){
+  const r = await api("/api/cover/confirm_all", {}); setState(r.state); covRev = Object.fromEntries(S.books.map(b => [b.isbn, (covRev[b.isbn] || 0) + 1]));
+  toast(r.n ? `✓ ${r.n} couverture${r.n > 1 ? "s" : ""} validée${r.n > 1 ? "s" : ""}` : "Aucune couverture à valider.");
+}
 $("ms-ok").onclick = async () => {
   try {
     const r = await api("/api/settings", {google_key: $("s-key").value, claude_key: $("s-ckey").value, out_dir: $("s-out").value, covers_dir: $("s-cov").value, resume_max: +$("s-max").value || 420});
@@ -609,9 +655,106 @@ $("b-gen").onclick = async () => {
 
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
-  for (const id of ["m-confirm", "m-gen", "m-set", "m-add", "m-prix"]) if (!$(id).classList.contains("hide")) { id === "m-confirm" ? $("c-cancel").click() : hide(id); return; }
+  for (const id of ["m-upd", "m-confirm", "m-gen", "m-set", "m-add", "m-prix"]) if (!$(id).classList.contains("hide")) { id === "m-confirm" ? $("c-cancel").click() : id === "m-upd" ? $("mu-later").click() : hide(id); return; }
 });
 window.addEventListener("pagehide", () => navigator.sendBeacon("/api/bye?t=" + TOKEN, "{}"));
+
+// ------------------------------------------------------------ mises à jour
+let updDismissed = false, updPoll = null, updPopupShown = false, updMode = "launch";
+function updRender(u){
+  const el = $("upd"), say = (html, btns) => { el.innerHTML = `<span class="grow">${html}</span>${btns || ""}`; el.classList.remove("hide"); };
+  const hideBar = () => el.classList.add("hide");
+  if (u.state === "available" && !updDismissed) {
+    const n = (u.notes || "").trim();
+    say(`<b>Nouvelle version ${esc(u.latest.version)} disponible</b> (tu as la ${esc(u.version)})${n ? " — " + esc(n.split("\n")[0]).slice(0, 140) : ""}`,
+      `<button class="primary" id="u-go">Mettre à jour</button><button id="u-later">Plus tard</button>`);
+    $("u-go").onclick = updStart; $("u-later").onclick = () => { updDismissed = true; hideBar(); };
+    if (!u.can_apply) $("u-go").title = "La mise à jour automatique marche dans le programme .exe";
+  } else if (u.state === "downloading") {
+    say(`Téléchargement de la mise à jour… ${Math.round((u.progress || 0) * 100)} %`, `<div class="bar"><i style="width:${Math.round((u.progress || 0) * 100)}%"></i></div><button id="u-cancel">Annuler</button>`);
+    $("u-cancel").onclick = () => api("/api/update/cancel", {}).then(updRender);
+  } else if (u.state === "ready") say("Mise à jour téléchargée, installation…");
+  else if (u.state === "restarting") say("Redémarrage du programme… cette page va se recharger toute seule.");
+  else if (u.state === "error" && u.error) { say("⚠ " + esc(u.error), `<button id="u-x">OK</button>`); $("u-x").onclick = hideBar; }
+  else if (!(u.state === "available" && updDismissed)) hideBar();
+}
+async function updPollLoop(){
+  clearTimeout(updPoll);
+  try {
+    const u = await api("/api/update/status", {});
+    updRender(u);
+    if (u.state === "ready") return updApply();
+    if (["downloading", "ready", "checking"].includes(u.state)) updPoll = setTimeout(updPollLoop, 500);
+  } catch (e) {}
+}
+async function updStart(){ const u = await api("/api/update/start", {}); updRender(u); updPoll = setTimeout(updPollLoop, 400); }
+async function updApply(){
+  await new Promise(r => setTimeout(r, 700));                 // laisse partir la dernière saisie
+  try { const u = await api("/api/update/apply", {}); updRender(u); } catch (e) { /* le serveur s'arrête : normal */ }
+  $("upd").innerHTML = '<span class="grow">Redémarrage du programme… cette page va se recharger toute seule.</span>'; $("upd").classList.remove("hide");
+  const t0 = Date.now();
+  const tick = async () => {
+    try { const r = await fetch("/api/ping"); const j = await r.json(); if (j.app && Date.now() - t0 > 2500) return location.reload(); } catch (e) {}
+    if (Date.now() - t0 > 40000) { $("upd").innerHTML = '<span class="grow">Mise à jour installée. Ferme cet onglet et relance « Catalogue CMPL ».</span>'; return; }
+    setTimeout(tick, 1000);
+  };
+  setTimeout(tick, 2000);
+}
+async function updManual(){
+  updDismissed = false; updOpen("manual"); updFill({state: "checking"});
+  try { await api("/api/update/check", {}); } catch (err) { return updFill({state: "error", error: err.message}); }
+  for (let i = 0; i < 30; i++) {
+    await new Promise(r => setTimeout(r, 400));
+    const u = await api("/api/update/status", {});
+    if (u.state !== "checking") { if (u.state === "available") updRender(u); updFill(u); return; }
+  }
+  updFill({state: "error", error: "La vérification prend trop de temps (connexion lente ?). Réessaie plus tard."});
+}
+$("ver").onclick = updManual; $("ver").title = "Vérifier les mises à jour";
+function updOpen(mode){
+  updMode = mode;
+  if (mode === "launch") { $("mu-optlab").textContent = "Ne plus afficher cette fenêtre"; $("mu-opt").checked = false; }
+  else { $("mu-optlab").textContent = "M'avertir par une fenêtre à chaque lancement"; $("mu-opt").checked = S.settings.update_popup !== false; }
+  $("mu-hint").classList.toggle("hide", mode !== "launch");
+  show("m-upd");
+}
+function updFill(u){
+  const later = $("mu-later"), go = $("mu-go"), n = ((u && u.notes) || "").trim();
+  let title = "Mises à jour", html = "", canGo = false;
+  if (u.state === "checking" || u.state === "idle") html = "Recherche en cours…";
+  else if (u.state === "available") {
+    canGo = true; title = "Nouvelle version " + u.latest.version + " disponible";
+    html = `<div>Tu as la version ${esc(u.version)}. Installer la ${esc(u.latest.version)} maintenant ?</div>`
+      + (n ? `<div class="hint" style="margin-top:8px;white-space:pre-line">${esc(n)}</div>` : "")
+      + `<div class="hint" style="margin-top:8px">Ton catalogue en cours est sauvegardé automatiquement ; le programme se relance tout seul.</div>`;
+  }
+  else if (u.state === "none") html = `<div style="font-size:15px">✓ Tu as déjà la dernière version (v${esc(u.version)}).</div>`;
+  else if (u.state === "error") html = `<div>⚠ ${esc(u.error || "Impossible de vérifier les mises à jour (pas de connexion internet ?).")}</div>`;
+  else html = esc(u.state);
+  $("mu-title").textContent = title; $("mu-body").innerHTML = html;
+  go.classList.toggle("hide", !canGo);
+  later.textContent = canGo ? "Plus tard" : (u.state === "checking" ? "Fermer" : "OK");
+}
+function updPopup(u){
+  if (updPopupShown || S.settings.update_popup === false || document.querySelector(".modal:not(.hide)")) return;
+  updPopupShown = true; updOpen("launch"); updFill(u);
+}
+function updPopupClose(go){
+  const want = updMode === "launch" ? (S.settings.update_popup !== false && !$("mu-opt").checked) : $("mu-opt").checked;
+  if (want !== (S.settings.update_popup !== false)) { S.settings.update_popup = want; api("/api/settings", {update_popup: want}).catch(() => {}); }
+  hide("m-upd"); if (go) updStart();
+}
+$("mu-later").onclick = () => updPopupClose(false);
+$("mu-go").onclick = () => updPopupClose(true);
+function updInitialCheck(){
+  let n = 0;
+  const go = async () => {
+    const u = await api("/api/update/status", {});
+    if (u.state === "available") { updRender(u); return updPopup(u); }
+    if (++n < 16 && ["idle", "checking"].includes(u.state)) setTimeout(go, 1500);
+  };
+  setTimeout(go, 3000);
+}
 
 // ------------------------------------------------------------ démarrage
 (async () => {
@@ -619,6 +762,7 @@ window.addEventListener("pagehide", () => navigator.sendBeacon("/api/bye?t=" + T
   $("ver").textContent = "v" + st.version;
   setState(st);
   fetch("/api/ping");
+  updInitialCheck();
 })();
 </script>
 </body>

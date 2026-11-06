@@ -85,6 +85,7 @@ def resolve_cover(book, raw, covers_dir, download=True):
 
 
 def missing(book):
+    """Ce qui manque et qui compte (pastille orange). Pages, collection, illustrations : voir infos()."""
     m = []
     if not book.get("titre"):
         m.append("titre")
@@ -93,16 +94,28 @@ def missing(book):
     if not book.get("resume"):
         m.append("résumé")
     if not book.get("date"):
-        m.append("date")
+        m.append("date de parution")
     if not book.get("editeur"):
         m.append("éditeur")
-    if not book.get("pages"):
-        m.append("pages")
     if not (book.get("cover_path") and os.path.isfile(book["cover_path"])):
         m.append("couverture")
     if book.get("prix") in (None, ""):
         m.append("prix")
     return m
+
+
+def infos(book):
+    """Informations facultatives absentes : simple indication, jamais bloquant."""
+    if not book.get("fetched"):
+        return []
+    out = []
+    if not book.get("pages"):
+        out.append("nombre de pages non trouvé")
+    if not book.get("collection"):
+        out.append("pas de collection")
+    if not book.get("illustrations"):
+        out.append("illustrations non précisées")
+    return out
 
 
 def status(book):
@@ -136,6 +149,7 @@ def public(book):
     d = dict(book)
     d["statut"], d["statut_txt"] = s, txt
     d["alerte"] = dispo_alert(book.get("dispo"))
+    d["infos"] = infos(book)
     d["has_cover"] = bool(book.get("cover_path") and os.path.isfile(book["cover_path"]))
     d.pop("cover_path", None)
     return d

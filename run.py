@@ -14,4 +14,5 @@ if __name__ == "__main__":
         from catalogue import selftest
         i = sys.argv.index("--selftest")
         sys.exit(0 if selftest.run(sys.argv[i + 1] if len(sys.argv) > i + 1 else "selftest.txt") else 1)
-    main(open_browser="--no-browser" not in sys.argv)
+    # --relance : démarrage juste après une mise à jour (l'onglet déjà ouvert se recharge tout seul)
+    main(open_browser="--no-browser" not in sys.argv and "--relance" not in sys.argv, relance="--relance" in sys.argv)

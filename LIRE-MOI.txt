@@ -46,3 +46,14 @@ Bon a savoir
 - Ce que tu corriges a la main n'est jamais ecrase par une nouvelle recherche.
 - Les informations viennent de sources publiques et peuvent contenir des erreurs : toujours relire.
 - Le catalogue en cours est garde automatiquement : il est retrouve au prochain lancement.
+
+Mises a jour
+------------
+Au lancement, le programme verifie s'il existe une nouvelle version (internet necessaire). Un bandeau jaune propose
+"Mettre a jour" : le .exe se remplace et le programme se relance. Le catalogue en cours et les reglages sont conserves.
+On peut aussi cliquer sur le numero de version (en haut) ou Reglages > "Verifier les mises a jour".
+
+Faire des essais / repartir de zero
+-----------------------------------
+Bouton "Nouveau" : vide la liste ; cocher "Oublier aussi les recherches memorisees" pour que tout soit cherche a nouveau,
+et (option) "Supprimer aussi mes images du dossier des couvertures" pour effacer les couvertures d'essai.

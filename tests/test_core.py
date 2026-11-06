@@ -96,6 +96,23 @@ job = catalog.FetchJob(["9782100000001"], dict(ST, claude_key="k")); job.kind = 
 store_b = {"9782100000001": b}
 catalog.run_ai(job, lambda i: store_b.get(i), lambda nb, ia=False: None)
 assert b["resume_ia"] and b["resume"] and "à relire" in catalog.status(dict(b, fetched=True, cover_path=""))[1]
+
+# ---- format BnF variante, infos douces (non bloquantes), statuts
+assert sources.parse_bnf_format("1 volume 223 p ; 27 cm")[0] == "223" and sources.parse_bnf_format("1 volume 223 p ; 27 cm")[2] == "27 cm"
+assert sources.parse_bnf_format("1 vol. (XII-369 p.) : ill. ; 24 cm")[:1] == ("XII-369",)
+assert sources.parse_bnf_format("1 vol. (non paginé) ; 24 cm")[0] == ""
+assert sources.parse_bnf_format("1 vol. (310 p.) : ill. en coul. ; 24 cm")[1] == "illustrations en couleur"
+bk = catalog.new_book("9782100000002", titre="T", auteurs=["A, B"], resume="R", date="2024", editeur="E", prix=10, fetched=True)
+cv = os.path.join(COV, "x.jpg"); Image.new("RGB", (300, 420), (10, 10, 200)).save(cv); bk["cover_path"] = cv
+assert catalog.status(bk) == ("vert", "complet"), catalog.status(bk)          # pages/collection/illustrations absents : jamais bloquant
+assert catalog.public(bk)["infos"] == ["nombre de pages non trouvé", "pas de collection", "illustrations non précisées"]
+bk["date"] = ""; assert "date de parution" in catalog.status(bk)[1]
+# ---- vider les caches
+store.cache_put("9782100000002", {"google": None}); assert store.cache_get("9782100000002") is not None
+open(os.path.join(store.cover_cache_dir(), "x.jpg"), "wb").write(b"x"); store.clear_cache()
+assert store.cache_get("9782100000002") is None and not os.listdir(store.cover_cache_dir())
+d_ = tempfile.mkdtemp(); Image.new("RGB", (200, 300)).save(os.path.join(d_, "9782100870165.jpg")); Image.new("RGB", (200, 300)).save(os.path.join(d_, "logo.png"))
+assert sources.delete_cover_files(d_) == 1 and os.listdir(d_) == ["logo.png"]
 # mise en page : plusieurs pages, PDF avec texte sélectionnable
 books = []
 for k in range(23):

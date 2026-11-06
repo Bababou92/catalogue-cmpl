@@ -99,3 +99,18 @@ def load_catalogue():
 
 def save_catalogue(cat):
     _write("catalogue.json", cat)
+
+
+def clear_cache():
+    """Oublie les réponses de Google/BnF et les couvertures téléchargées (pas le dossier de couvertures de l'utilisateur)."""
+    for name in ("cache.json",):
+        try:
+            os.remove(_path(name))
+        except OSError:
+            pass
+    d = cover_cache_dir()
+    for f in os.listdir(d):
+        try:
+            os.remove(os.path.join(d, f))
+        except OSError:
+            pass

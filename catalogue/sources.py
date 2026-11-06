@@ -187,8 +187,12 @@ def parse_bnf_format(fmt):
     m = re.search(r"\(([^()]*?)\s*p\.\)", f)
     if m:
         pages = m.group(1).strip()
+    else:                                   # variante « 1 volume 223 p ; 27 cm »
+        m = re.search(r"(?:^|[\s(\[])((?:[IVXLCDM]+-)?\d+(?:-\d+)?)\s*p\b", f)
+        if m:
+            pages = m.group(1).strip()
     ill = ""
-    m = re.search(r":\s*(ill\.[^;]*?)(?=\s*;|$)", f)
+    m = re.search(r":\s*(ill\.?[^;]*?)(?=\s*;|$)", f)
     if m:
         s = m.group(1)
         if re.search(r"coul", s):
@@ -264,6 +268,23 @@ def find_cover_file(isbn, covers_dir):
     except OSError:
         pass
     return ""
+
+
+def delete_cover_files(covers_dir):
+    """Supprime les images du dossier de couvertures dont le nom est un ISBN (rien d'autre). Retourne le nombre."""
+    n = 0
+    try:
+        for f in os.listdir(covers_dir or ""):
+            stem, ext = os.path.splitext(f)
+            if ext.lower() in IMG_EXT and isbnlib.to13(stem):
+                try:
+                    os.remove(os.path.join(covers_dir, f))
+                    n += 1
+                except OSError:
+                    pass
+    except OSError:
+        pass
+    return n
 
 
 def save_cover_bytes(data, dest_dir, isbn, ext=None):
