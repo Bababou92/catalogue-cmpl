@@ -91,6 +91,19 @@
   .pwrap .hs{position:absolute;cursor:pointer;border-radius:3px}
   .pwrap .hs:hover{outline:2px dashed rgba(59,140,255,.8);background:rgba(59,140,255,.06)}
   .pwrap .hs.act{outline:2px solid rgba(59,95,143,.9);background:rgba(59,95,143,.07)}
+  .pnav .mid{flex:1;text-align:center;font-weight:600;display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap}
+  .pnav .mid input{width:52px;text-align:center;font:inherit;padding:3px 4px;border:1px solid var(--line);border-radius:6px}
+  .pnav .mid small{font-weight:400;color:var(--muted)}
+  .pnav button{padding:4px 10px}
+  .pwrap .hs.cell{border-radius:0}
+  .pwrap .hs.cell:hover{outline:1px solid rgba(59,140,255,.9);background:rgba(59,140,255,.12)}
+  .pwrap .hs.cell.edit{outline:2px solid rgba(220,120,0,.9);background:rgba(255,170,0,.15)}
+  #cellpop{position:fixed;z-index:60;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 28px rgba(20,30,50,.3);padding:12px;width:300px}
+  #cellpop b{display:block;margin-bottom:2px}
+  #cellpop .hint{margin:0 0 6px}
+  #cellpop input,#cellpop textarea{width:100%;box-sizing:border-box}
+  #cellpop .row{display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap}
+  #cellpop a{font-size:12.5px;color:var(--accent-2);cursor:pointer;text-decoration:underline}
   .pcenter{text-align:center;overflow:auto;max-height:calc(100vh - 170px)}
   /* vide */
   main.vide{grid-template-columns:1fr}
@@ -162,9 +175,10 @@
   </div>
   <div class="prev" id="prev">
     <div class="prevbox">
-      <div class="pnav"><button class="btn small" id="p-prev">◀</button><div class="grow" id="p-lab">—</div><button class="btn small" id="p-next">▶</button></div>
+      <div class="pnav"><button class="btn small" id="p-first" title="Première page (Début)">⏮</button><button class="btn small" id="p-prev" title="Page précédente (←)">◀</button><div class="mid"><span id="p-lab">—</span><input id="p-num" type="text" inputmode="numeric" aria-label="Numéro de page"><small id="p-cnt"></small></div><button class="btn small" id="p-next" title="Page suivante (→)">▶</button><button class="btn small" id="p-last" title="Dernière page (Fin)">⏭</button><button class="btn small hide" id="p-tab" title="Aller au tableau des prix">Tableau des prix</button></div>
+      <div id="cellpop" class="hide"></div>
       <div class="pcenter"><div class="pwrap" id="pwrap"><img id="pimg" alt="Aperçu de la page"><div id="phot"></div></div></div>
-      <div class="hint" id="p-hint">Clique sur un livre dans l'aperçu pour le modifier.</div>
+      <div class="hint" id="p-hint">Clique sur un livre pour le modifier, ou sur une case du tableau des prix. Flèches ← → Début Fin pour naviguer.</div>
     </div>
   </div>
 </main>
@@ -309,6 +323,7 @@ function bodyHTML(b){
       <div><label>Prix public (€)</label><input type="text" data-f="prix" value="${b.prix == null ? "" : esc(String(b.prix).replace(".", ","))}"></div></div>
     <div class="grid2"><div><label>Éditeur</label><input type="text" data-f="editeur" value="${esc(b.editeur)}"></div>
       <div><label>Collection</label><input type="text" data-f="collection" value="${esc(b.collection)}"></div></div>
+    <div class="grid2"><div><label>Prix Ariary <small>(vide = calculé)</small></label><input type="text" data-f="prix_ar" value="${esc(b.prix_ar)}" placeholder="automatique"></div><div></div></div>
     <div class="grid3"><div><label>Édition <small>(n°)</small></label><input type="text" data-f="edition" value="${esc(b.edition)}" placeholder="ex. 9"></div>
       <div><label>Taux spécial <small>(Ar/€)</small></label><input type="text" data-f="taux" value="${esc(b.taux)}" placeholder="taux général"></div>
       <div><label>Titre court <small>(tableau)</small></label><input type="text" data-f="titre_tableau" value="${esc(b.titre_tableau)}" placeholder="automatique"></div></div>
@@ -406,13 +421,13 @@ $("list").addEventListener("click", async e => {
   if (act === "reia") { startAI([isbn]); return; }
   if (e.target.closest(".chead")) selectBook(sel === isbn ? null : isbn, true);
 });
-function selectBook(isbn, fromList){
+function selectBook(isbn, fromList, noJump){
   const prevSel = sel; sel = isbn;
   if (prevSel) { const b = byIsbn(prevSel); b && replaceCard(b, true); }
   if (isbn) {
     const b = byIsbn(isbn); b && replaceCard(b, true);
     const el = document.querySelector(`.card[data-isbn="${isbn}"]`); el && el.scrollIntoView({block: "nearest", behavior: "smooth"});
-    if (where[isbn] != null && where[isbn] !== page) { page = where[isbn]; loadPreview(); } else markHot();
+    if (!noJump && where[isbn] != null && where[isbn] !== page) { page = where[isbn]; loadPreview(); } else markHot();
   } else markHot();
 }
 function bump(b, force){ covRev[b.isbn] = (covRev[b.isbn] || 0) + 1; mergeBook(b); replaceCard(byIsbn(b.isbn), true); renderAllLight(); schedulePreview(); }
@@ -566,37 +581,108 @@ $("b-ai").onclick = async () => {
 $("pg-cancel").onclick = () => api("/api/fetch/cancel");
 
 // ------------------------------------------------------------ aperçu
-let pvT = null, pvSeq = 0;
+let pvT = null, pvSeq = 0, pvCount = 0, pvRev = 0, pvTable = null;
 function schedulePreview(){ clearTimeout(pvT); pvT = setTimeout(loadPreview, 400); }
+const pageUrl = (n, rev) => `/api/page.png?n=${n}&dpi=100&rev=${rev}&t=${TOKEN}`;
 async function loadPreview(){
   if (!S.books.length) return;
+  clearTimeout(pvT);
   const my = ++pvSeq;
   try {
     const r = await api("/api/preview", {page, dpi: 100});
     if (my !== pvSeq) return;
-    page = r.page; where = r.where;
-    $("pimg").src = r.image;
-    $("p-lab").textContent = `${r.label || "Page " + (r.page + 1)} · ${r.page + 1} sur ${r.count}`;
-    $("p-prev").disabled = r.page === 0; $("p-next").disabled = r.page >= r.count - 1;
+    page = r.page; where = r.where; pvCount = r.count; pvRev = r.rev; pvTable = r.table_start;
+    closeCell();
+    $("pimg").src = pageUrl(r.page, r.rev);
+    $("p-lab").textContent = r.label || "Page " + (r.page + 1);
+    if (document.activeElement !== $("p-num")) $("p-num").value = r.page + 1;
+    $("p-cnt").textContent = "sur " + r.count;
+    $("p-first").disabled = $("p-prev").disabled = r.page === 0; $("p-next").disabled = $("p-last").disabled = r.page >= r.count - 1;
+    $("p-tab").classList.toggle("hide", r.table_start == null); $("p-tab").disabled = r.table_start == null || r.page >= r.table_start;
     $("pwrap").dataset.k = r.w;
     const box = $("phot"); box.innerHTML = "";
     r.hot.forEach(h => {
-      const d = document.createElement("div"); d.className = "hs"; d.dataset.isbn = h.isbn; d.dataset.x = h.x; d.dataset.y = h.y; d.dataset.w = h.w; d.dataset.h = h.h;
-      d.title = (byIsbn(h.isbn) || {}).titre || h.isbn; box.appendChild(d);
+      const d = document.createElement("div"); d.className = "hs" + (h.field ? " cell" : ""); d.dataset.isbn = h.isbn;
+      d.dataset.x = h.x; d.dataset.y = h.y; d.dataset.w = h.w; d.dataset.h = h.h;
+      if (h.field) { d.dataset.field = h.field; d.dataset.v = h.v || ""; d.dataset.auto = h.auto || ""; d.title = h.field === "fiche" ? "Ouvrir la fiche du livre" : "Cliquer pour modifier"; }
+      else d.title = (byIsbn(h.isbn) || {}).titre || h.isbn;
+      box.appendChild(d);
     });
     placeHot(r.w); markHot();
+    [r.page + 1, r.page - 1].forEach(n => { if (n >= 0 && n < r.count) { const im = new Image(); im.src = pageUrl(n, r.rev); } });      // pages voisines préchargées
   } catch (e) { toast("Aperçu : " + e.message); }
 }
 function placeHot(naturalW){
   const img = $("pimg"), k = img.clientWidth / naturalW;
   document.querySelectorAll("#phot .hs").forEach(d => { d.style.left = d.dataset.x * k + "px"; d.style.top = d.dataset.y * k + "px"; d.style.width = d.dataset.w * k + "px"; d.style.height = d.dataset.h * k + "px"; });
 }
-function markHot(){ document.querySelectorAll("#phot .hs").forEach(d => d.classList.toggle("act", d.dataset.isbn === sel)); }
+function markHot(){ document.querySelectorAll("#phot .hs:not(.cell)").forEach(d => d.classList.toggle("act", d.dataset.isbn === sel)); }
 $("pimg").onload = () => placeHot(+$("pwrap").dataset.k || $("pimg").naturalWidth);
-window.addEventListener("resize", () => placeHot(+$("pwrap").dataset.k || $("pimg").naturalWidth));
-$("phot").addEventListener("click", e => { const h = e.target.closest(".hs"); if (h) selectBook(h.dataset.isbn, false); });
-$("p-prev").onclick = () => { page = Math.max(0, page - 1); loadPreview(); };
-$("p-next").onclick = () => { page++; loadPreview(); };
+window.addEventListener("resize", () => { placeHot(+$("pwrap").dataset.k || $("pimg").naturalWidth); closeCell(); });
+function goPage(n){ n = Math.max(0, Math.min(n, Math.max(0, pvCount - 1))); if (n === page && pvCount) return; page = n; loadPreview(); }
+$("p-first").onclick = () => goPage(0);
+$("p-prev").onclick = () => goPage(page - 1);
+$("p-next").onclick = () => goPage(page + 1);
+$("p-last").onclick = () => goPage(pvCount - 1);
+$("p-tab").onclick = () => { if (pvTable != null) goPage(pvTable); };
+$("p-num").addEventListener("keydown", e => { if (e.key === "Enter") { const n = parseInt($("p-num").value, 10); if (n) goPage(n - 1); else $("p-num").value = page + 1; $("p-num").blur(); } });
+$("p-num").addEventListener("focus", e => e.target.select());
+$("p-num").addEventListener("blur", () => { $("p-num").value = page + 1; });
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || !S.books.length) return;
+  const t = e.target; if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
+  if (document.querySelector(".modal:not(.hide), .overlay:not(.hide)")) return;
+  if (e.key === "ArrowLeft") { goPage(page - 1); e.preventDefault(); }
+  else if (e.key === "ArrowRight") { goPage(page + 1); e.preventDefault(); }
+  else if (e.key === "Home") { goPage(0); e.preventDefault(); }
+  else if (e.key === "End") { goPage(pvCount - 1); e.preventDefault(); }
+});
+
+// clic dans l'aperçu : notice -> fiche ; cellule du tableau -> mini-éditeur
+const CELLS = {
+  titre_tableau: ["Titre dans le tableau", "Titre court. Vide = automatique.", "text"],
+  auteurs: ["Auteurs", "Un par ligne : « Nom, Prénom ». Modifie aussi la notice.", "area"],
+  edition: ["Édition", "Numéro d'édition, par exemple 9.", "text"],
+  date: ["Date de parution", "Par exemple 28/08/2024.", "text"],
+  editeur: ["Éditeur", "Modifie aussi la notice du livre.", "text"],
+  prix: ["Prix France (€)", "Prix public. Le prix en Ariary est recalculé.", "text"],
+  prix_ar: ["Prix en Ariary", "Valeur forcée pour ce livre (ignore le taux).", "text"],
+};
+let cellEl = null;
+function closeCell(){ $("cellpop").classList.add("hide"); document.querySelectorAll("#phot .hs.edit").forEach(d => d.classList.remove("edit")); cellEl = null; }
+function openCell(h){
+  const f = h.dataset.field, isbn = h.dataset.isbn, b = byIsbn(isbn);
+  if (f === "fiche") { closeCell(); selectBook(isbn, true, true); return; }
+  const c = CELLS[f]; if (!c) return;
+  closeCell(); cellEl = h; h.classList.add("edit");
+  const pop = $("cellpop");
+  const field = c[2] === "area" ? `<textarea id="cp-in" rows="${Math.max(3, Math.min(6, (h.dataset.v.match(/\n/g) || []).length + 2))}"></textarea>` : `<input id="cp-in" type="text">`;
+  pop.innerHTML = `<b>${esc(c[0])}</b><div class="hint">${esc(b ? b.titre || isbn : isbn)}</div>` + field +
+    `<div class="hint" style="margin-top:4px">${esc(c[1])}${f === "prix_ar" && h.dataset.auto ? " Calcul automatique : " + esc(h.dataset.auto) + " Ar." : ""}</div>` +
+    `<div class="row"><button class="btn small primary" id="cp-ok">OK</button><button class="btn small" id="cp-cancel">Annuler</button>` +
+    (f === "prix_ar" && h.dataset.v ? `<button class="btn small" id="cp-auto">Revenir au calcul automatique</button>` : "") +
+    `<a id="cp-fiche">Ouvrir la fiche</a></div>`;
+  const inp = $("cp-in"); inp.value = f === "prix_ar" && !h.dataset.v ? h.dataset.auto.replace(/\s/g, "") : h.dataset.v;
+  pop.classList.remove("hide");
+  const r = h.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+  let x = Math.min(Math.max(8, r.left), window.innerWidth - pw - 8), y = r.bottom + 6;
+  if (y + ph > window.innerHeight - 8) y = Math.max(8, r.top - ph - 6);
+  pop.style.left = x + "px"; pop.style.top = y + "px";
+  inp.focus(); inp.select();
+  const save = async (val) => {
+    try {
+      const rr = await api("/api/book/update", {isbn, fields: {[f]: val}});
+      mergeBook(rr.book); replaceCard(byIsbn(isbn)); renderNotes(); renderAllLight(); closeCell(); loadPreview();
+    } catch (er) { toast(er.message); }
+  };
+  $("cp-ok").onclick = () => save(inp.value);
+  $("cp-cancel").onclick = closeCell;
+  $("cp-fiche").onclick = () => { closeCell(); selectBook(isbn, true, true); };
+  if ($("cp-auto")) $("cp-auto").onclick = () => save("");
+  inp.onkeydown = e => { if (e.key === "Escape") { closeCell(); e.stopPropagation(); } else if (e.key === "Enter" && (c[2] !== "area" || e.ctrlKey)) { e.preventDefault(); save(inp.value); } };
+}
+$("phot").addEventListener("click", e => { const h = e.target.closest(".hs"); if (!h) return; if (h.dataset.field) openCell(h); else selectBook(h.dataset.isbn, false); });
+document.addEventListener("mousedown", e => { if (cellEl && !e.target.closest("#cellpop") && !e.target.closest("#phot .hs.cell")) closeCell(); });
 
 // ------------------------------------------------------------ réglages
 function openSettings(){

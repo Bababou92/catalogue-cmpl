@@ -1,3 +1,5 @@
+0.5.0 - Apercu instantane : la mise en page est gardee en memoire et les pages voisines sont prechargees. Boutons debut/fin, numero de page, fleches du clavier et bouton "Tableau des prix". Le tableau des prix se modifie en cliquant sur une case (titre court, auteurs, edition, date, editeur, prix) ; le prix en Ariary peut etre force, avec retour au calcul automatique. Clic sur l'ISBN = ouvre la fiche.
+
 0.4.0 : tableau des prix a la fin du catalogue (memes colonnes que le catalogue papier : titre, auteurs, edition, date, ISBN, editeur, prix France, prix CMPL en Ariary). Taux Ariary modifiable (Reglages et fenetre "Generer"), arrondi au choix, taux special possible par livre. Le tableau est en paysage : dans le PDF a la suite, et en PowerPoint dans un fichier a part.
 0.3.1 : descriptions IA corrigees (plus de textes coupes en plein milieu), ecrites dans le style du catalogue, avec le modele Haiku (le moins cher). Les resumes IA coupes sont a refaire avec "Reecrire".
 0.2.0 : import des exports Dilicom (.slk : prix, editeur, disponibilite ; titre/auteur en secours), descriptions ecrites par l'IA

@@ -1,5 +1,6 @@
 """Petit serveur local : l'interface s'ouvre dans le navigateur, tout reste sur l'ordinateur."""
 import base64
+from collections import OrderedDict
 import io
 import json
 import os
@@ -38,8 +39,16 @@ def load():
             b.setdefault(k, v)
 
 
+REV = {"n": 0}                       # change à chaque modification : invalide la mise en page et les images d'aperçu
+LAY_LOCK = threading.Lock()
+LAY = {"rev": -1, "bp": [], "pp": []}
+PNG_LOCK = threading.Lock()
+PNGS = OrderedDict()
+
+
 def save():
     with LOCK:
+        REV["n"] += 1
         store.save_catalogue(CAT)
 
 
@@ -161,23 +170,50 @@ def build_pages(with_prices=None):
     return book_pages, price_pages
 
 
-def preview(page=0, dpi=90):
-    bp, pp = build_pages()
+def layout_pages():
+    """(version, pages de livres, pages du tableau) : recalculé seulement si le catalogue a changé."""
+    with LAY_LOCK:
+        rev = REV["n"]
+        if LAY["rev"] != rev:
+            bp, pp = build_pages()
+            LAY.update(rev=rev, bp=bp, pp=pp)
+            with PNG_LOCK:
+                PNGS.clear()
+        return LAY["rev"], LAY["bp"], LAY["pp"]
+
+
+def preview(page=0, dpi=100):
+    rev, bp, pp = layout_pages()
     pgs = bp + pp
     page = max(0, min(int(page), len(pgs) - 1))
     pg = pgs[page]
     labels = [f"Page {i + 1}" for i in range(len(bp))] + [f"Tableau des prix {i + 1}/{len(pp)}" for i in range(len(pp))]
-    img = render_png.render_page(pg, dpi=dpi)
-    buf = io.BytesIO()
-    img.save(buf, "PNG")
     k = dpi / 25.4
-    hot = [{"isbn": h["isbn"], "x": h["x"] * k, "y": h["y"] * k, "w": h["w"] * k, "h": h["h"] * k} for h in pg.hot]
+    hot = [dict(h, x=h["x"] * k, y=h["y"] * k, w=h["w"] * k, h=h["h"] * k) for h in pg.hot]
     where = {}
-    for i, p in enumerate(pgs):
+    for i, p in enumerate(bp):
         for h in p.hot:
-            where[h["isbn"]] = i
-    return {"count": len(pgs), "page": page, "label": labels[page], "image": "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode(),
-            "w": img.width, "h": img.height, "hot": hot, "where": where}
+            where.setdefault(h["isbn"], i)
+    return {"count": len(pgs), "page": page, "label": labels[page], "rev": rev, "table_start": len(bp) if pp else None,
+            "w": round(pg.w * k), "h": round(pg.h * k), "hot": hot, "where": where}
+
+
+def page_png(n, dpi=100):
+    rev, bp, pp = layout_pages()
+    pgs = bp + pp
+    n = max(0, min(int(n), len(pgs) - 1))
+    key = (rev, n, dpi)
+    with PNG_LOCK:
+        data = PNGS.get(key)
+    if data is None:
+        buf = io.BytesIO()
+        render_png.render_page(pgs[n], dpi=dpi).save(buf, "PNG", compress_level=1)
+        data = buf.getvalue()
+        with PNG_LOCK:
+            PNGS[key] = data
+            while len(PNGS) > 80:
+                PNGS.popitem(last=False)
+    return data
 
 
 def generate(out_dir, name, want_pdf=True, want_pptx=False):
@@ -266,7 +302,7 @@ def open_file(path):
 
 
 EDITABLE = ("titre", "auteurs", "resume", "date", "collection", "editeur", "pages", "illustrations", "dimensions", "prix",
-            "edition", "taux", "titre_tableau")
+            "edition", "taux", "titre_tableau", "prix_ar")
 
 
 def update_book(isbn, fields):
@@ -285,6 +321,12 @@ def update_book(isbn, fields):
                 v = [x.strip() for x in (v if isinstance(v, list) else str(v).split("\n")) if x.strip()]
             elif k == "prix":
                 v = importer.parse_price(v)
+            elif k == "prix_ar":
+                tv = re.sub(r"[^\d.,]", "", str(v or "")).replace(",", ".")
+                try:
+                    v = int(round(float(tv))) if tv else ""
+                except ValueError:
+                    v = ""
             elif k == "taux":
                 tv = str(v or "").replace(",", ".").replace(" ", "")
                 try:
@@ -294,7 +336,7 @@ def update_book(isbn, fields):
             else:
                 v = str(v or "").strip() if k != "resume" else re.sub(r"\s+", " ", str(v or "")).strip()
             b[k] = v
-            if k not in ("prix", "taux") and k not in b["edited"]:
+            if k not in ("prix", "taux", "prix_ar") and k not in b["edited"]:
                 b["edited"].append(k)
         save()
         return catalog.public(b)
@@ -389,6 +431,11 @@ class Handler(BaseHTTPRequestHandler):
                 data = open(fp, "rb").read()
             return self._send(200, data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                               {"Content-Disposition": 'attachment; filename="Modele-ISBN-catalogue-CMPL.xlsx"'})
+        if path == "/api/page.png":
+            m = re.search(r"n=(\d+)", query)
+            d = re.search(r"dpi=(\d+)", query)
+            return self._send(200, page_png(int(m.group(1)) if m else 0, max(40, min(int(d.group(1)) if d else 100, 200))),
+                              "image/png", {"Cache-Control": "private, max-age=600"})
         if path == "/api/cover":
             m = re.search(r"isbn=(\d+)", query)
             b = find(m.group(1)) if m else None
@@ -550,7 +597,7 @@ class Handler(BaseHTTPRequestHandler):
                     save()
                 return self._send(200, {"n": n, "state": public_state()})
             if path == "/api/preview":
-                return self._send(200, preview(b.get("page", 0), int(b.get("dpi", 90))))
+                return self._send(200, preview(b.get("page", 0), int(b.get("dpi", 100))))
             if path == "/api/generate":
                 s = store.load_settings()
                 r = generate(b.get("out_dir") or s["out_dir"], b.get("name", ""), bool(b.get("pdf", True)), bool(b.get("pptx", False)))
@@ -578,6 +625,7 @@ class Handler(BaseHTTPRequestHandler):
                     if patch["claude_key"].startswith("••"):
                         patch.pop("claude_key")
                 store.update_settings(patch)
+                REV["n"] += 1
                 return self._send(200, {"settings": public_settings(store.load_settings())})
             if path == "/api/browse":
                 return self._send(200, {"path": browse_folder(b.get("initial"))})

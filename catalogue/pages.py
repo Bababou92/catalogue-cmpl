@@ -1,6 +1,8 @@
 """Mise en page des pages de livres (A4, deux colonnes, comme le flyer du CMPL)."""
+import dataclasses
 import os
 import re
+from collections import OrderedDict
 from functools import lru_cache
 
 from PIL import Image
@@ -138,6 +140,33 @@ def entry_layout(book, x, y, col_w=COL_W):
     return els, total
 
 
+_ENTRY_CACHE = OrderedDict()
+_KEYS = ("isbn", "titre", "auteurs", "resume", "date", "collection", "editeur", "pages", "illustrations", "dimensions")
+
+
+def _shift(els, dx, dy):
+    return [dataclasses.replace(e, x=e.x + dx, y=e.y + dy) for e in els]
+
+
+def entry_cached(book):
+    """Mise en page d'une notice en (0, 0), gardée en mémoire tant que le livre ne change pas."""
+    p = book.get("cover_path") or ""
+    try:
+        sig = (p, os.path.getmtime(p)) if p and os.path.isfile(p) else ("", 0)
+    except OSError:
+        sig = ("", 0)
+    key = (sig,) + tuple(repr(book.get(k)) for k in _KEYS)
+    hit = _ENTRY_CACHE.get(key)
+    if hit is None:
+        hit = entry_layout(book, 0.0, 0.0)
+        _ENTRY_CACHE[key] = hit
+        while len(_ENTRY_CACHE) > 600:
+            _ENTRY_CACHE.popitem(last=False)
+    else:
+        _ENTRY_CACHE.move_to_end(key)
+    return hit
+
+
 def build_pages(books, name="Catalogue"):
     """Répartit les livres sur des pages A4. Retourne une liste de Page (avec .hot = zones cliquables)."""
     pages = []
@@ -157,13 +186,12 @@ def build_pages(books, name="Catalogue"):
         laid = []
         for c, b in enumerate(row):
             x = MARGIN_X + c * (COL_W + GUTTER)
-            laid.append((b, x) + entry_layout(b, x, 0.0))
+            laid.append((b, x) + entry_cached(b))
         h = max(l[3] for l in laid)
         if cur is None or (y + h > limit and y > MARGIN_TOP + 1):
             cur, y = new_page(), MARGIN_TOP
         for b, x, els, eh in laid:
-            els2, _ = entry_layout(b, x, y)
-            cur.elements.extend(els2)
+            cur.elements.extend(_shift(els, x, y))
             cur.hot.append({"isbn": b["isbn"], "x": x, "y": y, "w": COL_W, "h": h})
         y += h
         i += 2

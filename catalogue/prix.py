@@ -27,6 +27,8 @@ MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août
 MOIS_ABR = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."]
 EDITEURS_COURTS = {"ARMAND COLIN": "A.COLIN"}
 
+FIELDS = ["titre_tableau", "auteurs", "edition", "date", "fiche", "editeur", "prix", "prix_ar"]     # champ modifié par chaque colonne
+
 # (titre de colonne, largeur relative, alignement)
 COLS = [("Titre", 56, "l"), ("Auteurs", 50, "l"), ("Edition", 12, "c"), ("Date de parution", 22, "c"), ("ISBN", 30, "c"),
         ("Editeur", 30, "c"), ("Prix France (Euros) pour info", 24, "r"), ("Prix Cmpl (Ariary)", 26, "r")]
@@ -106,6 +108,28 @@ def publisher_cell(book):
     return e
 
 
+def _taux_of(book, taux):
+    t = book.get("taux")
+    try:
+        t = float(str(t).replace(",", ".")) if t not in (None, "") else None
+    except ValueError:
+        t = None
+    return t or taux
+
+
+def _edit_value(book, field):
+    """Valeur proposée dans le mini-éditeur du tableau."""
+    if field == "titre_tableau":
+        return short_title(book)
+    if field == "auteurs":
+        return "\n".join(book.get("auteurs") or [])
+    if field == "prix":
+        return "" if book.get("prix") in (None, "") else str(book["prix"]).replace(".", ",")
+    if field == "prix_ar":
+        return "" if book.get("prix_ar") in (None, "") else str(book["prix_ar"])
+    return str(book.get(field) or "")
+
+
 def row_values(book, taux, arrondi=1):
     t = book.get("taux")
     try:
@@ -114,6 +138,12 @@ def row_values(book, taux, arrondi=1):
         t = None
     pr = book.get("prix")
     ar = ariary(pr, t or taux, arrondi) if pr not in (None, "") else None
+    forced = book.get("prix_ar")
+    if forced not in (None, ""):
+        try:
+            ar = int(float(str(forced).replace(",", ".").replace(" ", "")))
+        except ValueError:
+            pass
     return [short_title(book), authors_cell(book), str(book.get("edition") or ""), fmt_date(book.get("date")),
             fmt_isbn(book.get("isbn")), publisher_cell(book), fmt_eur(pr) if pr not in (None, "") else "", fmt_int(ar)]
 
@@ -193,7 +223,7 @@ def build_pages(books, titre="Catalogue", indicatif=None, taux=3366, arrondi=1):
             hh = _h(paras, w - 2 * PAD)
             cells.append(paras)
             hmax = max(hmax, hh)
-        rows.append((cells, max(5.4, hmax + 2 * PAD + 0.4)))
+        rows.append((cells, max(5.4, hmax + 2 * PAD + 0.4), b))
     # répartition sur les pages
     groups, cur, used = [], [], top + head_h
     for r in rows:
@@ -210,10 +240,13 @@ def build_pages(books, titre="Catalogue", indicatif=None, taux=3366, arrondi=1):
         pg.hot = []
         _header(pg, titre, indicatif, n, len(groups))
         y = _table_head(pg, top, widths, head_h)
-        for cells, rh in grp:
-            for x, w, paras in zip(xs, widths, cells):
+        for cells, rh, b in grp:
+            auto = ariary(b.get("prix"), _taux_of(b, taux), arrondi) if b.get("prix") not in (None, "") else None
+            for x, w, paras, field in zip(xs, widths, cells, FIELDS):
                 if paras:
                     pg.elements.append(TextBox(x, y, w, rh, paras, anchor="m", inset=PAD, name="Cellule"))
+                pg.hot.append({"isbn": b.get("isbn"), "field": field, "x": x, "y": y, "w": w, "h": rh,
+                               "v": _edit_value(b, field), "auto": fmt_int(auto) if field == "prix_ar" else ""})
             pg.elements.append(Rect(MARGIN, y + rh - line, sum(widths), line, fill=GRID, name="Filet"))
             y += rh
         bottom = y

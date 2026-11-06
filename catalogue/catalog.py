@@ -6,13 +6,13 @@ import time
 from . import ai, isbn as isbnlib, sources, store
 
 FIELDS = ("titre", "auteurs", "resume", "date", "collection", "editeur", "pages", "illustrations", "dimensions", "prix",
-          "edition", "taux", "titre_tableau")
+          "edition", "taux", "titre_tableau", "prix_ar")
 
 
 def new_book(isbn, **kw):
     b = {"isbn": isbn, "titre": "", "auteurs": [], "resume": "", "date": "", "collection": "", "editeur": "",
          "pages": "", "illustrations": "", "dimensions": "", "prix": None, "sujets": [],
-         "edition": "", "taux": "", "titre_tableau": "",
+         "edition": "", "taux": "", "titre_tableau": "", "prix_ar": "",
          "resume_ia": False, "cover_path": "", "cover_origin": "", "cover_log": [], "titre_origin": "", "dispo": "", "dilicom": {}, "edited": [], "fetched": False, "errors": []}
     b.update(kw)
     return b
