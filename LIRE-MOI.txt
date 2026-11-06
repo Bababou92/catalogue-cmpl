@@ -1,0 +1,35 @@
+GENERATEUR DE CATALOGUE CMPL
+============================
+
+Lancer
+------
+Double-clic sur Catalogue-CMPL.exe : l'interface s'ouvre dans le navigateur. Pour quitter : fermer l'onglet.
+
+En 4 etapes
+-----------
+1. Importer un fichier (bouton "Importer un fichier", ou le glisser sur la page) : Excel (.xlsx) ou CSV,
+   une ligne par livre : l'ISBN (avec ou sans tirets) et le prix public en euros. La collection est facultative.
+   Le bouton "Telecharger le modele Excel" donne un fichier tout pret. On peut aussi coller des ISBN a la main.
+2. "Recuperer les infos" : le programme cherche titre, auteurs, resume, date, collection, editeur, pages et couverture.
+   Une pastille indique l'etat de chaque livre : vert = complet, orange = a completer, rouge = introuvable.
+3. Corriger : cliquer sur un livre (dans la liste ou sur l'apercu) pour modifier tous les champs. L'apercu se met a jour.
+4. "Generer le catalogue" : PDF (texte selectionnable) et/ou PowerPoint modifiable, dans le dossier choisi.
+
+Cle Google Books (une seule fois)
+---------------------------------
+Sans cle, le programme ne trouve que la fiche technique (BnF). Avec une cle gratuite, il trouve aussi les resumes,
+les dates exactes et parfois les couvertures. Reglages > "Comment obtenir la cle" (5 minutes, gratuit).
+
+Couvertures
+-----------
+- Si une couverture est trouvee automatiquement et qu'elle est marquee "a verifier", verifier que c'est la bonne.
+- Sinon : bouton "Chercher sur Internet" (ouvre une recherche d'images avec l'ISBN), puis copier l'image et faire
+  Ctrl+V sur le livre ouvert, ou la glisser dessus, ou "Choisir une image...".
+- Les images sont gardees dans le dossier des couvertures (Reglages), nommees avec l'ISBN : au prochain catalogue,
+  elles sont reprises toutes seules. On peut aussi y deposer ses propres images (ex. 9782100870165.jpg).
+
+Bon a savoir
+------------
+- Ce que tu corriges a la main n'est jamais ecrase par une nouvelle recherche.
+- Les informations viennent de sources publiques et peuvent contenir des erreurs : toujours relire.
+- Le catalogue en cours est garde automatiquement : il est retrouve au prochain lancement.

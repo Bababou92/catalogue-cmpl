@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catalogue CMPL</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<style>
+  :root{
+    --bg:#f3f4f7; --card:#fff; --ink:#1d2433; --muted:#6a7386; --line:#dfe3ea; --accent:#294364; --accent-2:#3b5f8f;
+    --ok:#1f7a45; --warn:#b26a00; --bad:#b3261e; --radius:10px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font:14px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  header{display:flex;align-items:center;gap:12px;padding:8px 18px;background:var(--accent);color:#fff;position:sticky;top:0;z-index:5;flex-wrap:wrap}
+  header h1{font-size:16px;margin:0;font-weight:600;flex:1;min-width:180px;white-space:nowrap}
+  header h1 small{opacity:.7;font-weight:400;margin-left:6px}
+  header button{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.28);padding:7px 12px;border-radius:7px;cursor:pointer;font:inherit}
+  header button:hover{background:rgba(255,255,255,.24)}
+  header button:disabled{opacity:.4;cursor:default}
+  header button.hgen{background:#fff;color:var(--accent);border:0;font-weight:700;font-size:15px;padding:9px 20px;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+  header button.hgen:hover{background:#eaf1fb}
+  header button.hfetch{background:#3b8f5f;border-color:#3b8f5f;font-weight:600}
+  header button.hfetch:hover{background:#44a56e}
+  main{display:grid;grid-template-columns:minmax(380px,450px) 1fr;gap:16px;padding:14px 18px;align-items:start}
+  @media(max-width:980px){main{grid-template-columns:1fr}}
+  .hide{display:none!important}
+  .btn{padding:8px 14px;border-radius:8px;border:1px solid var(--accent);background:#fff;color:var(--accent);cursor:pointer;font:inherit;font-weight:600}
+  .btn.primary{background:var(--accent);color:#fff}
+  .btn.primary:hover{background:var(--accent-2)}
+  .btn.small{padding:4px 10px;font-size:12.5px;font-weight:500}
+  .btn:disabled{opacity:.5;cursor:default}
+  input[type=text],input[type=number],input[type=password],textarea,select{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:7px;font:inherit;background:#fff;color:var(--ink)}
+  textarea{resize:vertical}
+  label{display:block;font-size:12px;color:var(--muted);margin:9px 0 3px;font-weight:600}
+  label small{font-weight:400}
+  .hint{color:var(--muted);font-size:12px;margin-top:3px}
+  /* liste */
+  .listhead{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+  .listhead b{flex:1}
+  .legend{font-size:12px;color:var(--muted)}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#bbb;flex:none}
+  .dot.vert{background:var(--ok)}.dot.orange{background:#e8a317}.dot.rouge{background:var(--bad)}.dot.gris{background:#b7bdc9}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:8px;overflow:hidden}
+  .card.sel{border-color:var(--accent-2);box-shadow:0 0 0 2px rgba(59,95,143,.25)}
+  .chead{display:flex;gap:10px;align-items:center;padding:8px 10px;cursor:pointer}
+  .chead:hover{background:#f8f9fc}
+  .thumb{width:38px;height:54px;border-radius:3px;background:#e3e6eb center/cover no-repeat;flex:none;border:1px solid #d3d8e0;font-size:9px;color:#7a8394;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.1}
+  .cinfo{flex:1;min-width:0}
+  .ctitle{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .csub{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cstat{font-size:12px;display:flex;gap:6px;align-items:center;margin-top:1px}
+  .cstat.orange{color:var(--warn)}.cstat.rouge{color:var(--bad)}.cstat.vert{color:var(--ok)}.cstat.gris{color:var(--muted)}
+  .cbtns{display:flex;flex-direction:column;gap:2px}
+  .cbtns button{border:0;background:none;color:var(--muted);cursor:pointer;font-size:13px;padding:0 4px;line-height:1.2}
+  .cbtns button:hover{color:var(--ink)}
+  .cbody{border-top:1px solid var(--line);padding:4px 12px 12px;background:#fbfcfe}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 10px}
+  .covbox{display:flex;gap:12px;margin-top:10px;padding:10px;border:1px dashed #b8c1d1;border-radius:8px;background:#fff;align-items:flex-start}
+  .covbox.drag{background:#eaf1fb;border-color:var(--accent-2)}
+  .covbox .thumb{width:70px;height:100px;font-size:11px}
+  .covbox .acts{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+  .badge{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;background:#fff4dd;color:var(--warn)}
+  .badge.ok{background:#e4f5ea;color:var(--ok)}
+  .cnt{float:right;font-weight:400;color:var(--muted)}
+  /* aperçu */
+  .prev{position:sticky;top:64px}
+  .prevbox{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px}
+  .pnav{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .pnav .grow{flex:1;text-align:center;font-weight:600}
+  .pnav button{padding:4px 12px}
+  .pwrap{position:relative;display:inline-block;line-height:0;max-width:100%}
+  .pwrap img{display:block;max-width:100%;height:auto;box-shadow:0 2px 12px rgba(20,30,50,.25);background:#fff}
+  .pwrap .hs{position:absolute;cursor:pointer;border-radius:3px}
+  .pwrap .hs:hover{outline:2px dashed rgba(59,140,255,.8);background:rgba(59,140,255,.06)}
+  .pwrap .hs.act{outline:2px solid rgba(59,95,143,.9);background:rgba(59,95,143,.07)}
+  .pcenter{text-align:center;overflow:auto;max-height:calc(100vh - 170px)}
+  /* vide */
+  main.vide{grid-template-columns:1fr}
+  main.vide .empty{max-width:680px;margin:40px auto}
+  .empty{background:var(--card);border:2px dashed #b8c1d1;border-radius:14px;padding:34px 26px;text-align:center}
+  .empty.drag{background:#eaf1fb;border-color:var(--accent-2)}
+  .empty h2{margin:0 0 6px;font-size:19px}
+  .empty p{color:var(--muted);margin:4px 0 16px}
+  .empty .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .empty a{color:var(--accent-2);cursor:pointer}
+  /* barre de progression */
+  .progress{display:flex;gap:12px;align-items:center;background:#fff7e0;border:1px solid #e8d28a;color:#5a4400;padding:8px 12px;border-radius:9px;margin-bottom:10px}
+  .progress .bar{flex:1;height:8px;border-radius:4px;background:#ecdfb0;overflow:hidden}
+  .progress .bar i{display:block;height:100%;width:0;background:var(--accent-2);transition:width .3s}
+  .note{background:#eef3fb;border:1px solid #cfdcf0;color:#27415f;padding:8px 12px;border-radius:9px;margin-bottom:10px;font-size:13px}
+  .note.warn{background:#fff4dd;border-color:#ecd49a;color:#6a4a00}
+  /* fenêtres */
+  .modal{position:fixed;inset:0;background:rgba(20,28,43,.55);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto}
+  .mbox{background:#fff;border-radius:12px;width:100%;max-width:560px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+  .mhead{display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+  .mhead h3{margin:0;flex:1;font-size:17px}
+  .mbody{padding:16px 18px}
+  .mfoot{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+  .xbtn{border:0;background:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1}
+  .steps{margin:6px 0 0;padding-left:20px;font-size:13px}
+  .steps li{margin:3px 0}
+  code.path{font-family:Consolas,monospace;font-size:12px;background:#f0f2f6;padding:1px 5px;border-radius:4px;word-break:break-all}
+  .row2{display:flex;gap:8px;align-items:center}
+  .chk{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink);font-weight:400;margin:6px 0}
+  .chk input{width:auto}
+  .problems{margin:8px 0 0;padding-left:18px;color:var(--bad);font-size:13px}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1d2433;color:#fff;padding:10px 16px;border-radius:9px;z-index:90;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>Catalogue CMPL <small id="ver"></small></h1>
+  <button id="b-import" title="Charger un fichier Excel / CSV avec les ISBN">Importer un fichier</button>
+  <button id="b-add" title="Coller quelques ISBN">Ajouter des ISBN</button>
+  <button id="b-fetch" class="hfetch" title="Chercher titre, auteurs, résumé, couverture… pour chaque ISBN" disabled>Récupérer les infos</button>
+  <button id="b-set" title="Clé Google, dossiers…">Réglages</button>
+  <button id="b-new" title="Vider le catalogue">Nouveau</button>
+  <button id="b-gen" class="hgen" disabled>Générer le catalogue</button>
+  <input type="file" id="f-import" accept=".xlsx,.csv,.txt,.tsv" class="hide">
+  <input type="file" id="f-cover" accept="image/*" class="hide">
+</header>
+<main id="main">
+  <div id="left">
+    <div id="progress" class="progress hide"><span id="pg-txt">Récupération…</span><div class="bar"><i id="pg-bar"></i></div><button class="btn small" id="pg-cancel">Arrêter</button></div>
+    <div id="notes"></div>
+    <div id="empty" class="empty hide">
+      <h2>Commence avec ton fichier d'ISBN</h2>
+      <p>Glisse ici un fichier Excel ou CSV : une ligne par livre, avec l'ISBN et le prix public en euros.<br>Le programme cherche ensuite tout seul les titres, auteurs, résumés et couvertures.</p>
+      <div class="row">
+        <button class="btn primary" id="e-import">Choisir un fichier</button>
+        <button class="btn" id="e-add">Coller des ISBN</button>
+        <button class="btn" id="e-tpl">Télécharger le modèle Excel</button>
+      </div>
+    </div>
+    <div id="listwrap" class="hide">
+      <div class="listhead"><b id="list-title">Livres</b>
+        <span class="legend"><span class="dot vert"></span> complet &nbsp;<span class="dot orange"></span> à compléter &nbsp;<span class="dot rouge"></span> introuvable &nbsp;<span class="dot gris"></span> pas encore cherché</span>
+      </div>
+      <div id="list"></div>
+    </div>
+  </div>
+  <div class="prev" id="prev">
+    <div class="prevbox">
+      <div class="pnav"><button class="btn small" id="p-prev">◀</button><div class="grow" id="p-lab">—</div><button class="btn small" id="p-next">▶</button></div>
+      <div class="pcenter"><div class="pwrap" id="pwrap"><img id="pimg" alt="Aperçu de la page"><div id="phot"></div></div></div>
+      <div class="hint" id="p-hint">Clique sur un livre dans l'aperçu pour le modifier.</div>
+    </div>
+  </div>
+</main>
+
+<div class="modal hide" id="m-add"><div class="mbox">
+  <div class="mhead"><h3>Ajouter des ISBN</h3><button class="xbtn" id="ma-x">✕</button></div>
+  <div class="mbody"><label style="margin-top:0">Un ISBN par ligne (avec ou sans tirets)</label>
+    <textarea id="ma-text" rows="7" placeholder="9782100870165&#10;978-2-200-61154-5"></textarea><div id="ma-pb"></div></div>
+  <div class="mfoot"><button class="btn" id="ma-cancel">Annuler</button><button class="btn primary" id="ma-ok">Ajouter</button></div>
+</div></div>
+
+<div class="modal hide" id="m-set"><div class="mbox">
+  <div class="mhead"><h3>Réglages</h3><button class="xbtn" id="ms-x">✕</button></div>
+  <div class="mbody">
+    <label style="margin-top:0">Clé Google Books <small>— pour les résumés, les dates exactes et les couvertures</small></label>
+    <input type="password" id="s-key" placeholder="Colle ta clé ici" autocomplete="off">
+    <div class="hint" id="s-keyhint"></div>
+    <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--muted);font-size:13px">Comment obtenir la clé (gratuit, 5 minutes)</summary>
+      <ol class="steps"><li>Va sur <b>console.cloud.google.com</b> avec un compte Google et crée un projet.</li>
+        <li>« API et services » → « Bibliothèque » → cherche <b>Books API</b> → Activer.</li>
+        <li>« Identifiants » → « Créer des identifiants » → « Clé API », puis copie-la ici.</li></ol></details>
+    <label>Dossier où créer les catalogues</label>
+    <div class="row2"><input type="text" id="s-out"><button class="btn small" id="s-browse1">Parcourir…</button></div>
+    <label>Dossier des couvertures <small>— tes images nommées avec l'ISBN (ex. 9782100870165.jpg) y sont reprises automatiquement</small></label>
+    <div class="row2"><input type="text" id="s-cov"><button class="btn small" id="s-browse2">Parcourir…</button><button class="btn small" id="s-opencov">Ouvrir</button></div>
+    <label>Longueur maximale des résumés <small>(caractères)</small></label>
+    <input type="number" id="s-max" min="150" max="1500" step="10" style="max-width:140px">
+  </div>
+  <div class="mfoot"><button class="btn" id="ms-cancel">Annuler</button><button class="btn primary" id="ms-ok">Enregistrer</button></div>
+</div></div>
+
+<div class="modal hide" id="m-confirm"><div class="mbox">
+  <div class="mhead"><h3 id="c-title"></h3></div>
+  <div class="mbody" id="c-body"></div>
+  <div class="mfoot"><button class="btn" id="c-cancel"></button><button class="btn primary" id="c-ok"></button></div>
+</div></div>
+
+<div class="modal hide" id="m-gen"><div class="mbox">
+  <div class="mhead"><h3 id="g-title">Générer le catalogue</h3><button class="xbtn" id="g-x">✕</button></div>
+  <div class="mbody" id="g-body"></div>
+  <div class="mfoot" id="g-foot"></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const TOKEN = "__TOKEN__";
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const api = async (path, body) => {
+  const r = await fetch(path, {method: "POST", headers: {"X-Token": TOKEN, "Content-Type": "application/json"}, body: JSON.stringify(body || {})});
+  let j = {}; try { j = await r.json(); } catch (e) {}
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+};
+const show = id => $(id).classList.remove("hide"), hide = id => $(id).classList.add("hide");
+let toastT = null;
+function toast(msg){ const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 3500); }
+function confirmBox(title, html, ok, cancel){
+  return new Promise(res => {
+    $("c-title").textContent = title; $("c-body").innerHTML = html; $("c-ok").textContent = ok || "Continuer"; $("c-cancel").textContent = cancel || "Retour";
+    show("m-confirm");
+    const done = v => { hide("m-confirm"); $("c-ok").onclick = $("c-cancel").onclick = null; res(v); };
+    $("c-ok").onclick = () => done(true); $("c-cancel").onclick = () => done(false);
+  });
+}
+const fileB64 = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.onerror = rej; r.readAsDataURL(f); });
+
+// ------------------------------------------------------------ état
+let S = {books: [], settings: {}, meta: {}};
+let sel = null, page = 0, where = {}, covRev = {};
+const byIsbn = i => S.books.find(b => b.isbn === i);
+
+function setState(st){
+  S.books = st.books; S.settings = st.settings || S.settings; S.meta = st.meta || S.meta;
+  renderAll();
+}
+
+// ------------------------------------------------------------ liste
+const ILLS = [["", "(aucune)"], ["illustrations en noir et blanc", "en noir et blanc"], ["illustrations en couleur", "en couleur"], ["illustrations en noir et en couleur", "noir et couleur"]];
+function coverStyle(b){ return b.has_cover ? `style="background-image:url('/api/cover?isbn=${b.isbn}&t=${TOKEN}&v=${covRev[b.isbn] || 0}')"` : ""; }
+function headHTML(b){
+  const authors = (b.auteurs || []).join(" · ");
+  return `<div class="thumb" ${coverStyle(b)}>${b.has_cover ? "" : "sans couv."}</div>
+    <div class="cinfo"><div class="ctitle">${esc(b.titre || "(titre à saisir)")}</div>
+      <div class="csub">${esc(b.isbn)}${authors ? " · " + esc(authors) : ""}</div>
+      <div class="cstat ${b.statut}"><span class="dot ${b.statut}"></span>${esc(b.statut_txt)}</div></div>
+    <div class="cbtns"><button data-act="up" title="Monter">▲</button><button data-act="down" title="Descendre">▼</button><button data-act="del" title="Retirer du catalogue">✕</button></div>`;
+}
+function bodyHTML(b){
+  const ill = ILLS.map(([v, l]) => `<option value="${esc(v)}" ${b.illustrations === v ? "selected" : ""}>${esc(l)}</option>`).join("");
+  const o = b.cover_origin;
+  const covState = !b.has_cover ? `<span class="badge">pas de couverture</span>` : o === "google?" ? `<span class="badge">à vérifier : est-ce la bonne ?</span>` : `<span class="badge ok">couverture ${o === "manuel" ? "ajoutée" : o === "dossier" ? "du dossier" : "trouvée"}</span>`;
+  return `<div class="covbox" data-drop="${b.isbn}">
+      <div class="thumb" ${coverStyle(b)}>${b.has_cover ? "" : "aucune"}</div>
+      <div class="acts">${covState}
+        <div class="hint" style="margin:0">Glisse une image ici, ou colle-la avec Ctrl+V.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn small" data-act="search">Chercher sur Internet</button>
+          <button class="btn small" data-act="pick">Choisir une image…</button>
+          ${o === "google?" ? `<button class="btn small" data-act="okcov">✓ C'est la bonne</button>` : ""}
+          ${b.has_cover ? `<button class="btn small" data-act="nocov">Retirer</button>` : ""}
+        </div></div></div>
+    <label>Titre</label><input type="text" data-f="titre" value="${esc(b.titre)}">
+    <label>Auteurs <small>— un par ligne, « Nom, Prénom »</small></label><textarea data-f="auteurs" rows="${Math.max(2, Math.min(6, (b.auteurs || []).length + 1))}">${esc((b.auteurs || []).join("\n"))}</textarea>
+    <label>Résumé <span class="cnt" data-cnt>${(b.resume || "").length} car.</span></label><textarea data-f="resume" rows="6">${esc(b.resume)}</textarea>
+    <div class="grid2"><div><label>Date de parution</label><input type="text" data-f="date" value="${esc(b.date)}" placeholder="28/08/2024"></div>
+      <div><label>Prix public (€)</label><input type="text" data-f="prix" value="${b.prix == null ? "" : esc(String(b.prix).replace(".", ","))}"></div></div>
+    <div class="grid2"><div><label>Éditeur</label><input type="text" data-f="editeur" value="${esc(b.editeur)}"></div>
+      <div><label>Collection</label><input type="text" data-f="collection" value="${esc(b.collection)}"></div></div>
+    <div class="grid3"><div><label>Pages</label><input type="text" data-f="pages" value="${esc(b.pages)}" placeholder="XII-369"></div>
+      <div><label>Dimensions</label><input type="text" data-f="dimensions" value="${esc(b.dimensions)}" placeholder="24 x 17 cm"></div>
+      <div><label>Illustrations</label><select data-f="illustrations">${ill}</select></div></div>
+    ${(b.errors || []).length ? `<div class="hint" style="color:var(--warn);margin-top:8px">⚠ ${esc(b.errors.join(" · "))}</div>` : ""}
+    <div style="margin-top:10px;display:flex;gap:8px"><button class="btn small" data-act="refetch">Chercher à nouveau les infos</button></div>`;
+}
+function cardEl(b){
+  const d = document.createElement("div");
+  d.className = "card" + (sel === b.isbn ? " sel" : ""); d.dataset.isbn = b.isbn;
+  d.innerHTML = `<div class="chead">${headHTML(b)}</div>` + (sel === b.isbn ? `<div class="cbody">${bodyHTML(b)}</div>` : "");
+  return d;
+}
+function renderList(){
+  const box = $("list"); box.innerHTML = "";
+  S.books.forEach(b => box.appendChild(cardEl(b)));
+}
+function replaceCard(b, force){
+  const old = document.querySelector(`.card[data-isbn="${b.isbn}"]`);
+  if (!old) return;
+  if (!force && old.contains(document.activeElement) && old.querySelector(".cbody")) {      // on ne casse pas la saisie en cours
+    old.querySelector(".chead").innerHTML = headHTML(b);
+    return;
+  }
+  old.replaceWith(cardEl(b));
+}
+function renderAll(){
+  const n = S.books.length;
+  $("main").classList.toggle("vide", n === 0); $("empty").classList.toggle("hide", n > 0); $("listwrap").classList.toggle("hide", n === 0); $("prev").classList.toggle("hide", n === 0);
+  const todo = S.books.filter(b => !b.fetched).length;
+  $("b-fetch").disabled = n === 0; $("b-gen").disabled = n === 0;
+  $("b-fetch").textContent = todo ? `Récupérer les infos (${todo})` : "Récupérer les infos";
+  const ok = S.books.filter(b => b.statut === "vert").length, to = S.books.filter(b => b.statut === "orange").length, bad = S.books.filter(b => b.statut === "rouge").length;
+  $("list-title").textContent = `${n} livre${n > 1 ? "s" : ""}` + (n && todo === 0 ? ` — ${ok} complet${ok > 1 ? "s" : ""}, ${to} à compléter${bad ? ", " + bad + " introuvable" + (bad > 1 ? "s" : "") : ""}` : "");
+  renderNotes(); renderList(); schedulePreview();
+}
+function renderNotes(){
+  const box = $("notes"); box.innerHTML = "";
+  if (S.books.length && !S.settings.google_key_set) {
+    box.innerHTML = `<div class="note warn">Pas de clé Google Books : tu n'auras ni les résumés ni les dates exactes. <a href="#" id="n-set">Ajouter la clé</a></div>`;
+    $("n-set").onclick = e => { e.preventDefault(); openSettings(); };
+  }
+}
+
+// clics sur la liste
+$("list").addEventListener("click", async e => {
+  const card = e.target.closest(".card"); if (!card) return;
+  const isbn = card.dataset.isbn, act = e.target.dataset && e.target.dataset.act;
+  if (act === "up" || act === "down") { const r = await api("/api/book/move", {isbn, dir: act === "up" ? -1 : 1}); setState(r.state); return; }
+  if (act === "del") {
+    if (await confirmBox("Retirer ce livre ?", `<div>${esc(byIsbn(isbn).titre || isbn)}</div>`, "Retirer", "Garder")) { const r = await api("/api/book/remove", {isbn}); if (sel === isbn) sel = null; setState(r.state); }
+    return;
+  }
+  if (act === "search") { window.open("https://www.google.com/search?tbm=isch&q=" + encodeURIComponent("ISBN " + isbn + " " + (byIsbn(isbn).titre || "")), "_blank"); return; }
+  if (act === "pick") { coverTarget = isbn; $("f-cover").value = ""; $("f-cover").click(); return; }
+  if (act === "nocov") { const r = await api("/api/cover/clear", {isbn}); bump(r.book); return; }
+  if (act === "okcov") { const r = await api("/api/cover/confirm", {isbn}); bump(r.book, true); return; }
+  if (act === "refetch") { startFetch([isbn], true); return; }
+  if (e.target.closest(".chead")) selectBook(sel === isbn ? null : isbn, true);
+});
+function selectBook(isbn, fromList){
+  const prevSel = sel; sel = isbn;
+  if (prevSel) { const b = byIsbn(prevSel); b && replaceCard(b, true); }
+  if (isbn) {
+    const b = byIsbn(isbn); b && replaceCard(b, true);
+    const el = document.querySelector(`.card[data-isbn="${isbn}"]`); el && el.scrollIntoView({block: "nearest", behavior: "smooth"});
+    if (where[isbn] != null && where[isbn] !== page) { page = where[isbn]; loadPreview(); } else markHot();
+  } else markHot();
+}
+function bump(b, force){ covRev[b.isbn] = (covRev[b.isbn] || 0) + 1; mergeBook(b); replaceCard(byIsbn(b.isbn), true); renderAllLight(); schedulePreview(); }
+function mergeBook(nb){ const i = S.books.findIndex(x => x.isbn === nb.isbn); if (i >= 0) S.books[i] = nb; }
+function renderAllLight(){ const n = S.books.length, todo = S.books.filter(b => !b.fetched).length; $("b-fetch").textContent = todo ? `Récupérer les infos (${todo})` : "Récupérer les infos"; }
+
+// saisie dans les champs
+let saveT = {};
+$("list").addEventListener("input", e => {
+  const f = e.target.dataset && e.target.dataset.f; if (!f) return;
+  const card = e.target.closest(".card"), isbn = card.dataset.isbn;
+  if (f === "resume") card.querySelector("[data-cnt]").textContent = e.target.value.length + " car.";
+  clearTimeout(saveT[isbn]);
+  saveT[isbn] = setTimeout(async () => {
+    const fields = {}; card.querySelectorAll("[data-f]").forEach(el => fields[el.dataset.f] = el.value);
+    try { const r = await api("/api/book/update", {isbn, fields}); mergeBook(r.book); card.querySelector(".chead").innerHTML = headHTML(r.book); schedulePreview(); }
+    catch (er) { toast(er.message); }
+  }, 450);
+});
+
+// couvertures : fichier, glisser-déposer, Ctrl+V
+let coverTarget = null;
+async function uploadCover(isbn, file){
+  if (!file || !isbn) return;
+  try { const r = await api("/api/cover/upload", {isbn, data: await fileB64(file)}); bump(r.book); toast("✓ Couverture ajoutée"); }
+  catch (e) { toast(e.message); }
+}
+$("f-cover").onchange = e => { uploadCover(coverTarget, e.target.files[0]); };
+document.addEventListener("paste", e => {
+  if (!sel || /INPUT|TEXTAREA/.test((e.target.tagName || ""))) { if (!(e.clipboardData && [...e.clipboardData.files].some(f => f.type.startsWith("image/")))) return; }
+  const f = e.clipboardData && [...e.clipboardData.files].find(f => f.type.startsWith("image/"));
+  if (f && sel) { e.preventDefault(); uploadCover(sel, f); }
+});
+function dropTarget(e){ return e.target.closest && (e.target.closest("[data-drop]") || e.target.closest(".card")); }
+document.addEventListener("dragover", e => { e.preventDefault(); const t = dropTarget(e); document.querySelectorAll(".drag").forEach(x => x.classList.remove("drag")); (t || (S.books.length ? null : $("empty"))) && (t || $("empty")).classList.add("drag"); });
+document.addEventListener("dragleave", e => { if (!e.relatedTarget) document.querySelectorAll(".drag").forEach(x => x.classList.remove("drag")); });
+document.addEventListener("drop", async e => {
+  e.preventDefault(); document.querySelectorAll(".drag").forEach(x => x.classList.remove("drag"));
+  const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (!f) return;
+  if (f.type.startsWith("image/")) {
+    const t = dropTarget(e), card = t && (t.closest(".card") || document.querySelector(`.card[data-isbn="${t.dataset.drop}"]`));
+    if (card) uploadCover(card.dataset.isbn, f); else toast("Dépose l'image sur le livre concerné.");
+  } else importFile(f);
+});
+
+// ------------------------------------------------------------ import
+async function importFile(f){
+  if (!f) return;
+  let replace = false;
+  if (S.books.length) {
+    const r = await confirmBox("Un catalogue est déjà ouvert", `<div>Tu veux <b>ajouter</b> ces livres à la suite, ou <b>remplacer</b> le catalogue actuel ?</div>`, "Ajouter à la suite", "Annuler");
+    if (!r) return;
+  }
+  try {
+    const r = await api("/api/import", {data: await fileB64(f), filename: f.name, replace});
+    setState(r.state);
+    toast(`${r.added} livre${r.added > 1 ? "s" : ""} ajouté${r.added > 1 ? "s" : ""}`);
+    await showProblems(r.problems, r.added);
+    if (r.added) askFetch();
+  } catch (e) { toast("Import impossible : " + e.message); }
+}
+function showProblems(list, added){
+  if (!list || !list.length) return Promise.resolve();
+  return confirmBox("À vérifier dans ton fichier", `<div>${added} livre${added > 1 ? "s" : ""} ajouté${added > 1 ? "s" : ""}. Ces lignes n'ont pas été prises :</div><ul class="problems">${list.slice(0, 15).map(p => `<li>${esc(p)}</li>`).join("")}${list.length > 15 ? `<li>… et ${list.length - 15} autres</li>` : ""}</ul>`, "OK", "Fermer");
+}
+$("b-import").onclick = $("e-import").onclick = () => { $("f-import").value = ""; $("f-import").click(); };
+$("f-import").onchange = e => importFile(e.target.files[0]);
+$("e-tpl").onclick = () => { location.href = "/api/template?t=" + TOKEN; };
+$("b-add").onclick = $("e-add").onclick = () => { $("ma-text").value = ""; $("ma-pb").innerHTML = ""; show("m-add"); $("ma-text").focus(); };
+$("ma-x").onclick = $("ma-cancel").onclick = () => hide("m-add");
+$("ma-ok").onclick = async () => {
+  try {
+    const r = await api("/api/add_isbns", {text: $("ma-text").value});
+    setState(r.state);
+    if (r.problems.length) { $("ma-pb").innerHTML = `<ul class="problems">${r.problems.map(p => `<li>${esc(p)}</li>`).join("")}</ul>`; if (!r.added) return; }
+    hide("m-add"); if (r.added) { toast(`${r.added} livre${r.added > 1 ? "s" : ""} ajouté${r.added > 1 ? "s" : ""}`); askFetch(); }
+  } catch (e) { toast(e.message); }
+};
+$("b-new").onclick = async () => {
+  if (!S.books.length) return;
+  if (await confirmBox("Vider le catalogue ?", "<div>Tous les livres seront retirés de la liste (les couvertures enregistrées restent dans leur dossier).</div>", "Vider", "Garder")) { sel = null; page = 0; setState((await api("/api/clear")).state); }
+};
+
+// ------------------------------------------------------------ récupération
+let polling = false;
+async function askFetch(){
+  if (!S.books.some(b => !b.fetched)) return;
+  await startFetch(null, false);
+}
+async function startFetch(isbns, force){
+  if (!S.settings.google_key_set) {
+    const ok = await confirmBox("Pas de clé Google Books", `<div>Sans clé, le programme ne trouvera que la fiche technique (titre, auteurs, éditeur, pages) via la BnF. <b>Pas de résumé, pas de date exacte, pas de couverture.</b></div><div class="hint" style="margin-top:8px">Les réglages expliquent comment obtenir la clé gratuite.</div>`, "Continuer sans", "Ouvrir les réglages");
+    if (!ok) { openSettings(); return; }
+  }
+  try {
+    const r = await api("/api/fetch", {isbns, force});
+    if (!r.total) { toast("Rien à récupérer."); return; }
+    pollFetch(0);
+  } catch (e) { toast(e.message); }
+}
+async function pollFetch(since){
+  if (polling && since === 0) return; polling = true;
+  show("progress");
+  try {
+    for (;;) {
+      const r = await api("/api/fetch/status", {since});
+      since = r.next || since;
+      r.updated.forEach(b => { mergeBook(b); replaceCard(b); });
+      $("pg-txt").textContent = `Récupération des infos… ${r.done} / ${r.total}`;
+      $("pg-bar").style.width = (r.total ? 100 * r.done / r.total : 0) + "%";
+      renderAllLight(); if (r.updated.length) schedulePreview();
+      if (!r.running) break;
+      await new Promise(res => setTimeout(res, 700));
+    }
+  } catch (e) { toast(e.message); }
+  polling = false; hide("progress");
+  const st = await api("/api/state"); setState(st);
+  const errs = [...new Set(S.books.flatMap(b => b.errors || []))];
+  if (errs.length) toast("⚠ " + errs[0]);
+  else toast("✓ Infos récupérées");
+}
+$("b-fetch").onclick = () => startFetch(null, false);
+$("pg-cancel").onclick = () => api("/api/fetch/cancel");
+
+// ------------------------------------------------------------ aperçu
+let pvT = null, pvSeq = 0;
+function schedulePreview(){ clearTimeout(pvT); pvT = setTimeout(loadPreview, 400); }
+async function loadPreview(){
+  if (!S.books.length) return;
+  const my = ++pvSeq;
+  try {
+    const r = await api("/api/preview", {page, dpi: 100});
+    if (my !== pvSeq) return;
+    page = r.page; where = r.where;
+    $("pimg").src = r.image;
+    $("p-lab").textContent = `Page ${r.page + 1} sur ${r.count}`;
+    $("p-prev").disabled = r.page === 0; $("p-next").disabled = r.page >= r.count - 1;
+    $("pwrap").dataset.k = r.w;
+    const box = $("phot"); box.innerHTML = "";
+    r.hot.forEach(h => {
+      const d = document.createElement("div"); d.className = "hs"; d.dataset.isbn = h.isbn; d.dataset.x = h.x; d.dataset.y = h.y; d.dataset.w = h.w; d.dataset.h = h.h;
+      d.title = (byIsbn(h.isbn) || {}).titre || h.isbn; box.appendChild(d);
+    });
+    placeHot(r.w); markHot();
+  } catch (e) { toast("Aperçu : " + e.message); }
+}
+function placeHot(naturalW){
+  const img = $("pimg"), k = img.clientWidth / naturalW;
+  document.querySelectorAll("#phot .hs").forEach(d => { d.style.left = d.dataset.x * k + "px"; d.style.top = d.dataset.y * k + "px"; d.style.width = d.dataset.w * k + "px"; d.style.height = d.dataset.h * k + "px"; });
+}
+function markHot(){ document.querySelectorAll("#phot .hs").forEach(d => d.classList.toggle("act", d.dataset.isbn === sel)); }
+$("pimg").onload = () => placeHot(+$("pwrap").dataset.k || $("pimg").naturalWidth);
+window.addEventListener("resize", () => placeHot(+$("pwrap").dataset.k || $("pimg").naturalWidth));
+$("phot").addEventListener("click", e => { const h = e.target.closest(".hs"); if (h) selectBook(h.dataset.isbn, false); });
+$("p-prev").onclick = () => { page = Math.max(0, page - 1); loadPreview(); };
+$("p-next").onclick = () => { page++; loadPreview(); };
+
+// ------------------------------------------------------------ réglages
+function openSettings(){
+  const s = S.settings;
+  $("s-key").value = s.google_key_set ? s.google_key_hint : ""; $("s-keyhint").textContent = s.google_key_set ? "Clé enregistrée. Laisse tel quel pour la garder." : "Pas encore de clé.";
+  $("s-out").value = s.out_dir || ""; $("s-cov").value = s.covers_dir || ""; $("s-max").value = s.resume_max || 420;
+  show("m-set");
+}
+$("b-set").onclick = openSettings;
+$("ms-x").onclick = $("ms-cancel").onclick = () => hide("m-set");
+$("s-browse1").onclick = async () => { const r = await api("/api/browse", {initial: $("s-out").value}); if (r.path) $("s-out").value = r.path; };
+$("s-browse2").onclick = async () => { const r = await api("/api/browse", {initial: $("s-cov").value}); if (r.path) $("s-cov").value = r.path; };
+$("s-opencov").onclick = () => api("/api/open_folder", {path: $("s-cov").value, create: true});
+$("ms-ok").onclick = async () => {
+  try {
+    const r = await api("/api/settings", {google_key: $("s-key").value, out_dir: $("s-out").value, covers_dir: $("s-cov").value, resume_max: +$("s-max").value || 420});
+    S.settings = r.settings; hide("m-set"); renderNotes(); toast("✓ Réglages enregistrés");
+  } catch (e) { toast(e.message); }
+};
+
+// ------------------------------------------------------------ génération
+$("b-gen").onclick = async () => {
+  const miss = S.books.filter(b => b.statut !== "vert");
+  const nocov = S.books.filter(b => !b.has_cover).length, nores = S.books.filter(b => !b.resume).length, notit = S.books.filter(b => !b.titre).length;
+  let warn = "";
+  if (notit || nocov || nores || S.books.some(b => !b.fetched))
+    warn = `<div class="note warn">À savoir : ${[notit && notit + " sans titre", nocov && nocov + " sans couverture", nores && nores + " sans résumé", S.books.some(b => !b.fetched) && "des livres pas encore cherchés"].filter(Boolean).join(", ")}. Ils apparaîtront incomplets dans le fichier.</div>`;
+  $("g-title").textContent = "Générer le catalogue";
+  $("g-body").innerHTML = `${warn}<label style="margin-top:0">Nom du catalogue</label><input type="text" id="g-name" value="${esc(S.meta.titre || "Catalogue CMPL")}">
+    <label>Formats</label><label class="chk"><input type="checkbox" id="g-pdf" checked> PDF (à envoyer ou imprimer)</label>
+    <label class="chk"><input type="checkbox" id="g-pptx"> PowerPoint modifiable (.pptx)</label>
+    <div class="hint">Dossier : <code class="path">${esc(S.settings.out_dir || "")}</code></div>`;
+  $("g-foot").innerHTML = `<button class="btn" id="g-cancel">Annuler</button><button class="btn primary" id="g-go">Générer</button>`;
+  show("m-gen");
+  $("g-cancel").onclick = $("g-x").onclick = () => hide("m-gen");
+  $("g-go").onclick = async () => {
+    const pdf = $("g-pdf").checked, pptx = $("g-pptx").checked;
+    if (!pdf && !pptx) { toast("Coche au moins un format."); return; }
+    $("g-go").disabled = true; $("g-go").textContent = "Génération en cours…";
+    try {
+      const name = $("g-name").value; api("/api/meta", {titre: name});
+      const r = await api("/api/generate", {pdf, pptx, name});
+      $("g-title").textContent = "✓ Catalogue créé";
+      $("g-body").innerHTML = `<div class="hint" style="margin:0">${r.pages} page${r.pages > 1 ? "s" : ""} dans le dossier</div><code class="path">${esc(r.folder)}</code><ul class="problems" style="color:var(--muted)">${r.files.map(f => `<li>${esc(f.split(/[\\/]/).pop())}</li>`).join("")}</ul>`;
+      $("g-foot").innerHTML = `<button class="btn" id="g-folder">Ouvrir le dossier</button><button class="btn primary" id="g-open">Ouvrir le fichier</button>`;
+      $("g-folder").onclick = () => api("/api/open_folder", {path: r.folder});
+      $("g-open").onclick = () => api("/api/open_file", {path: r.files[0]}).then(x => { if (!x.opened) toast("Ouvre-le depuis le dossier."); });
+    } catch (e) { $("g-body").innerHTML += `<div class="note warn" style="margin-top:10px">${esc(e.message)}</div>`; $("g-go").disabled = false; $("g-go").textContent = "Générer"; }
+  };
+};
+
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  for (const id of ["m-confirm", "m-gen", "m-set", "m-add"]) if (!$(id).classList.contains("hide")) { id === "m-confirm" ? $("c-cancel").click() : hide(id); return; }
+});
+window.addEventListener("pagehide", () => navigator.sendBeacon("/api/bye?t=" + TOKEN, "{}"));
+
+// ------------------------------------------------------------ démarrage
+(async () => {
+  const r = await fetch("/api/bootstrap?t=" + TOKEN); const st = await r.json();
+  $("ver").textContent = "v" + st.version;
+  setState(st);
+  fetch("/api/ping");
+})();
+</script>
+</body>
+</html>

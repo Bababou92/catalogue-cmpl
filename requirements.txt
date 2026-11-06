@@ -1,0 +1,5 @@
+Pillow>=10.1
+python-pptx>=0.6.23
+openpyxl>=3.1
+reportlab>=4.0
+pyinstaller>=6.0

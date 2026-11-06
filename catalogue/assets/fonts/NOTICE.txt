@@ -1,0 +1,3 @@
+Polices de secours incluses (utilisees seulement si Arial / Times New Roman / Book Antiqua sont absentes) :
+- Liberation Sans / Serif / Mono : licence SIL Open Font License 1.1 (Red Hat)
+- TeX Gyre Pagella : GUST Font License (distribution libre)

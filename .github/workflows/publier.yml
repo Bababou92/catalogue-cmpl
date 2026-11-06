@@ -1,0 +1,125 @@
+# Publie une nouvelle version, de deux façons possibles :
+#  1. automatique : quand catalogue/version.py change sur la branche main (si la release vX.Y.Z n'existe pas encore) ;
+#  2. à la main : créer une release / un tag  vX.Y.Z  sur GitHub.
+# GitHub construit « Catalogue-CMPL.exe » sur un Windows, le teste, puis le publie dans « Releases »
+# avec latest.json (c'est ce fichier que le programme lit pour proposer la mise à jour).
+name: Publier une version
+
+on:
+  push:
+    tags: ["v*"]
+    branches: [main]
+    paths: ["catalogue/version.py"]
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Déterminer la version
+        shell: python
+        run: |
+          import os, re
+          ref = os.environ["GITHUB_REF"]
+          p = "catalogue/version.py"
+          s = open(p, encoding="utf8").read()
+          if ref.startswith("refs/tags/"):
+              v = os.environ["GITHUB_REF_NAME"].lstrip("vV")
+          else:
+              v = re.search(r'VERSION = "(.*?)"', s).group(1)
+          if not re.fullmatch(r"\d+\.\d+\.\d+", v):
+              raise SystemExit("La version doit ressembler à 1.2.3")
+          open(p, "w", encoding="utf8").write(re.sub(r'VERSION = ".*"', f'VERSION = "{v}"', s))
+          with open(os.environ["GITHUB_ENV"], "a") as f:
+              f.write(f"TAG=v{v}\n")
+          print("Version :", v)
+
+      - name: Release déjà publiée ?
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view $env:TAG *> $null
+          if ($LASTEXITCODE -eq 0 -and $env:GITHUB_REF -notlike "refs/tags/*") {
+            Write-Host "La release $env:TAG existe déjà : rien à faire."
+            "SKIP=true" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          }
+          exit 0
+
+      - name: Installer les dépendances
+        if: env.SKIP != 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Construire l'exécutable
+        if: env.SKIP != 'true'
+        shell: pwsh
+        run: |
+          pyinstaller --noconfirm --clean --onefile --noconsole --name "Catalogue-CMPL" `
+            --icon "icone.ico" `
+            --add-data "catalogue/assets;catalogue/assets" --add-data "catalogue/web;catalogue/web" `
+            --collect-data pptx --collect-submodules openpyxl --collect-submodules reportlab --collect-data reportlab `
+            --hidden-import et_xmlfile --hidden-import tkinter run.py
+
+      - name: Tester l'exécutable (fabrique un petit catalogue)
+        if: env.SKIP != 'true'
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP "selftest.txt"
+          $p = Start-Process -FilePath "dist/Catalogue-CMPL.exe" -ArgumentList @("--selftest", $out) -Wait -PassThru
+          if (Test-Path $out) { Get-Content $out }
+          if ($p.ExitCode -ne 0) { throw "L'auto-test a échoué (code $($p.ExitCode))" }
+
+      - name: Fichier latest.json
+        if: env.SKIP != 'true'
+        shell: python
+        run: |
+          import hashlib, json, os
+          exe = "dist/Catalogue-CMPL.exe"
+          sha = hashlib.sha256(open(exe, "rb").read()).hexdigest()
+          tag = os.environ["TAG"]
+          notes = ""
+          if os.path.exists("NOTES.txt"):
+              notes = open("NOTES.txt", encoding="utf8").read().strip()[:1000]
+          data = {
+              "version": tag.lstrip("vV"),
+              "url": f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{tag}/Catalogue-CMPL.exe",
+              "sha256": sha,
+              "size": os.path.getsize(exe),
+              "notes": notes,
+          }
+          json.dump(data, open("dist/latest.json", "w", encoding="utf8"), ensure_ascii=False, indent=2)
+          print(json.dumps(data, indent=2))
+
+      - name: Publier dans Releases
+        if: env.SKIP != 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = $env:TAG
+          if (-not (Test-Path NOTES.txt)) { "Nouveautés" | Out-File NOTES.txt -Encoding utf8 }
+          $titre = "Catalogue CMPL $($tag.TrimStart('v'))"
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            # release déjà créée depuis le site GitHub : on y ajoute les fichiers
+            gh release upload $tag "dist/Catalogue-CMPL.exe" "dist/latest.json" --clobber
+            if ($LASTEXITCODE -ne 0) { throw "Envoi des fichiers impossible" }
+            gh release edit $tag --title "$titre" --notes-file NOTES.txt
+          } else {
+            gh release create $tag "dist/Catalogue-CMPL.exe" "dist/latest.json" --title "$titre" --notes-file NOTES.txt --target $env:GITHUB_SHA
+            if ($LASTEXITCODE -ne 0) { throw "Création de la release impossible" }
+          }

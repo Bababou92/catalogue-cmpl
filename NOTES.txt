@@ -1,0 +1,1 @@
+Premiere version : import d'un fichier d'ISBN, recherche automatique des fiches (Google Books + BnF), revue et correction, export PDF / PowerPoint.
