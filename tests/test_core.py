@@ -179,5 +179,6 @@ assert _libs.backup(_srv.CAT, "test") and _libs.backup(_srv.CAT, "test") is None
 _added, _chg = _srv.add_rows([{"isbn": "9782100870165", "prix": 26.0}]); assert _added == 0 and _chg[0]["ancien"] == 24.0
 _o = tempfile.mkdtemp(); _r = _srv.generate(_o, "T", True, True, True); assert len(_r["files"]) == 3
 import openpyxl as _ox; _ws = _ox.load_workbook(_r["files"][2]).active; assert _ws.cell(6, 7).value == 26.0
+_st.update_settings({"p_garde": True, "p_cond": True, "p_proforma": True, "p_dos": True, "p_multi4": True, "inclure_prix": True})
 assert _srv.check()["pages"] % 4 == 0
 print("OK annuler/bibliotheque")
