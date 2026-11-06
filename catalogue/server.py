@@ -17,7 +17,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from PIL import Image
 
-from . import fixed as fixedlib, catalog, prix as prixlib, errlog, importer, isbn as isbnlib, pages as pagelib, libs, render_pdf, render_pptx, render_png, sources, store, updater, version
+from . import ai as ailib, citations, fixed as fixedlib, catalog, prix as prixlib, errlog, importer, isbn as isbnlib, pages as pagelib, libs, net, render_pdf, report, render_pptx, render_png, sources, store, updater, version
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 APP_ID = "cmpl-catalogue"
@@ -157,7 +157,7 @@ def public_state():
             lib = {"id": CAT["meta"]["lib_id"], "nom": libs.load_catalogue(CAT["meta"]["lib_id"]).get("nom", "")}
         except Exception:
             CAT["meta"].pop("lib_id", None)
-    return {"meta": CAT["meta"], "books": [catalog.public(b) for b in CAT["books"]], "settings": public_settings(s), "lib": lib, "themes": [list(t) for t in fixedlib.THEMES]}
+    return {"meta": CAT["meta"], "books": [catalog.public(b) for b in CAT["books"]], "settings": public_settings(s), "lib": lib, "themes": [list(t) for t in fixedlib.THEMES], "citation": citations.status(CAT["meta"])}
 
 
 def public_settings(s):
@@ -361,7 +361,7 @@ def build_all(with_prices=None):
     if s.get("p_proforma", True):
         post.append(fixedlib.proforma_page())
     if s.get("p_dos", True):
-        post.append(fixedlib.back_page(col))
+        post.append(fixedlib.back_page(col, citations.current(meta)))
     if s.get("p_multi4", True):                    # impression en folio : nombre de pages multiple de 4, pages blanches avant la 4e de couverture
         reste = (-(len(front) + len(book_pages) + len(price_pages) + len(post))) % 4
         at = len(post) - 1 if s.get("p_dos", True) else len(post)
@@ -863,6 +863,52 @@ class Handler(BaseHTTPRequestHandler):
                     CAT["meta"].update({k: str(v) for k, v in b.items() if k in ("titre", "date", "indicatif", "selection", "garde_titre", "garde_date", "garde_acc", "garde_couleur")})
                     save()
                 return self._send(200, {})
+            if path == "/api/net":
+                return self._send(200, {"online": net.online(bool(b.get("force")))})
+            if path == "/api/report/text":
+                return self._send(200, {"text": report.error_text(b.get("error", ""), b.get("client"))})
+            if path == "/api/report/create":
+                out_dir = store.load_settings().get("out_dir") or os.path.expanduser("~")
+                with LOCK:
+                    snap = {"meta": {k: v for k, v in CAT["meta"].items() if not k.startswith("citation_")},
+                            "books": [{k: v for k, v in x.items() if k != "cover_path"} for x in CAT["books"]]}
+                return self._send(200, report.build(out_dir, snap, b.get("description", ""), b.get("error", ""), b.get("client")))
+            if path == "/api/report/share":
+                out_dir = store.load_settings().get("out_dir") or os.path.expanduser("~")
+                if not report.valid_report_path(b.get("path"), out_dir):
+                    return self._send(400, {"error": "rapport introuvable"})
+                return self._send(200, report.share(b["path"], b.get("how"), b.get("to", ""), b.get("number", ""),
+                                                    b.get("description", ""), b.get("error", "")))
+            if path == "/api/citation":
+                act = b.get("action", "")
+                if act == "ai":
+                    with LOCK:
+                        meta = dict(CAT["meta"])
+                    try:
+                        n = citations.fetch_ai(meta, store.load_settings().get("claude_key", ""))
+                    except ailib.AIError as e:
+                        return self._send(400, {"error": str(e), "citation": citations.status(meta)})
+                    with LOCK:
+                        for k in ("citation_bag", "citation_tour"):
+                            if k in meta:
+                                CAT["meta"][k] = meta[k]
+                        save()
+                        return self._send(200, {"n": n, "citation": citations.status(CAT["meta"])})
+                with LOCK:
+                    m = CAT["meta"]
+                    if act == "next":
+                        citations.next_quote(m)
+                    elif act == "prev":
+                        citations.prev_quote(m)
+                    elif act == "custom":
+                        citations.set_custom(m, b.get("texte", ""), b.get("auteur", ""))
+                    elif act == "off":
+                        citations.set_off(m, True)
+                    elif act == "on":
+                        citations.set_off(m, False)
+                    if act != "status":
+                        save()
+                    return self._send(200, {"citation": citations.status(m)})
             if path == "/api/garde/image":
                 gp = os.path.join(store.data_dir(), "garde.jpg")
                 if not b.get("data"):
@@ -941,7 +987,8 @@ class Handler(BaseHTTPRequestHandler):
                     if patch["claude_key"].startswith("••"):
                         patch.pop("claude_key")
                 store.update_settings(patch)
-                REV["n"] += 1
+                if set(patch) - {"theme", "support_email", "support_whatsapp"}:
+                    REV["n"] += 1
                 return self._send(200, {"settings": public_settings(store.load_settings())})
             if path == "/api/browse":
                 return self._send(200, {"path": browse_folder(b.get("initial"))})

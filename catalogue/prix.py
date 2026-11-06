@@ -1,4 +1,6 @@
-"""Tableau des prix (pages A4 portrait) : mêmes colonnes que le catalogue papier du CMPL.
+"""Tableau des prix : mêmes colonnes que le catalogue papier du CMPL.
+
+Mis en page en paysage (297 x 210), puis tourné de 90° sur une page A4 verticale (rotate_page_ccw).
 
 Titre | Auteurs | Édition | Date de parution | ISBN | Éditeur | Prix France (Euros) pour info | Prix CMPL (Ariary)
 """
@@ -9,13 +11,13 @@ from datetime import date
 from PIL import Image
 
 from . import textfit
-from .model import Page, Pic, Rect, TextBox
+from .model import Page, Pic, Rect, TextBox, rotate_page_ccw
 from .textfit import MM_PER_PT, Para, Run
 
-PAGE_W, PAGE_H = 210.0, 297.0
+PAGE_W, PAGE_H = 297.0, 210.0
 MARGIN = 10.0
 HEAD_FILL, HEAD_INK, GRID, INK, GREY = "#8C8C8C", "#FFFFFF", "#8A8A8A", "#000000", "#444444"
-ROW_PT, HEAD_PT, PAD = 7.0, 7.5, 1.0
+ROW_PT, HEAD_PT, PAD = 8.0, 8.5, 1.1
 
 ADRESSE = ["9, rue Docteur Villette - Isoraka", "BP 3312 - Antananarivo", "cmpl @ moov.mg", "T. + 261 38 08 825 67"]
 RC = "RC 6612 - INSRE 94819"
@@ -30,8 +32,8 @@ EDITEURS_COURTS = {"ARMAND COLIN": "A.COLIN"}
 FIELDS = ["titre_tableau", "auteurs", "edition", "date", "fiche", "editeur", "prix", "prix_ar"]     # champ modifié par chaque colonne
 
 # (titre de colonne, largeur relative, alignement)
-COLS = [("Titre", 46, "l"), ("Auteurs", 40, "l"), ("Edition", 12, "c"), ("Date de parution", 16, "c"), ("ISBN", 25, "c"),
-        ("Editeur", 20, "c"), ("Prix France (Euros) pour info", 14, "r"), ("Prix Cmpl (Ariary)", 17, "r")]
+COLS = [("Titre", 56, "l"), ("Auteurs", 50, "l"), ("Edition", 12, "c"), ("Date de parution", 22, "c"), ("ISBN", 30, "c"),
+        ("Editeur", 30, "c"), ("Prix France (Euros) pour info", 24, "r"), ("Prix Cmpl (Ariary)", 26, "r")]
 
 
 def mois_annee(d=None):
@@ -178,20 +180,20 @@ def _header(pg, titre, indicatif, n, total):
     im = _logo()
     x = MARGIN
     if im is not None:
-        h = 14.0
+        h = 17.0
         w = h * im.width / im.height
         pg.elements.append(Pic(x, 8.0, w, h, image=im, fmt="AUTO", name="Logo CMPL"))
-        x += w + 4
-    lines = [Para([_run(l, 7.0)], align="l") for l in ADRESSE] + [Para([_run(RC, 6.0, color=GREY)], align="l", space_before_pt=1.0)]
-    pg.elements.append(TextBox(x, 7.5, 46.0, 20.0, lines, name="Coordonnées"))
-    bx = x + 48
+        x += w + 5
+    lines = [Para([_run(l, 8.0)], align="l") for l in ADRESSE] + [Para([_run(RC, 6.5, color=GREY)], align="l", space_before_pt=1.0)]
+    pg.elements.append(TextBox(x, 7.5, 60.0, 22.0, lines, name="Coordonnées"))
+    bx = x + 64
     bw = PAGE_W - MARGIN - bx
-    paras = [Para([_run(f"Sélection {titre}", 10.5, bold=True)], align="c"),
-             Para([_run(f"Prix indicatifs {indicatif}", 8.5, bold=True)], align="c", space_before_pt=2.0)]
+    paras = [Para([_run(f"Sélection {titre}", 11.5, bold=True)], align="c"),
+             Para([_run(f"Prix indicatifs {indicatif}", 9.0, bold=True)], align="c", space_before_pt=2.0)]
     for i, l in enumerate(NOTE.split("\n")):
-        paras.append(Para([_run(l, 6.5, italic=True)], align="c", space_before_pt=3.0 if i == 0 else 0.0))
+        paras.append(Para([_run(l, 8.0, italic=True)], align="c", space_before_pt=4.0 if i == 0 else 0.0))
     pg.elements.append(TextBox(bx, 7.5, bw, 24.0, paras, name="Titre de la sélection"))
-    pg.elements.append(TextBox(PAGE_W / 2 - 40, PAGE_H - 11.0, 80.0, 6.0, [Para([_run(SITE, 9.0, bold=True)], align="c")],
+    pg.elements.append(TextBox(PAGE_W / 2 - 40, PAGE_H - 11.0, 80.0, 6.0, [Para([_run(SITE, 10.0, bold=True)], align="c")],
                                anchor="m", name="Site"))
     pg.elements.append(TextBox(PAGE_W - MARGIN - 20, PAGE_H - 11.0, 20.0, 6.0, [Para([_run(f"{n}/{total}", 8.0)], align="r")],
                                anchor="m", name="Numéro de page"))
@@ -208,11 +210,11 @@ def _table_head(pg, y, widths, head_h):
 
 
 def build_pages(books, titre="Catalogue", indicatif=None, taux=3366, arrondi=1):
-    """Pages A4 paysage du tableau des prix. Retourne une liste de Page (avec .hot vide)."""
+    """Pages du tableau des prix : A4 vertical, tableau tourné de 90°. Retourne une liste de Page (avec .hot)."""
     indicatif = (indicatif or "").strip() or mois_annee()
     widths = _widths()
     xs = [MARGIN + sum(widths[:i]) for i in range(len(widths))]
-    top, head_h, limit = 34.0, 14.0, PAGE_H - 15.0
+    top, head_h, limit = 36.0, 13.0, PAGE_H - 15.0
     line = 0.25
     rows = []
     for b in books:
@@ -223,7 +225,7 @@ def build_pages(books, titre="Catalogue", indicatif=None, taux=3366, arrondi=1):
             hh = _h(paras, w - 2 * PAD)
             cells.append(paras)
             hmax = max(hmax, hh)
-        rows.append((cells, max(5.0, hmax + 2 * PAD + 0.4), b))
+        rows.append((cells, max(5.4, hmax + 2 * PAD + 0.4), b))
     # répartition sur les pages
     groups, cur, used = [], [], top + head_h
     for r in rows:
@@ -252,7 +254,7 @@ def build_pages(books, titre="Catalogue", indicatif=None, taux=3366, arrondi=1):
         bottom = y
         for x in xs + [MARGIN + sum(widths)]:
             pg.elements.append(Rect(x - line / 2, top + head_h, line, bottom - top - head_h, fill=GRID, name="Filet vertical"))
-        pages.append(pg)
+        pages.append(rotate_page_ccw(pg))
     return pages
 
 

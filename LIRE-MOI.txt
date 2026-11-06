@@ -60,13 +60,13 @@ et (option) "Supprimer aussi mes images du dossier des couvertures" pour effacer
 
 Tableau des prix (Ariary)
 -------------------------
-A la fin du catalogue : un tableau (A4 paysage) avec, pour chaque livre : Titre, Auteurs, Edition, Date de parution, ISBN,
+A la fin du catalogue : un tableau (A4 vertical, tableau tourne de 90 degres) avec, pour chaque livre : Titre, Auteurs, Edition, Date de parution, ISBN,
 Editeur, Prix France (Euros), Prix CMPL (Ariary). Prix Ariary = prix France x taux (3366 par defaut).
 - Le taux se change dans Reglages ou directement dans la fenetre "Generer le catalogue" (avec le mois des "Prix indicatifs"
   et le titre du tableau). Arrondi possible a 10, 100 ou 500 Ar (Reglages).
 - Un livre peut avoir son propre taux (champ "Taux special" de sa fiche). Le "Titre court" de la fiche remplace le titre
   affiche dans le tableau (par defaut : le titre avant les deux-points).
-- PDF : le tableau suit les pages de livres. PowerPoint : fichier separe "... - Tableau des prix.pptx" (page en paysage).
+- PDF : le tableau suit les pages de livres. PowerPoint : fichier separe "... - Tableau des prix.pptx" (page verticale, tableau tourne).
 - Pour ne pas l'ajouter : decocher dans Reglages ou dans "Generer".
 
 Pages fixes (v0.6.0) : page de garde, conditions de vente, demande de facture proforma et 4e de couverture. Clique sur la page de garde dans l'apercu pour changer le titre, le mois, les accroches ou l'image. Le texte des conditions se modifie dans Reglages. Les pages se cochent dans Reglages ou dans la fenetre Generer. Toutes les pages sont verticales. Le nombre de pages est complete a un multiple de 4 (impression en folio) avec des pages blanches avant la 4e de couverture.
@@ -75,3 +75,8 @@ Catalogues (v0.8.0) : le bouton Catalogues enregistre le catalogue sous un nom, 
 
 Organisation (v0.9.0) : etape 1 Livres (import, recherche, corrections, tri, glisser-deposer, rubriques en cochant des livres), etape 2 Mise en page (pages incluses, couleur, miniatures, planches), etape 3 Generer.
 
+Citation de la 4e de couverture (v0.10.0) : clique sur le bandeau de couleur de la 4e de couverture (ou utilise le cadre "Citation" de l'etape 2). "Autre citation" tire une citation de la liste (jamais deux fois la meme avant la fin du tour), "Precedente" revient en arriere, "Modifier" permet d'ecrire la tienne, "Sans citation" retire le texte.
+Quand tu as vu toutes les citations, un bouton IA apparait : un clic = une seule demande a Haiku (moins d'1 centime) qui rapporte 12 citations gardees sur le PC pour la suite. Limites : une demande a la fois, 30 secondes d'ecart, 6 par jour. Une citation proposee par l'IA est marquee "IA : a verifier" : verifie toujours l'auteur.
+
+Theme sombre : interrupteur soleil/lune en haut. Signaler un probleme : bouton drapeau en haut (ou dans le bandeau rouge si une erreur survient) : cree un petit rapport a envoyer par Gmail ou WhatsApp.
+Sans internet : un bandeau rouge apparait en haut. La recherche des livres, l'IA, les citations IA, les mises a jour et l'envoi du rapport sont alors impossibles ; modifier, l'apercu et la generation fonctionnent toujours.

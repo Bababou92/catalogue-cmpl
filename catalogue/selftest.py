@@ -7,7 +7,7 @@ import traceback
 
 def run(out_path):
     try:
-        from . import catalog, fixed, pages, prix, render_pdf, render_pptx, render_png, sources, version
+        from . import catalog, citations, fixed, net, pages, prix, report, render_pdf, render_pptx, render_png, sources, version
         books = []
         for i, (t, a) in enumerate([("Analyse financière : concepts et méthodes", ["Marion, Alain", "Lantin, François"]),
                                     ("Strategor : la référence en stratégie", ["Albino-Pimentel, João"]),
@@ -23,8 +23,11 @@ def run(out_path):
             render_png.render_page(pgs[0], dpi=60).save(os.path.join(tmp, "p.png"))
             tab = prix.build_pages(books, "Essai", "Janvier 2026", 3366)
             assert tab and prix._logo() is not None, "tableau des prix ou logo manquant"
-            fx = [fixed.cover_page({"titre": "Essai"}), fixed.conditions_page(), fixed.proforma_page(), fixed.back_page()]
+            fx = [fixed.cover_page({"titre": "Essai"}), fixed.conditions_page(), fixed.proforma_page(), fixed.back_page(None, citations.QUOTES[0])]
             assert any(type(e).__name__ == "Pic" for e in fx[0].elements), "page de garde sans image"
+            assert all((p.w, p.h) == (210.0, 297.0) for p in tab + fx), "pages non verticales"
+            assert any(getattr(e, "name", "") == "Citation" for e in fx[3].elements), "citation absente de la 4e de couverture"
+            assert callable(net.online) and report.system_info()
             render_pdf.build_pdf(fx[:1] + pgs + tab + fx[1:], os.path.join(tmp, "t.pdf"))
             render_pptx.build_pptx(tab, os.path.join(tmp, "tab.pptx"))
             render_pptx.build_pptx(pgs, os.path.join(tmp, "t.pptx"))

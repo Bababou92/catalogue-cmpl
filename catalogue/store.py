@@ -7,7 +7,7 @@ import time
 
 _lock = threading.Lock()
 
-SETTING_KEYS = ("google_key", "out_dir", "covers_dir", "resume_max", "taux", "theme", "update_popup", "claude_key", "ai_model", "arrondi", "inclure_prix", "p_garde", "p_cond", "p_proforma", "p_dos", "p_multi4", "conditions_texte")
+SETTING_KEYS = ("google_key", "out_dir", "covers_dir", "resume_max", "taux", "theme", "update_popup", "claude_key", "ai_model", "arrondi", "inclure_prix", "p_garde", "p_cond", "p_proforma", "p_dos", "p_multi4", "conditions_texte", "support_email", "support_whatsapp")
 
 
 def data_dir():

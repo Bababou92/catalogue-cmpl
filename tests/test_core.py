@@ -199,3 +199,55 @@ _st.update_settings({"p_garde": True, "p_cond": True, "p_proforma": True, "p_dos
 _pv = _srv.preview(0); assert len(_pv["pages"]) == _pv["count"] and _pv["pages"][0]["kind"] == "garde" and _pv["pages"][-1]["kind"] == "dos"
 assert any(e.fill == "#F0A04B" for e in _srv.build_all()[0][0].elements if hasattr(e, "fill"))
 print("OK rubriques")
+
+# tableaux tournés sur page verticale + citation de la 4e de couverture
+from catalogue import citations as _ci, fixed as _fx, prix as _px, model as _md, ai as _ai
+import json as _json
+_bk = [catalog.new_book("97821008701%02d" % i) for i in range(40)]
+for _i, _x in enumerate(_bk):
+    _x.update(titre="Livre %d" % _i, auteurs=["A, B"], editeur="Dunod", prix=24.0, date="03/06/2024", fetched=True)
+_pp = _px.build_pages(_bk, "T", "", 3366)
+assert all((p.w, p.h) == (210.0, 297.0) for p in _pp) and len(_pp) >= 1
+assert all(isinstance(e, _md.TextBox) and e.rot == 270 for e in _pp[0].elements if isinstance(e, _md.TextBox))
+_hz = _pp[0].hot[0]; assert _hz["h"] > _hz["w"] * 3 and _hz["field"] == "titre_tableau"       # une cellule devient haute et étroite
+_pf = _fx.proforma_page(); assert (_pf.w, _pf.h) == (210.0, 297.0) and any(isinstance(e, _md.TextBox) and e.rot == 270 for e in _pf.elements)
+_o = tempfile.mkdtemp(); render_pdf.build_pdf(_pp + [_pf], os.path.join(_o, "t.pdf")); assert os.path.getsize(os.path.join(_o, "t.pdf")) > 3000
+from pypdf import PdfReader as _PR
+_rd = _PR(os.path.join(_o, "t.pdf")); assert all(round(float(p.mediabox.width)) == 595 and round(float(p.mediabox.height)) == 842 for p in _rd.pages)
+assert "Livre 0" in _rd.pages[0].extract_text() and "PROFORMA" in "".join(p.extract_text() for p in _rd.pages)
+_srv.CAT["books"] = _bk; _srv.CAT["meta"].pop("citation", None); _srv.save()
+_fr, _bp, _pr, _post = _srv.build_all()
+assert all((p.w, p.h) == (210.0, 297.0) for p in _fr + _bp + _pr + _post)
+# citations : tirage sans répétition, précédente, texte libre, absence
+assert 40 <= len(_ci.QUOTES) and all(12 <= len(t) <= _ci.MAX_LEN and a for t, a in _ci.QUOTES) and len({t for t, _ in _ci.QUOTES}) == len(_ci.QUOTES)
+_m = {}; _seen = []
+for _i in range(len(_ci.QUOTES)):
+    _s = _ci.next_quote(_m); _seen.append(_s["texte"])
+assert len(set(_seen)) == len(_ci.QUOTES) - (1 if _ci.QUOTES[0][0] not in _seen else 0) or len(set(_seen)) >= len(_ci.QUOTES) - 1
+assert _s["tour_fait"] and _s["peut_prev"] and all(_seen[i] != _seen[i + 1] for i in range(len(_seen) - 1))
+_c1 = _ci.current(_m)[0]; _ci.prev_quote(_m); assert _ci.current(_m)[0] == _seen[-2] and _c1 == _seen[-1]
+_ci.set_custom(_m, "Ma citation", "Moi"); assert _ci.current(_m)[:2] == ("Ma citation", "Moi")
+_ci.set_off(_m, True); assert _ci.current(_m) is None; assert not any(e.name == "Citation" for e in _fx.back_page("#5DADE1", _ci.current(_m)).elements)
+_ci.set_off(_m, False)
+# bouton IA : bloqué tant que le tour n'est pas fait, puis 12 citations, délai, limite par jour, aucun doublon
+_ci.AI_COOLDOWN = 0.2
+_m2 = {}; _ok, _why = _ci.ia_available(_m2); assert not _ok and "tour" in _why
+_calls = []
+def _fake_post(key, model, prompt):
+    _calls.append(prompt)
+    return {"content": [{"type": "text", "text": _json.dumps([{"t": "Citation IA numéro %d, pour tester l'ajout" % i, "a": "Auteur %d" % i} for i in range(12)] + [{"t": _ci.QUOTES[0][0], "a": "Doublon"}])}]}
+_ci.ai_post = _fake_post
+_m2["citation_tour"] = "1"
+assert _ci.fetch_ai(_m2, "K") == 12 and len(_calls) == 1 and len(_ci.pool()) == len(_ci.QUOTES) + 12
+_ok, _why = _ci.ia_available(_m2); assert not _ok and ("tour" in _why or "Patiente" in _why)
+_m2["citation_tour"] = "1"; _ok, _why = _ci.ia_available(_m2); assert not _ok and "Patiente" in _why
+import time as _t; _t.sleep(0.3)
+_n = 0
+for _k in range(10):
+    _m2["citation_tour"] = "1"; _t.sleep(0.25)
+    try: _ci.fetch_ai(_m2, "K"); _n += 1
+    except _ai.AIError: break
+assert _n == _ci.AI_PER_DAY - 1 and len(_calls) == _ci.AI_PER_DAY, (_n, len(_calls))
+try: _ci.fetch_ai({"citation_tour": "1"}, ""); assert False
+except _ai.AIError: pass
+print("OK tableaux tournes / citations")

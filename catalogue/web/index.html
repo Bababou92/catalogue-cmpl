@@ -13,10 +13,10 @@
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
   body{font:14px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-  header{display:flex;align-items:center;gap:12px;padding:8px 18px;background:var(--accent);color:#fff;position:sticky;top:0;z-index:5;flex-wrap:wrap}
-  header h1{font-size:16px;margin:0;font-weight:600;flex:1;min-width:180px;white-space:nowrap}
+  header{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--accent);color:#fff;position:sticky;top:0;z-index:5;flex-wrap:wrap}
+  header h1{font-size:16px;margin:0;font-weight:600;flex:1;min-width:150px;white-space:nowrap}
   header h1 small{opacity:.7;font-weight:400;margin-left:6px}
-  header button{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.28);padding:7px 12px;border-radius:7px;cursor:pointer;font:inherit}
+  header button{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.28);padding:7px 10px;border-radius:7px;cursor:pointer;font:inherit}
   header button:hover{background:rgba(255,255,255,.24)}
   header button:disabled{opacity:.4;cursor:default}
   header button.hgen{background:#fff;color:var(--accent);border:0;font-weight:700;font-size:15px;padding:9px 20px;box-shadow:0 1px 4px rgba(0,0,0,.25)}
@@ -98,6 +98,11 @@
   .pwrap .hs.cell{border-radius:0}
   .pwrap .hs.cell:hover{outline:1px solid rgba(59,140,255,.9);background:rgba(59,140,255,.12)}
   .pwrap .hs.cell.edit{outline:2px solid rgba(220,120,0,.9);background:rgba(255,170,0,.15)}
+  .qbox .qtxt{font-style:italic;margin:6px 0 2px;line-height:1.35}
+  .qbox .qaut{font-size:12px;color:var(--mut,#667);margin-bottom:6px}
+  .qbox .qia{display:inline-block;margin-left:6px;padding:0 6px;border-radius:8px;background:#fff3d6;color:#8a5a00;font-size:11px}
+  .qbox .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+  .qbox textarea,.qbox input{width:100%;box-sizing:border-box;margin-top:4px}
   #cellpop{position:fixed;z-index:60;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 28px rgba(20,30,50,.3);padding:12px;width:300px}
   #cellpop b{display:block;margin-bottom:2px}
   #cellpop .hint{margin:0 0 6px}
@@ -174,6 +179,61 @@
   .card.drag{outline:2px dashed var(--accent-2)}
   .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1d2433;color:#fff;padding:10px 16px;border-radius:9px;z-index:90;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw}
   .toast.show{opacity:1}
+  header button.themesw{position:relative;width:58px;height:30px;padding:0;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);flex:none}
+  header button.themesw:hover{background:rgba(255,255,255,.26)}
+  .themesw .ic{position:absolute;top:7px;width:14px;height:14px;z-index:1;transition:opacity .2s,fill .2s}
+  .themesw .sun{left:7px;fill:#f59e0b;stroke:#f59e0b;opacity:1}
+  .themesw .moon{left:37px;fill:#fff;stroke:none;opacity:.55}
+  .themesw .knob{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.35);transition:transform .22s cubic-bezier(.4,.1,.2,1)}
+  html.dark .themesw .knob{transform:translateX(30px);background:#e6edf9}
+  html.dark .themesw .sun{fill:#fff;stroke:none;opacity:.55}
+  html.dark .themesw .moon{fill:#3f68b0;opacity:1}
+  /* signaler un problème */
+  .errbox{background:#fde8e8;color:#7f1d1d;border:1px solid #f3bcbc;border-radius:8px;padding:8px 10px;margin:0 0 10px;font:12px/1.4 Consolas,monospace;white-space:pre-wrap;word-break:break-word;max-height:140px;overflow:auto}
+  .rp-send{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .rp-send .btn{flex:1;min-width:190px;padding:11px 12px}
+  .rp-result{margin-top:12px;padding:10px 12px;border-radius:8px;background:#e8f4ec;border:1px solid #b9dcc5;color:#1d4d2f;font-size:13px}
+  .rp-result b{display:block;margin-bottom:3px}
+  .rp-small{margin-top:14px;font-size:12.5px;color:var(--muted)}
+  .rp-small a{color:var(--accent-2);cursor:pointer;text-decoration:underline}
+  #errbar{position:fixed;left:18px;bottom:18px;z-index:80;max-width:min(520px,90vw);background:#fde8e8;color:#7f1d1d;border:1px solid #f3bcbc;border-radius:10px;padding:9px 12px;box-shadow:0 4px 18px rgba(0,0,0,.25);font-size:13px;display:flex;gap:10px;align-items:center}
+  #errbar span{flex:1;word-break:break-word}
+  .netbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:9px 18px;background:#fde8e8;border-bottom:1px solid #f0b4b4;color:#7f1d1d;font-size:14px}
+  .netbar .grow{flex:1;min-width:220px}
+  html.dark .netbar{background:#3d1d1d;border-color:#6d2f2f;color:#ffb4ad}
+  /* thème sombre : l'interface seulement, les pages de l'aperçu restent blanches */
+  html.dark{--bg:#10141c;--card:#1a202b;--ink:#e4e8ef;--muted:#98a3b6;--line:#2d3545;--accent-2:#6f9ad0;--ok:#4cc27d;--warn:#f0b865;--bad:#ff7b72;color-scheme:dark}
+  html.dark input[type=text],html.dark input[type=number],html.dark input[type=password],html.dark textarea,html.dark select,
+  html.dark .btn,html.dark .mbox,html.dark #cellpop,html.dark .covbox,html.dark .pnav .mid input{background:#232b39;color:var(--ink)}
+  html.dark .btn{border-color:#4a6a96;color:#cfe0f5}
+  html.dark .btn.primary{background:#3b5f8f;color:#fff;border-color:#3b5f8f}
+  html.dark .btn.primary:hover{background:#4d74a8}
+  html.dark header button.hgen{background:#e6edf9;color:#1d2f4a}
+  html.dark .chead:hover{background:#212938}
+  html.dark .cbody,html.dark .chkbox{background:#161c26}
+  html.dark .thumb{background-color:#2d3545;border-color:#3b4558;color:#98a3b6}
+  html.dark .covbox{border-color:#3b4558}
+  html.dark .covbox.drag,html.dark .empty.drag{background:#22304a}
+  html.dark .empty{border-color:#3b4558}
+  html.dark .badge{background:#3a2d12;color:#f0b865}
+  html.dark .badge.ok{background:#173a26;color:#4cc27d}
+  html.dark .note{background:#1c2a40;border-color:#2f4466;color:#c7d8f2}
+  html.dark .note.warn,html.dark #bulk{background:#3a2d12;border-color:#6b5320;color:#f0d9a0}
+  html.dark .progress,html.dark .upd{background:#3a2d12;border-color:#6b5320;color:#f0d9a0}
+  html.dark .progress .bar,html.dark .upd .bar{background:#5a4a22}
+  html.dark .upd button{background:#232b39;color:#f0d9a0;border-color:#6b5320}
+  html.dark .upd button.primary{background:#3b5f8f;color:#fff;border-color:#3b5f8f}
+  html.dark code.path{background:#202735}
+  html.dark #steps button{background:#232b39;color:var(--ink)}
+  html.dark #steps button.on{background:#3b5f8f;color:#fff}
+  html.dark #steps button:hover:not(.on){background:#2d3a50}
+  html.dark .swatches button{border-color:#1a202b}
+  html.dark .pt img,html.dark .spr figure img,html.dark .pwrap img{background:#fff}
+  html.dark .errbox,html.dark #errbar{background:#3d1d1d;color:#ffb4ad;border-color:#6d2f2f}
+  html.dark .rp-result{background:#173a26;border-color:#2c6b46;color:#b8e6c9}
+  html.dark .qbox .qia{background:#3a2d12;color:#f0b865}
+  html.dark #cellpop{border-color:#3b4558}
+  html.dark .toast{background:#e4e8ef;color:#1d2433}
 </style>
 </head>
 <body>
@@ -187,12 +247,19 @@
   <button id="b-undo" title="Annuler (Ctrl+Z)" disabled>↶</button><button id="b-redo" title="Rétablir (Ctrl+Y)" disabled>↷</button>
   <button id="b-set" title="Clés, dossiers…">Réglages</button>
   <button id="b-new" title="Vider le catalogue">Nouveau</button>
+  <button id="b-report" title="Signaler un problème : envoie un rapport par Gmail ou WhatsApp" aria-label="Signaler un problème">⚑</button>
+  <button id="b-theme" class="themesw" role="switch" aria-checked="false" title="Passer en thème sombre">
+    <svg class="ic sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><g stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></g></svg>
+    <svg class="ic moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.9 8.9 0 1 0 11.1 11.1z"/></svg>
+    <i class="knob"></i>
+  </button>
   <button id="b-gen" class="hgen" disabled>Générer le catalogue</button>
   <input type="file" id="f-import" accept=".xlsx,.csv,.txt,.tsv,.slk" class="hide">
   <input type="file" id="f-cover" accept="image/*" class="hide">
   <input type="file" id="f-garde" accept="image/*" class="hide">
 </header>
 <nav id="steps" class="hide"><button data-step="1" class="on">1 · Livres</button><span class="sep">›</span><button data-step="2">2 · Mise en page</button><span class="sep">›</span><button data-step="3">3 · Générer</button></nav>
+<div id="netbar" class="netbar hide"><span class="grow"><b>Pas de connexion internet.</b> La recherche des livres, l'écriture par l'IA, les citations IA et les mises à jour sont impossibles. Le reste (modifier, aperçu, générer) fonctionne.</span><button class="btn small" id="net-retry">Réessayer</button></div>
 <div class="upd hide" id="upd"></div>
 <main id="main">
   <div id="left">
@@ -217,6 +284,7 @@
         <label class="chk"><input type="checkbox" id="st-m4"> Pages blanches pour un multiple de 4 (folio)</label>
         <label>Couleur du catalogue <small>— page de garde, rubriques et 4e de couverture</small></label><div class="swatches" id="st-col"></div>
       </div>
+      <div class="sbox" id="st-quote"></div>
       <div class="sbox"><div class="row2"><b style="flex:1" id="st-title">Pages</b><button class="btn small" id="st-spread">Vue en planches</button></div><div class="pgrid" id="st-grid"></div></div>
     </div>
     <div id="listwrap" class="hide">
@@ -239,6 +307,28 @@
     </div>
   </div>
 </main>
+
+<div class="modal hide" id="m-report"><div class="mbox">
+  <div class="mhead"><h3 id="rp-title">Signaler un problème</h3><button class="xbtn" id="rp-x" title="Fermer">✕</button></div>
+  <div class="mbody">
+    <div id="rp-err-wrap" class="hide"><label style="margin-top:0">Message d'erreur</label><pre class="errbox" id="rp-err"></pre></div>
+    <label style="margin-top:0">Que s'est-il passé ? <small>(facultatif, en quelques mots)</small></label>
+    <textarea id="rp-desc" rows="3" placeholder="Ex. : j'ai cliqué sur « Récupérer les infos » et rien ne s'est passé"></textarea>
+    <div class="rp-send">
+      <button class="btn primary" id="rp-gmail">✉ Envoyer par Gmail</button>
+      <button class="btn primary" id="rp-wa">💬 Envoyer par WhatsApp</button>
+    </div>
+    <div class="hint" style="text-align:center">Un petit fichier de rapport est créé (ton catalogue + le détail de l'erreur). Aucune clé ni mot de passe dedans.</div>
+    <div id="rp-result" class="rp-result hide"></div>
+    <details id="rp-dest" style="margin-top:10px"><summary style="cursor:pointer">Destinataire (à régler une seule fois)</summary>
+      <label>Adresse e-mail (Gmail)</label><input type="text" id="rp-to" placeholder="prenom@gmail.com">
+      <label>Numéro WhatsApp <small>— avec l'indicatif, ex. 33612345678 ; vide = tu choisis le contact dans WhatsApp</small></label>
+      <input type="text" id="rp-num" placeholder="33612345678">
+    </details>
+    <div class="rp-small"><a id="rp-save">Enregistrer le rapport sur l'ordinateur</a> · <a id="rp-copy">Copier le message d'erreur</a></div>
+  </div>
+</div></div>
+<div id="errbar" class="hide"><span id="eb-txt"></span><button class="btn small" id="eb-rep">⚑ Signaler</button><button class="xbtn" id="eb-x" title="Fermer">✕</button></div>
 
 <div class="modal hide" id="m-add"><div class="mbox">
   <div class="mhead"><h3>Ajouter des ISBN</h3><button class="xbtn" id="ma-x">✕</button></div>
@@ -324,11 +414,110 @@
 const TOKEN = "__TOKEN__";
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+// ------------------------------------------------------------ connexion internet
+const NET = {ok: true, busy: null};
+async function netCheck(force){
+  if (NET.busy) return NET.busy;
+  NET.busy = (async () => {
+    let ok = true;
+    try { ok = !!(await api("/api/net", {force: !!force})).online; } catch (e) { ok = NET.ok; }
+    NET.ok = ok; $("netbar").classList.toggle("hide", ok);
+    NET.busy = null; return ok;
+  })();
+  return NET.busy;
+}
+async function needNet(what){
+  await netCheck(true);
+  while (!NET.ok) {
+    const retry = await confirmBox("Pas de connexion internet", `<div><b>${esc(what)}</b> a besoin d'internet. Vérifie que l'ordinateur est connecté au wifi, puis réessaie.</div>`, "Réessayer", "Annuler");
+    if (!retry) return false;
+    await netCheck(true);
+  }
+  return true;
+}
+window.addEventListener("offline", () => { NET.ok = false; $("netbar").classList.remove("hide"); });
+window.addEventListener("online", () => netCheck(true));
+setInterval(() => netCheck(false), 12000);
+$("net-retry").onclick = async () => { $("net-retry").disabled = true; await netCheck(true); $("net-retry").disabled = false; if (NET.ok) toast("✓ Connexion rétablie"); };
+
+// ------------------------------------------------------------ thème clair / sombre
+function applyTheme(t){
+  document.documentElement.classList.toggle("dark", t === "dark");
+  const b = $("b-theme"); if (b) { b.setAttribute("aria-checked", t === "dark"); b.title = t === "dark" ? "Revenir au thème clair" : "Passer en thème sombre"; }
+}
+$("b-theme").onclick = () => {
+  const t = document.documentElement.classList.contains("dark") ? "light" : "dark";
+  applyTheme(t);
+  try { localStorage.setItem("cmpl-cat-theme", t); } catch (e) {}
+  S.settings.theme = t; api("/api/settings", {theme: t}).catch(() => {});
+};
+try { const t0 = localStorage.getItem("cmpl-cat-theme"); if (t0) applyTheme(t0); } catch (e) {}
+
+// ------------------------------------------------------------ signaler un problème
+const clientLog = [];
+function logClient(msg){ clientLog.push(new Date().toLocaleTimeString() + " " + String(msg).slice(0, 400)); if (clientLog.length > 30) clientLog.shift(); }
+window.addEventListener("error", e => logClient("Erreur page : " + e.message + (e.lineno ? " (ligne " + e.lineno + ")" : "")));
+window.addEventListener("unhandledrejection", e => logClient("Erreur page : " + (e.reason && e.reason.message || e.reason)));
+const RP = {err: "", report: null};
+function showErrBar(msg){ RP.lastErr = msg; $("eb-txt").textContent = "Un problème est survenu : " + String(msg).slice(0, 180); $("errbar").classList.remove("hide"); }
+$("eb-x").onclick = () => $("errbar").classList.add("hide");
+$("eb-rep").onclick = () => { $("errbar").classList.add("hide"); openReport(RP.lastErr || ""); };
+function openReport(errMsg){
+  RP.err = errMsg || ""; RP.report = null;
+  $("rp-title").textContent = RP.err ? "Un problème est survenu" : "Signaler un problème";
+  $("rp-err-wrap").classList.toggle("hide", !RP.err); $("rp-err").textContent = RP.err;
+  $("rp-result").classList.add("hide");
+  const st = S.settings || {};
+  $("rp-to").value = st.support_email || ""; $("rp-num").value = st.support_whatsapp || "";
+  $("rp-dest").open = !st.support_email && !st.support_whatsapp;
+  show("m-report"); $("rp-desc").focus();
+}
+$("b-report").onclick = () => openReport("");
+function saveDest(){
+  const to = $("rp-to").value.trim(), num = $("rp-num").value.trim();
+  S.settings.support_email = to; S.settings.support_whatsapp = num;
+  api("/api/settings", {support_email: to, support_whatsapp: num}).catch(() => {});
+}
+async function makeReport(){
+  if (RP.report) return RP.report;
+  RP.report = await api("/api/report/create", {description: $("rp-desc").value, error: RP.err, client: clientLog});
+  return RP.report;
+}
+async function sendReport(how){
+  if (how === "gmail" && !$("rp-to").value.trim()) { $("rp-dest").open = true; $("rp-to").focus(); toast("Indique d'abord l'adresse e-mail du destinataire."); return; }
+  saveDest();
+  if (!(await needNet(how === "gmail" ? "L'envoi par Gmail" : "L'envoi par WhatsApp"))) return;
+  const box = $("rp-result"); box.classList.remove("hide"); box.textContent = "Préparation du rapport…";
+  try {
+    const rep = await makeReport();
+    const r = await api("/api/report/share", {how, path: rep.path, to: $("rp-to").value.trim(), number: $("rp-num").value.trim(), description: $("rp-desc").value, error: RP.err});
+    const app = how === "gmail" ? "Gmail" : "WhatsApp";
+    box.innerHTML = `<b>✓ ${app} s'ouvre dans ton navigateur</b>` + (r.copied
+      ? `Le fichier <i>${esc(rep.name)}</i> est déjà copié : dans ${app}, fais simplement <b style="display:inline">Ctrl+V</b> pour le joindre. S'il ne se colle pas, glisse-le depuis la fenêtre de dossier qui vient de s'ouvrir.`
+      : `Joins le fichier <i>${esc(rep.name)}</i> (dossier « Rapports » : ${esc(rep.folder)}) en le glissant dans ${app}.`);
+    if (!r.opened) box.innerHTML += `<br>Si rien ne s'ouvre : <a href="${esc(r.url)}" target="_blank" rel="noopener">clique ici</a>.`;
+  } catch (e) { box.innerHTML = `<div class="note warn" style="margin:0">${esc(e.message)}</div>`; }
+}
+$("rp-gmail").onclick = () => sendReport("gmail");
+$("rp-wa").onclick = () => sendReport("whatsapp");
+$("rp-x").onclick = () => hide("m-report");
+$("rp-to").addEventListener("change", saveDest); $("rp-num").addEventListener("change", saveDest);
+$("rp-save").onclick = async () => { try { const rep = await makeReport(); await api("/api/open_folder", {path: rep.folder}); toast("Rapport enregistré : " + rep.name); } catch (er) { toast(er.message); } };
+$("rp-copy").onclick = async () => {
+  try { const t = (await api("/api/report/text", {error: RP.err, client: clientLog})).text; await navigator.clipboard.writeText(t); toast("✓ Message copié"); }
+  catch (er) { toast("Copie impossible : " + er.message); }
+};
+
 const api = async (path, body) => {
   const r = await fetch(path, {method: "POST", headers: {"X-Token": TOKEN, "Content-Type": "application/json"}, body: JSON.stringify(body || {})});
   let j = {}; try { j = await r.json(); } catch (e) {}
   const hh = r.headers.get("X-Hist"); if (hh) { $("b-undo").disabled = hh[0] !== "1"; $("b-redo").disabled = hh[1] !== "1"; }
-  if (!r.ok) throw new Error(j.error || r.statusText);
+  if (!r.ok) {
+    const msg = j.error || r.statusText;
+    logClient(path + " : " + msg);
+    if (r.status >= 500) showErrBar(msg);
+    throw new Error(msg);
+  }
   return j;
 };
 const show = id => $(id).classList.remove("hide"), hide = id => $(id).classList.add("hide");
@@ -349,8 +538,10 @@ let S = {books: [], settings: {}, meta: {}};
 let sel = null, page = 0, where = {}, covRev = {}, chosen = new Set(), step = 1;
 const byIsbn = i => S.books.find(b => b.isbn === i);
 
+let themeInit = false;
 function setState(st){
-  S.books = st.books; S.settings = st.settings || S.settings; S.meta = st.meta || S.meta; S.lib = st.lib || null; S.themes = st.themes || S.themes || [];
+  S.books = st.books; S.settings = st.settings || S.settings; S.meta = st.meta || S.meta; S.lib = st.lib || null; S.citation = st.citation || S.citation; S.themes = st.themes || S.themes || [];
+  if (!themeInit) { themeInit = true; let t0 = null; try { t0 = localStorage.getItem("cmpl-cat-theme"); } catch (e) {} if (!t0 && S.settings.theme) applyTheme(S.settings.theme); }
   $("libname").textContent = S.lib ? " · " + S.lib.nom : "";
   renderAll();
 }
@@ -612,6 +803,7 @@ async function askFetch(){
   await startFetch(null, false);
 }
 async function startFetch(isbns, force){
+  if (!(await needNet("La recherche des informations"))) return;
   if (!S.settings.google_key_set) {
     const ok = await confirmBox("Pas de clé Google Books", `<div>Sans clé, le programme ne trouvera que la fiche technique (titre, auteurs, éditeur, pages) via la BnF. <b>Pas de résumé, pas de date exacte, pas de couverture.</b></div><div class="hint" style="margin-top:8px">Les réglages expliquent comment obtenir la clé gratuite.</div>`, "Continuer sans", "Ouvrir les réglages");
     if (!ok) { openSettings(); return; }
@@ -623,6 +815,7 @@ async function startFetch(isbns, force){
   } catch (e) { toast(e.message); }
 }
 async function startAI(isbns){
+  if (!(await needNet("L'écriture des descriptions"))) return;
   if (!S.settings.claude_key_set) {
     const ok = await confirmBox("Pas de clé Claude", `<div>L'écriture des descriptions utilise l'IA Claude : il faut une clé (crédit à acheter sur console.anthropic.com, quelques centimes par catalogue).</div><div class="hint" style="margin-top:8px">Les réglages expliquent comment l'obtenir.</div>`, "Ouvrir les réglages", "Annuler");
     if (ok) openSettings(); return;
@@ -754,12 +947,74 @@ function setStep(n){
   if (n === 2) renderStruct();
 }
 document.querySelectorAll("#steps button").forEach(b => b.onclick = () => setStep(+b.dataset.step));
+// ------------------------------------------------------------ citation de la 4e de couverture
+function quoteHtml(c, inPop){
+  if (!c) return "";
+  const txt = c.off ? `<div class="qtxt" style="opacity:.6">Pas de citation sur la 4e de couverture.</div>` :
+    `<div class="qtxt">« ${esc(c.texte)} »</div><div class="qaut">${esc(c.auteur || "")}${c.ia ? `<span class="qia" title="Proposée par l'IA : vérifie que la citation et l'auteur sont exacts">IA : à vérifier</span>` : ""}</div>`;
+  let ai;
+  if (c.tour_fait) {
+    const dis = c.ia_occupe || c.ia_attente || !c.ia_restant;
+    ai = `<div class="row"><button class="btn small" data-q="ai" ${dis ? "disabled" : ""}>✨ 12 citations de plus (IA)</button></div>` +
+      `<div class="hint">Tu as fait le tour des ${c.total} citations. Un clic = 1 seule demande à Haiku (moins d'1 centime) qui rapporte 12 citations, gardées pour la suite : tu ne repayes pas pour les revoir. ` +
+      `Limite : 1 demande à la fois, 30 s d'écart, ${c.ia_restant} restante${c.ia_restant > 1 ? "s" : ""} aujourd'hui. Vérifie toujours l'auteur.</div>`;
+  } else {
+    ai = `<div class="hint">${c.total} citations au choix, jamais deux fois la même avant la fin du tour (${c.restantes ? c.restantes + " à voir" : "tour en cours"}). Un bouton IA apparaît quand tu les as toutes vues.</div>`;
+  }
+  return `<div class="qbox"><b>Citation de la 4e de couverture</b>${txt}` +
+    `<div class="row"><button class="btn small primary" data-q="next">↻ Autre citation</button><button class="btn small" data-q="prev" ${c.peut_prev ? "" : "disabled"}>◀ Précédente</button>` +
+    `<button class="btn small" data-q="edit">Modifier</button><button class="btn small" data-q="${c.off ? "on" : "off"}">${c.off ? "Remettre" : "Sans citation"}</button></div>` +
+    `<div class="q-edit hide"><textarea class="q-t" rows="3" placeholder="Texte de la citation"></textarea><input class="q-a" type="text" placeholder="Auteur">` +
+    `<div class="row"><button class="btn small primary" data-q="save">OK</button><button class="btn small" data-q="cancel">Annuler</button></div></div>` + ai + `</div>`;
+}
+let quoteBusy = false;
+async function quoteAct(act, root){
+  if (quoteBusy) return; quoteBusy = true;
+  const fromPop = root.id === "cellpop";
+  try {
+    const body = {action: act};
+    if (act === "custom") { body.texte = root.querySelector(".q-t").value; body.auteur = root.querySelector(".q-a").value; }
+    if (act === "ai") { if (!(await needNet("La demande à l'IA"))) { quoteBusy = false; return; } toast("Demande à l'IA en cours…"); }
+    const r = await api("/api/citation", body); S.citation = r.citation;
+    if (act === "ai") toast(r.n ? `✓ ${r.n} nouvelles citations ajoutées` : "L'IA n'a rien proposé de nouveau : réessaie plus tard.");
+    const dos = pvPages.findIndex(p => p.kind === "dos"); if (dos >= 0) page = dos;        // on montre la 4e de couverture
+    await loadPreview(); renderQuote();
+    if (fromPop) { const h = document.querySelector('#phot .hs[data-field="citation"]'); if (h) openQuote(h); }       // le menu reste ouvert : on peut cliquer à l'infini
+  } catch (e) {
+    toast(e.message);
+    try { const st = await api("/api/state"); S.citation = st.citation; renderQuote(); if (fromPop) { const h = document.querySelector('#phot .hs[data-field="citation"]'); if (h) openQuote(h); } } catch (_) {}
+  }
+  quoteBusy = false;
+}
+function wireQuote(root){
+  root.onclick = e => {
+    const b = e.target.closest("button[data-q]"); if (!b || b.disabled) return;
+    const a = b.dataset.q;
+    if (a === "edit") { const c = S.citation || {}; root.querySelector(".q-edit").classList.remove("hide"); root.querySelector(".q-t").value = c.texte || ""; root.querySelector(".q-a").value = c.auteur || ""; root.querySelector(".q-t").focus(); return; }
+    if (a === "cancel") { root.querySelector(".q-edit").classList.add("hide"); return; }
+    quoteAct(a === "save" ? "custom" : a, root);
+  };
+}
+function renderQuote(){
+  const box = $("st-quote"); if (box) box.innerHTML = quoteHtml(S.citation);
+  const pop = $("cellpop"); if (!pop.classList.contains("hide") && pop.dataset.kind === "quote") pop.innerHTML = quoteHtml(S.citation, true);
+}
+wireQuote($("st-quote")); wireQuote($("cellpop"));
+function openQuote(h){
+  closeCell(); cellEl = h; h.classList.add("edit");
+  const pop = $("cellpop"); pop.dataset.kind = "quote"; pop.innerHTML = quoteHtml(S.citation, true); pop.classList.remove("hide");
+  const r = h.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+  pop.style.left = Math.min(Math.max(8, r.left + r.width / 2 - pw / 2), window.innerWidth - pw - 8) + "px";
+  pop.style.top = Math.max(8, r.top - ph - 8) + "px";
+}
+
 const STRUCT = {"st-pg": "p_garde", "st-pt": "inclure_prix", "st-pc": "p_cond", "st-pp": "p_proforma", "st-pd": "p_dos", "st-m4": "p_multi4"};
 function renderStruct(){
   const st = S.settings || {};
   Object.entries(STRUCT).forEach(([id, k]) => { $(id).checked = st[k] !== false; });
   const cur = S.meta.garde_couleur || "bleu";
   $("st-col").innerHTML = (S.themes || []).map(([k, lab, hex]) => `<button data-c="${k}" class="${k === cur ? "on" : ""}" style="background:${hex}" title="${esc(lab)}"></button>`).join("");
+  renderQuote();
   $("st-title").textContent = `${pvPages.length} page${pvPages.length > 1 ? "s" : ""}`;
   $("st-grid").innerHTML = pvPages.map((p, i) => `<div class="pt ${i === page ? "cur" : ""}" data-n="${i}"><img loading="lazy" src="${pageUrl(i, pvRev, 40)}"><div>${esc(p.label.replace("Demande de facture proforma", "Proforma").replace("Tableau des prix", "Tableau"))}</div></div>`).join("");
 }
@@ -820,11 +1075,12 @@ const CELLS = {
   garde_acc: ["Lignes d'accroche", "Une ligne par accroche.", "area"],
 };
 let cellEl = null;
-function closeCell(){ $("cellpop").classList.add("hide"); document.querySelectorAll("#phot .hs.edit").forEach(d => d.classList.remove("edit")); cellEl = null; }
+function closeCell(){ $("cellpop").classList.add("hide"); $("cellpop").dataset.kind = ""; document.querySelectorAll("#phot .hs.edit").forEach(d => d.classList.remove("edit")); cellEl = null; }
 function openCell(h){
   const f = h.dataset.field, isbn = h.dataset.isbn, b = byIsbn(isbn), meta = h.dataset.meta === "1";
   if (f === "conditions") { closeCell(); openSettings(); setTimeout(() => $("s-cond").focus(), 50); return; }
   if (f === "garde_image") { closeCell(); $("f-garde").click(); return; }
+  if (f === "citation") { openQuote(h); return; }
   if (f === "fiche") { closeCell(); selectBook(isbn, true, true); return; }
   const c = CELLS[f]; if (!c) return;
   closeCell(); cellEl = h; h.classList.add("edit");
@@ -1043,6 +1299,7 @@ async function updApply(){
 }
 async function updManual(){
   updDismissed = false; updOpen("manual"); updFill({state: "checking"});
+  await netCheck(true); if (!NET.ok) return updFill({state: "error", error: "Pas de connexion internet : vérifie le wifi puis réessaie."});
   try { await api("/api/update/check", {}); } catch (err) { return updFill({state: "error", error: err.message}); }
   for (let i = 0; i < 30; i++) {
     await new Promise(r => setTimeout(r, 400));
@@ -1104,6 +1361,7 @@ function updInitialCheck(){
   setState(st);
   fetch("/api/ping");
   updInitialCheck();
+  netCheck(true);
 })();
 </script>
 </body>

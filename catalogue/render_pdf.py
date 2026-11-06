@@ -43,22 +43,33 @@ def _image_reader(im):
 
 
 def _draw_text(c, tb: TextBox, page_h_pt):
-    if tb.rot:
-        return
+    rot = bool(tb.rot)
     x0, y0 = tb.x * PT_PER_MM, tb.y * PT_PER_MM
     inset = tb.inset / MM_PER_PT
-    avail_w = (tb.w - 2 * tb.inset) / MM_PER_PT
-    avail_h = (tb.h - 2 * tb.inset) / MM_PER_PT
+    L_mm, T_mm = (tb.h, tb.w) if rot else (tb.w, tb.h)      # longueur de lecture / épaisseur
+    avail_w = (L_mm - 2 * tb.inset) / MM_PER_PT
+    avail_h = (T_mm - 2 * tb.inset) / MM_PER_PT
     lines, total = textfit.layout(tb.paras, avail_w)
     off = {"t": 0.0, "m": (avail_h - total) / 2, "b": avail_h - total}[tb.anchor]
+    if rot:
+        # texte vertical, lecture de bas en haut : origine = coin bas-gauche de la zone, repère tourné de 90° (anti-horaire)
+        c.saveState()
+        c.translate(x0, page_h_pt - (tb.y + tb.h) * PT_PER_MM)
+        c.rotate(90)
+
+        def put(xl, base_l, text):
+            c.drawString(xl, -base_l, text)
+    else:
+        def put(xl, base_l, text):
+            c.drawString(x0 + xl, page_h_pt - (y0 + base_l), text)
     for line in lines:
-        base = y0 + inset + off + line.y_pt + line.ascent_pt
-        x = x0 + inset + line.x_pt
+        base = inset + off + line.y_pt + line.ascent_pt
+        x = inset + line.x_pt
         if line.bullet is not None:
             run = line.bullet.run
             c.setFont(_font_name(run), run.size)
             c.setFillColor(HexColor(run.color))
-            c.drawString(x0 + inset + line.bullet_x_pt, page_h_pt - base, line.bullet.text)
+            put(inset + line.bullet_x_pt, base, line.bullet.text)
         # on dessine chaque ligne d'un seul tenant (mots + espaces) pour que le texte du PDF reste copiable / cherchable
         groups, cur = [], None
         for p in line.pieces:
@@ -74,8 +85,10 @@ def _draw_text(c, tb: TextBox, page_h_pt):
             if text.strip():
                 c.setFont(_font_name(run), run.size)
                 c.setFillColor(HexColor(run.color))
-                c.drawString(x, page_h_pt - base, text)
+                put(x, base, text)
             x += g["w"]
+    if rot:
+        c.restoreState()
 
 
 def build_pdf(pages, path, title="Catalogue CMPL", author="CMPL"):

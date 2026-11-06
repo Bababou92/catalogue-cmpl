@@ -6,7 +6,7 @@ import os
 from PIL import Image
 
 from . import textfit
-from .model import Page, Pic, Rect, TextBox
+from .model import Page, Pic, Rect, TextBox, rotate_page_ccw
 from .textfit import MM_PER_PT, Para, Run
 
 W, H = 210.0, 297.0
@@ -201,47 +201,50 @@ def blank_page():
     return pg
 
 
-def proforma_page():
-    pg = Page("Demande de facture proforma", W, H)
+def _proforma_paysage():
+    """Mise en page paysage (297 x 210) du formulaire, tournée ensuite sur la page verticale."""
+    pw, ph = 297.0, 210.0
+    pg = Page("Demande de facture proforma", pw, ph)
     pg.hot = []
     M = 10.0
-    logo = _pic_logo(M, 8.0, 14.0 * 558 / 192)
+    logo = _pic_logo(M, 8.0, 17.0 * 558 / 192)
     x = M
     if logo is not None:
         pg.elements.append(logo)
-        x = M + logo.w + 4
+        x = M + logo.w + 5
     adr = ["9, rue Docteur Villette - Isoraka", "BP 3312 - Antananarivo", "cmpl @ moov.mg", "T. + 261 20 22 244 62"]
-    paras = [Para([_run(l, 7.0)], align="l") for l in adr] + [Para([_run("RC 6612 - INSRE 94819", 6.0, color="#444444")], align="l", space_before_pt=1.0)]
-    pg.elements.append(TextBox(x, 7.5, 46.0, 20.0, paras, name="Coordonnées"))
-    tx = x + 50
-    pg.elements.append(TextBox(tx, 8.0, W - M - tx, 18.0, [
-        Para([_run("DEMANDE DE FACTURE PROFORMA", 12.0, bold=True)], align="c"),
-        Para([_run("Seuls les prix mentionnés sur un devis ou une facture sont valables.", 7.0, italic=True)], align="c", space_before_pt=4.0)], name="Titre"))
-    # formulaire (à gauche) et signature (à droite)
-    fx, fw, y = M, 112.0, 36.0
-    pg.elements.append(TextBox(fx, y, W - 2 * M, 6.0, [Para([_run("□ Je souhaite être informé des actualités de la Librairie CMPL", 8.5, bold=True)], align="l")], anchor="m", name="Actualités"))
-    y += 9.0
+    paras = [Para([_run(l, 8.0)], align="l") for l in adr] + [Para([_run("RC 6612 - INSRE 94819", 6.5, color="#444444")], align="l", space_before_pt=1.0)]
+    pg.elements.append(TextBox(x, 7.5, 60.0, 22.0, paras, name="Coordonnées"))
+    tx = x + 64
+    pg.elements.append(TextBox(tx, 8.0, pw - M - tx, 18.0, [
+        Para([_run("DEMANDE DE FACTURE PROFORMA", 13.0, bold=True)], align="c"),
+        Para([_run("Seuls les prix mentionnés sur un devis ou une facture sont valables.", 8.0, italic=True)], align="c", space_before_pt=4.0)], name="Titre"))
+    # colonne de gauche : formulaire
+    fx, fw, y = M, 86.0, 40.0
+    pg.elements.append(TextBox(fx, y, fw, 6.0, [Para([_run("□ Je souhaite être informé des actualités de la Librairie CMPL", 8.0, bold=True)], align="l")], anchor="m", name="Actualités"))
+    y += 10.0
     for lab, extra in (("EMAIL*", 0), ("NOM/PRÉNOM*", 0), ("ADRESSE*", 1), ("CODE POSTAL*", 0), ("VILLE*", 0), ("TÉL*", 0), ("SOCIÉTÉ", 0)):
         pg.elements.append(TextBox(fx, y, 30.0, 6.0, [Para([_run(lab + " :", 8.5)], align="l")], anchor="b", name=lab))
         pg.elements.append(Rect(fx + 30.0, y + 5.6, fw - 30.0, 0.25, fill="#777777", name="Ligne"))
-        y += 8.2
+        y += 9.0
         if extra:
             pg.elements.append(Rect(fx + 30.0, y + 5.6, fw - 30.0, 0.25, fill="#777777", name="Ligne"))
-            y += 8.2
-    pg.elements.append(TextBox(fx, y + 1.0, fw, 5.0, [Para([_run("* Champs obligatoires", 7.0, italic=True)], align="l")], name="Obligatoire"))
-    sx = fx + fw + 8.0
-    pg.elements.append(Rect(sx, 46.0, W - M - sx, 40.0, fill="#FFFFFF", line="#444444", line_pt=0.75, name="Cadre signature"))
-    pg.elements.append(TextBox(sx, 46.0, W - M - sx, 40.0, [Para([_run("Signature obligatoire", 8.5, italic=True)], align="c")], anchor="m", name="Signature"))
+            y += 9.0
+    y += 6.0
+    pg.elements.append(Rect(fx + 2.0, y, 70.0, 28.0, fill="#FFFFFF", line="#444444", line_pt=0.75, name="Cadre signature"))
+    pg.elements.append(TextBox(fx + 2.0, y, 70.0, 28.0, [Para([_run("Signature obligatoire", 8.5, italic=True)], align="c")], anchor="m", name="Signature"))
+    y += 31.0
+    pg.elements.append(TextBox(fx, y, fw, 5.0, [Para([_run("* Champs obligatoires", 7.0, italic=True)], align="l")], name="Obligatoire"))
     # tableau de saisie
-    cols = [("Référence", 32.0), ("Titre", 80.0), ("Auteur", 52.0), ("Quantité", 26.0)]
-    tx0, ty, head_h, row_h = M, y + 12.0, 8.0, 9.0
+    cols = [("Référence", 32.0), ("Titre", 76.0), ("Auteur", 52.0), ("Quantité", 24.0)]
+    tx0, ty, head_h, row_h = 105.0, 32.0, 8.0, 9.2
     cx = tx0
     for lab, w in cols:
         pg.elements.append(Rect(cx, ty, w, head_h, fill="#8C8C8C", name="En-tête"))
         pg.elements.append(TextBox(cx, ty, w, head_h, [Para([_run(lab, 8.5, bold=True, color="#FFFFFF")], align="c")], anchor="m", name="En-tête : " + lab))
         cx += w
     tw = sum(w for _, w in cols)
-    nrows = int((H - 32.0 - ty - head_h) // row_h)
+    nrows = int((ph - 28.0 - ty - head_h) // row_h)
     ye = ty + head_h + nrows * row_h
     for i in range(nrows + 1):
         pg.elements.append(Rect(tx0, ty + head_h + i * row_h - 0.1, tw, 0.2, fill="#8A8A8A", name="Filet"))
@@ -253,12 +256,16 @@ def proforma_page():
              "Vous pouvez nous adresser une demande de prix d'ouvrages issus d'autres éditions que celles présentes dans nos sélections.",
              "En cas de livraison en province, des frais de port seront inclus dans la facture proforma.",
              "Les demandes de facture proforma peuvent nous être adressées sur papier libre."]
-    pg.elements.append(TextBox(M, H - 28.0, W - 2 * M, 18.0, [Para([_run(n, 7.0, italic=True)], align="l") for n in notes], anchor="b", name="Notes"))
+    pg.elements.append(TextBox(M, ph - 22.0, pw - 2 * M, 14.0, [Para([_run(n, 7.0, italic=True)], align="l") for n in notes], anchor="b", name="Notes"))
     return pg
 
 
+def proforma_page():
+    return rotate_page_ccw(_proforma_paysage())
+
+
 # ---------------------------------------------------------------- 4e de couverture
-def back_page(color=None):
+def back_page(color=None, quote=None):
     col = color or BLUE
     pg = Page("4e de couverture", W, H)
     pg.hot = []
@@ -278,4 +285,22 @@ def back_page(color=None):
     logo = _pic_logo(109.0, 213.0, 88.0)
     if logo is not None:
         pg.elements.append(logo)
+    _quote_band(pg, quote)
     return pg
+
+
+def _quote_band(pg, quote):
+    """Citation dans le bandeau de couleur du bas : blanc, italique, centré, réduit pour tenir sur 3 lignes."""
+    pg.hot.append({"meta": True, "field": "citation", "x": 0.0, "y": 259.0, "w": W, "h": 38.0, "v": "", "auto": ""})
+    if not quote or not (quote[0] or "").strip():
+        return
+    texte, auteur = quote[0].strip(), (quote[1] or "").strip()
+    bw, bh = W - 40.0, 30.0
+    for size in (13.0, 12.0, 11.0, 10.0, 9.0, 8.0):
+        paras = [Para([_run("« " + texte + " »", size, italic=True, color="#FFFFFF")], align="c")]
+        if auteur:
+            paras.append(Para([_run(auteur, size - 2.0, bold=True, color="#FFFFFF", smallcaps=True)], align="c", space_before_pt=3.0))
+        lines = textfit.layout(paras[:1], bw / MM_PER_PT)[0]
+        if len(lines) <= 3 and _height(paras, bw) <= bh:
+            break
+    pg.elements.append(TextBox((W - bw) / 2, 259.0 + (38.0 - bh) / 2, bw, bh, paras, anchor="m", name="Citation"))
