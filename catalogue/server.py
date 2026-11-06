@@ -186,6 +186,11 @@ def build_all(with_prices=None):
         post.append(fixedlib.proforma_page())
     if s.get("p_dos", True):
         post.append(fixedlib.back_page())
+    if s.get("p_multi4", True):                    # impression en folio : nombre de pages multiple de 4, pages blanches avant la 4e de couverture
+        reste = (-(len(front) + len(book_pages) + len(price_pages) + len(post))) % 4
+        at = len(post) - 1 if s.get("p_dos", True) else len(post)
+        for _ in range(reste):
+            post.insert(at, fixedlib.blank_page())
     return front, book_pages, price_pages, post
 
 
@@ -253,8 +258,6 @@ def generate(out_dir, name, want_pdf=True, want_pptx=False):
     folder = os.path.join(os.path.abspath(os.path.expanduser(out_dir)), name)
     os.makedirs(folder, exist_ok=True)
     fr, bp, pp, post = build_all()
-    portrait = [p for p in post if p.w < p.h]
-    landscape = pp + [p for p in post if p.w >= p.h]
     files = []
     if want_pdf:
         p = os.path.join(folder, name + ".pdf")
@@ -262,12 +265,8 @@ def generate(out_dir, name, want_pdf=True, want_pptx=False):
         files.append(p)
     if want_pptx:
         p = os.path.join(folder, name + ".pptx")
-        render_pptx.build_pptx(fr + bp + portrait, p, title=name)
+        render_pptx.build_pptx(fr + bp + pp + post, p, title=name)
         files.append(p)
-        if landscape:                            # tableau et proforma sont en paysage : un fichier PowerPoint à part
-            p = os.path.join(folder, name + (" - Tableau des prix.pptx" if pp else " - Proforma.pptx"))
-            render_pptx.build_pptx(landscape, p, title=name + (" - Tableau des prix" if pp else " - Proforma"))
-            files.append(p)
     return {"folder": folder, "files": files, "pages": len(fr) + len(bp) + len(pp) + len(post), "tableau": len(pp)}
 
 
@@ -670,7 +669,7 @@ class Handler(BaseHTTPRequestHandler):
                     patch["taux"] = int(t) if t == int(t) else t
                 if "arrondi" in patch:
                     patch["arrondi"] = int(patch["arrondi"]) if str(patch["arrondi"]).isdigit() and int(patch["arrondi"]) in (1, 5, 10, 50, 100, 500, 1000) else 1
-                for k in ("inclure_prix", "p_garde", "p_cond", "p_proforma", "p_dos"):
+                for k in ("inclure_prix", "p_garde", "p_cond", "p_proforma", "p_dos", "p_multi4"):
                     if k in patch:
                         patch[k] = bool(patch[k])
                 if "conditions_texte" in patch:

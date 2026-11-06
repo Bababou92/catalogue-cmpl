@@ -1,3 +1,5 @@
+0.7.0 - Toutes les pages sont verticales (le tableau des prix et le proforma passent en portrait ; un seul fichier PowerPoint). Pour l'impression en folio, le nombre de pages est complete a un multiple de 4 avec des pages blanches avant la 4e de couverture (case a decocher dans Reglages ou Generer).
+
 0.6.0 - Pages fixes comme dans le catalogue papier : page de garde (titre, mois, accroches et image modifiables en cliquant dessus), conditions de vente (texte modifiable dans Reglages), demande de facture proforma (paysage) et 4e de couverture. Chaque page se coche ou se decoche (Reglages ou fenetre Generer). Nouvelle icone CMPL.
 
 0.5.0 - Apercu instantane : la mise en page est gardee en memoire et les pages voisines sont prechargees. Boutons debut/fin, numero de page, fleches du clavier et bouton "Tableau des prix". Le tableau des prix se modifie en cliquant sur une case (titre court, auteurs, edition, date, editeur, prix) ; le prix en Ariary peut etre force, avec retour au calcul automatique. Clic sur l'ISBN = ouvre la fiche.

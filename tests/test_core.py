@@ -132,9 +132,9 @@ rv = prix.row_values(tb, 3366)
 assert rv == ["Cas de compta", "RAGAIGNE/GOND/LACHUER ET AL", "1", "3-juin-24", "9 782 100 851 638", "LE MONITEUR", "23,00", prix.fmt_int(77418)], rv
 tb["taux"] = "4488"; assert prix.row_values(tb, 3366)[7] == prix.fmt_int(103224)
 pp = prix.build_pages([dict(tb, isbn="97821008516%02d" % i) for i in range(60)], "Test", "Octobre 2024", 3366)
-assert len(pp) >= 2 and all(p.w > p.h for p in pp) and any("2/%d" % len(pp) in "".join(r.text for e in p.elements if hasattr(e, "paras") for pa in e.paras for r in pa.runs) for p in pp)
+assert len(pp) >= 2 and all(p.w < p.h for p in pp) and any("2/%d" % len(pp) in "".join(r.text for e in p.elements if hasattr(e, "paras") for pa in e.paras for r in pa.runs) for p in pp)
 op = os.path.join(tempfile.mkdtemp(), "mix.pdf"); render_pdf.build_pdf(pages.build_pages(books[:2] if "books" in dir() else [tb]) + pp, op)
-import pypdf as _pp; _r = _pp.PdfReader(op); assert _r.pages[0].mediabox.width < _r.pages[-1].mediabox.width and "Prix indicatifs Octobre 2024" in _r.pages[-1].extract_text()
+import pypdf as _pp; _r = _pp.PdfReader(op); assert abs(float(_r.pages[0].mediabox.width) - float(_r.pages[-1].mediabox.width)) < 1 and "Prix indicatifs Octobre 2024" in _r.pages[-1].extract_text()
 # mise en page : plusieurs pages, PDF avec texte sélectionnable
 books = []
 for k in range(23):
@@ -146,3 +146,19 @@ out = os.path.join(tempfile.mkdtemp(), "t.pdf"); render_pdf.build_pdf(pg, out)
 import pypdf
 r = pypdf.PdfReader(out); assert len(r.pages) == len(pg) and "Livre numéro 0" in r.pages[0].extract_text()
 print("OK tests")
+
+# pages fixes + multiple de 4 (impression en folio)
+from catalogue import server as _srv, store as _st
+_srv.CAT["books"] = [dict(tb, isbn="97821008516%02d" % i) for i in range(7)]
+for opts in ({}, {"p_garde": False}, {"p_dos": False, "p_cond": False}, {"p_multi4": False}):
+    _st.update_settings(dict({"p_garde": True, "p_cond": True, "p_proforma": True, "p_dos": True, "p_multi4": True, "inclure_prix": True}, **opts))
+    fr, bp, pp, post = _srv.build_all()
+    allp = fr + bp + pp + post
+    assert all(p.w < p.h for p in allp), "toutes les pages doivent etre verticales"
+    if opts.get("p_multi4", True):
+        assert len(allp) % 4 == 0, (opts, len(allp))
+        if _st.load_settings().get("p_dos"):
+            assert allp[-1].name == "4e de couverture"
+    else:
+        assert not any(p.name == "Page blanche" for p in allp)
+print("OK pages fixes")

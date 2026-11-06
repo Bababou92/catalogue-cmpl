@@ -144,6 +144,9 @@ def _tokens(para: Para):
                     buf += ch
             else:
                 buf += ch
+                if ch == "/" and len(buf) > 1:                  # coupure possible après une barre oblique (MARTIN/DUPONT/…)
+                    toks.append(Piece(buf, run, run_width(run, buf)))
+                    buf = ""
         if buf:
             toks.append(Piece(buf, run, run_width(run, buf)))
     return toks
