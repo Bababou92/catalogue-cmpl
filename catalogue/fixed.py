@@ -11,6 +11,24 @@ from .textfit import MM_PER_PT, Para, Run
 
 W, H = 210.0, 297.0
 BLUE, LIGHT, MID, NAVY, INK = "#5DADE1", "#AED6F0", "#85C1E8", "#1F435C", "#22313F"
+THEMES = [("bleu", "Bleu", "#5DADE1"), ("turquoise", "Turquoise", "#3FB6B2"), ("vert", "Vert", "#6BBF59"), ("orange", "Orange", "#F0A04B"),
+          ("rose", "Rose", "#D9647A"), ("violet", "Violet", "#8E7CC3"), ("ardoise", "Ardoise", "#5B7A99")]
+
+
+def theme_color(key):
+    for k, _, c in THEMES:
+        if k == key:
+            return c
+    return BLUE
+
+
+def mix_white(hexv, frac):
+    """Mélange avec du blanc (frac = part de blanc) : sert aux carrés clairs de la page de garde."""
+    h = hexv.lstrip("#")
+    r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+    return "#%02X%02X%02X" % tuple(round(c + (255 - c) * frac) for c in (r, g, b))
+
+
 ASSETS = os.path.join(os.path.dirname(__file__), "assets")
 
 ACCROCHES = ["Dernières éditions", "Moins chères qu'en librairie française", "Prix & demandes de devis à la fin des sélections"]
@@ -104,13 +122,14 @@ def cover_page(meta, image=None, mois=""):
     date = v["date"] or mois
     pg = Page("Page de garde", W, H)
     pg.hot = []
-    pg.elements.append(Rect(0, 0, W, 183.0, fill=BLUE, name="Fond bleu"))
+    col = theme_color((meta or {}).get("garde_couleur"))
+    pg.elements.append(Rect(0, 0, W, 183.0, fill=col, name="Fond de couleur"))
     pg.elements.append(Rect(14.0, 10.0, 100.0, 21.5, fill="#FFFFFF", name="Bandeau"))
     pg.elements.append(Rect(21.0, 14.7, 10.0, 10.0, fill=NAVY, name="Pictogramme"))
     pg.elements.append(Rect(24.0, 17.7, 4.5, 4.5, fill="#FFFFFF", name="Pictogramme"))
     pg.elements.append(TextBox(34.0, 10.0, 78.0, 21.5, [Para([_run(f"Les sélections CMPL – {date}", 8.5, color=INK, smallcaps=True)], align="l")], anchor="m", name="Bandeau texte"))
     pg.hot.append({"meta": True, "field": "garde_date", "x": 14.0, "y": 10.0, "w": 100.0, "h": 21.5, "v": date, "auto": ""})
-    pg.elements.append(Rect(124.5, 39.5, 44.5, 43.0, fill=LIGHT, name="Carré clair"))
+    pg.elements.append(Rect(124.5, 39.5, 44.5, 43.0, fill=mix_white(col, 0.5), name="Carré clair"))
     pg.elements.append(Rect(145.0, 68.5, 57.0, 52.0, fill="#FFFFFF", name="Cadre photo"))
     im = image if image is not None else default_image()
     pg.elements.append(Pic(146.5, 70.0, 54.0, 49.0, image=_fit(im, 54.0 / 49.0), fmt="AUTO", name="Image de la page de garde"))
@@ -239,13 +258,14 @@ def proforma_page():
 
 
 # ---------------------------------------------------------------- 4e de couverture
-def back_page():
+def back_page(color=None):
+    col = color or BLUE
     pg = Page("4e de couverture", W, H)
     pg.hot = []
-    pg.elements.append(Rect(56.0, 86.0, 48.7, 50.0, fill=LIGHT, name="Carré clair"))
-    pg.elements.append(Rect(14.0, 113.0, 74.4, 69.0, fill=LIGHT, name="Carré clair"))
-    pg.elements.append(Rect(56.0, 113.0, 32.4, 23.0, fill=MID, name="Recouvrement"))
-    pg.elements.append(Rect(0, 259.0, W, 38.0, fill=BLUE, name="Bandeau bleu"))
+    pg.elements.append(Rect(56.0, 86.0, 48.7, 50.0, fill=mix_white(col, 0.5), name="Carré clair"))
+    pg.elements.append(Rect(14.0, 113.0, 74.4, 69.0, fill=mix_white(col, 0.5), name="Carré clair"))
+    pg.elements.append(Rect(56.0, 113.0, 32.4, 23.0, fill=mix_white(col, 0.25), name="Recouvrement"))
+    pg.elements.append(Rect(0, 259.0, W, 38.0, fill=col, name="Bandeau de couleur"))
     sc = lambda t, b=False: Para([_run(t, 10.0, bold=b, color=INK, smallcaps=True)], align="l")
     gap = lambda: Para([_run(" ", 6.0)], align="l")
     paras = [sc("Librairie", True), sc("9, rue Dr Villette – Isoraka"), sc("BP 3312 Antananarivo"), gap(),

@@ -141,6 +141,37 @@
   .chkbox .ok{color:var(--ok);font-weight:600}
   .librow{display:flex;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--line);flex-wrap:wrap}
   .librow .nm{flex:1;min-width:150px}.librow .nm small{display:block;color:var(--muted);font-weight:400}
+  #steps{display:flex;gap:8px;padding:10px 18px 0;align-items:center}
+  #steps button{border:0;background:#e1e6ee;color:var(--ink);padding:7px 18px;border-radius:999px;cursor:pointer;font:inherit;font-weight:600}
+  #steps button.on{background:var(--accent);color:#fff}
+  #steps button:hover:not(.on){background:#d3dae6}
+  #steps .sep{color:var(--muted)}
+  body[data-step="2"] .step1only{display:none}
+  .sbox{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:12px}
+  .swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+  .swatches button{width:30px;height:30px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer}
+  .swatches button.on{box-shadow:0 0 0 2px var(--accent)}
+  .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px;margin-top:8px}
+  .pt{cursor:pointer;text-align:center;font-size:11px;color:var(--muted)}
+  .pt img{width:100%;display:block;border:1px solid var(--line);background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .pt.cur img{outline:3px solid var(--accent-2)}
+  .pt:hover img{outline:2px solid rgba(59,140,255,.6)}
+  .pt.cur{color:var(--ink);font-weight:600}
+  .prevbox.spread .pnav > :not(#p-spread){display:none}
+  .prevbox.spread .pcenter{display:none}
+  #spreads{display:none;max-height:calc(100vh - 170px);overflow:auto}
+  .prevbox.spread #spreads{display:block}
+  .spr{display:flex;justify-content:center;gap:3px;margin-bottom:16px}
+  .spr figure{margin:0;width:46%;text-align:center;font-size:11px;color:var(--muted);cursor:pointer}
+  .spr figure img{width:100%;display:block;box-shadow:0 2px 8px rgba(20,30,50,.25);background:#fff}
+  .spr figure.ph{visibility:hidden;cursor:default}
+  .listtools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  .listtools select{width:auto}
+  #bulk{display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:#fff7e0;border:1px solid #ecd48a;border-radius:8px;padding:5px 8px}
+  #bulk input{width:150px}
+  .chk-b{width:16px;height:16px;flex:none;cursor:pointer}
+  .grip{cursor:grab;color:var(--muted);font-size:15px;line-height:1;padding:0 4px;user-select:none}
+  .card.drag{outline:2px dashed var(--accent-2)}
   .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1d2433;color:#fff;padding:10px 16px;border-radius:9px;z-index:90;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw}
   .toast.show{opacity:1}
 </style>
@@ -148,10 +179,10 @@
 <body>
 <header>
   <h1>Catalogue CMPL <small id="ver"></small><small id="libname"></small></h1>
-  <button id="b-import" title="Charger un fichier Excel / CSV / export Dilicom avec les ISBN">Importer un fichier</button>
-  <button id="b-add" title="Coller quelques ISBN">Ajouter des ISBN</button>
-  <button id="b-fetch" class="hfetch" title="Chercher titre, auteurs, résumé, couverture… pour chaque ISBN" disabled>Récupérer les infos</button>
-  <button id="b-ai" class="hfetch" title="Écrire un résumé avec l'IA pour les livres qui n'en ont pas" disabled>Écrire les descriptions</button>
+  <button id="b-import" class="step1only" title="Charger un fichier Excel / CSV / export Dilicom avec les ISBN">Importer un fichier</button>
+  <button id="b-add" class="step1only" title="Coller quelques ISBN">Ajouter des ISBN</button>
+  <button id="b-fetch" class="hfetch step1only" title="Chercher titre, auteurs, résumé, couverture… pour chaque ISBN" disabled>Récupérer les infos</button>
+  <button id="b-ai" class="hfetch step1only" title="Écrire un résumé avec l'IA pour les livres qui n'en ont pas" disabled>Écrire les descriptions</button>
   <button id="b-lib" title="Enregistrer, rouvrir ou dupliquer des catalogues ; sauvegardes automatiques">Catalogues</button>
   <button id="b-undo" title="Annuler (Ctrl+Z)" disabled>↶</button><button id="b-redo" title="Rétablir (Ctrl+Y)" disabled>↷</button>
   <button id="b-set" title="Clés, dossiers…">Réglages</button>
@@ -161,6 +192,7 @@
   <input type="file" id="f-cover" accept="image/*" class="hide">
   <input type="file" id="f-garde" accept="image/*" class="hide">
 </header>
+<nav id="steps" class="hide"><button data-step="1" class="on">1 · Livres</button><span class="sep">›</span><button data-step="2">2 · Mise en page</button><span class="sep">›</span><button data-step="3">3 · Générer</button></nav>
 <div class="upd hide" id="upd"></div>
 <main id="main">
   <div id="left">
@@ -175,17 +207,33 @@
         <button class="btn" id="e-tpl">Télécharger le modèle Excel</button>
       </div>
     </div>
+    <div id="structure" class="hide">
+      <div class="sbox"><b>Pages du catalogue</b>
+        <label class="chk"><input type="checkbox" id="st-pg"> Page de garde</label>
+        <label class="chk"><input type="checkbox" id="st-pt"> Tableau des prix</label>
+        <label class="chk"><input type="checkbox" id="st-pc"> Conditions de vente</label>
+        <label class="chk"><input type="checkbox" id="st-pp"> Demande de proforma</label>
+        <label class="chk"><input type="checkbox" id="st-pd"> 4e de couverture</label>
+        <label class="chk"><input type="checkbox" id="st-m4"> Pages blanches pour un multiple de 4 (folio)</label>
+        <label>Couleur du catalogue <small>— page de garde, rubriques et 4e de couverture</small></label><div class="swatches" id="st-col"></div>
+      </div>
+      <div class="sbox"><div class="row2"><b style="flex:1" id="st-title">Pages</b><button class="btn small" id="st-spread">Vue en planches</button></div><div class="pgrid" id="st-grid"></div></div>
+    </div>
     <div id="listwrap" class="hide">
       <div class="listhead"><b id="list-title">Livres</b>
         <span class="legend"><span class="dot vert"></span> complet &nbsp;<span class="dot orange"></span> à compléter &nbsp;<span class="dot rouge"></span> introuvable &nbsp;<span class="dot gris"></span> pas encore cherché</span>
       </div>
+      <div class="listtools"><select id="l-sort" title="Réordonne tous les livres (annulable avec ↶)"><option value="">Trier par…</option><option value="titre">Titre</option><option value="auteur">Auteur</option><option value="editeur">Éditeur</option><option value="rubrique">Rubrique</option><option value="date">Date (récent d'abord)</option><option value="prix">Prix</option></select>
+        <button class="btn small" id="l-all" title="Cocher tous les livres">Tout cocher</button>
+        <span id="bulk" class="hide"><b id="bulk-n"></b><input type="text" id="bulk-rub" list="rubs" placeholder="Rubrique, ex. Droit"><datalist id="rubs"></datalist><button class="btn small primary" id="bulk-ok">Appliquer</button><button class="btn small" id="bulk-none">Décocher</button></span></div>
       <div id="list"></div>
     </div>
   </div>
   <div class="prev" id="prev">
-    <div class="prevbox">
-      <div class="pnav"><button class="btn small" id="p-first" title="Première page (Début)">⏮</button><button class="btn small" id="p-prev" title="Page précédente (←)">◀</button><div class="mid"><span id="p-lab">—</span><input id="p-num" type="text" inputmode="numeric" aria-label="Numéro de page"><small id="p-cnt"></small></div><button class="btn small" id="p-next" title="Page suivante (→)">▶</button><button class="btn small" id="p-last" title="Dernière page (Fin)">⏭</button><button class="btn small hide" id="p-tab" title="Aller au tableau des prix">Tableau des prix</button></div>
+    <div class="prevbox" id="prevbox">
+      <div class="pnav"><button class="btn small" id="p-first" title="Première page (Début)">⏮</button><button class="btn small" id="p-prev" title="Page précédente (←)">◀</button><div class="mid"><span id="p-lab">—</span><input id="p-num" type="text" inputmode="numeric" aria-label="Numéro de page"><small id="p-cnt"></small></div><button class="btn small" id="p-next" title="Page suivante (→)">▶</button><button class="btn small" id="p-last" title="Dernière page (Fin)">⏭</button><button class="btn small hide" id="p-tab" title="Aller au tableau des prix">Tableau des prix</button><button class="btn small" id="p-spread" title="Voir les pages côte à côte, comme dans le livret imprimé">Planches</button></div>
       <div id="cellpop" class="hide"></div>
+      <div id="spreads"></div>
       <div class="pcenter"><div class="pwrap" id="pwrap"><img id="pimg" alt="Aperçu de la page"><div id="phot"></div></div></div>
       <div class="hint" id="p-hint">Clique sur un livre pour le modifier, ou sur une case du tableau des prix. Flèches ← → Début Fin pour naviguer.</div>
     </div>
@@ -298,11 +346,11 @@ const fileB64 = f => new Promise((res, rej) => { const r = new FileReader(); r.o
 
 // ------------------------------------------------------------ état
 let S = {books: [], settings: {}, meta: {}};
-let sel = null, page = 0, where = {}, covRev = {};
+let sel = null, page = 0, where = {}, covRev = {}, chosen = new Set(), step = 1;
 const byIsbn = i => S.books.find(b => b.isbn === i);
 
 function setState(st){
-  S.books = st.books; S.settings = st.settings || S.settings; S.meta = st.meta || S.meta; S.lib = st.lib || null;
+  S.books = st.books; S.settings = st.settings || S.settings; S.meta = st.meta || S.meta; S.lib = st.lib || null; S.themes = st.themes || S.themes || [];
   $("libname").textContent = S.lib ? " · " + S.lib.nom : "";
   renderAll();
 }
@@ -313,13 +361,14 @@ const ILLS = [["", "(aucune)"], ["illustrations en noir et blanc", "en noir et b
 function coverStyle(b){ return b.has_cover ? `style="background-image:url('/api/cover?isbn=${b.isbn}&t=${TOKEN}&v=${covRev[b.isbn] || 0}')"` : ""; }
 function headHTML(b){
   const authors = (b.auteurs || []).join(" · ");
-  return `<div class="thumb" ${coverStyle(b)}>${b.has_cover ? "" : "sans couv."}</div>
+  return `<input type="checkbox" class="chk-b" data-isbn="${esc(b.isbn)}" ${chosen.has(b.isbn) ? "checked" : ""} title="Cocher pour donner une rubrique à plusieurs livres">
+    <div class="thumb" ${coverStyle(b)}>${b.has_cover ? "" : "sans couv."}</div>
     <div class="cinfo"><div class="ctitle">${esc(b.titre || "(titre à saisir)")}</div>
       <div class="csub">${esc(b.isbn)}${authors ? " · " + esc(authors) : ""}</div>
       <div class="cstat ${b.statut}"><span class="dot ${b.statut}"></span>${esc(b.statut_txt)}</div>
       ${(b.infos || []).length ? `<div class="cinfo2">ℹ ${esc(b.infos.join(" · "))}</div>` : ""}
       ${b.alerte ? `<div class="calert">⚠ ${esc(b.alerte)} (Dilicom)</div>` : ""}</div>
-    <div class="cbtns"><button data-act="up" title="Monter">▲</button><button data-act="down" title="Descendre">▼</button><button data-act="del" title="Retirer du catalogue">✕</button></div>`;
+    <div class="cbtns"><span class="grip" draggable="true" title="Glisser pour déplacer le livre">⠿</span><button data-act="up" title="Monter">▲</button><button data-act="down" title="Descendre">▼</button><button data-act="del" title="Retirer du catalogue">✕</button></div>`;
 }
 function bodyHTML(b){
   const ill = ILLS.map(([v, l]) => `<option value="${esc(v)}" ${b.illustrations === v ? "selected" : ""}>${esc(l)}</option>`).join("");
@@ -344,7 +393,8 @@ function bodyHTML(b){
       <div><label>Prix public (€)</label><input type="text" data-f="prix" value="${b.prix == null ? "" : esc(String(b.prix).replace(".", ","))}"></div></div>
     <div class="grid2"><div><label>Éditeur</label><input type="text" data-f="editeur" value="${esc(b.editeur)}"></div>
       <div><label>Collection</label><input type="text" data-f="collection" value="${esc(b.collection)}"></div></div>
-    <div class="grid2"><div><label>Prix Ariary <small>(vide = calculé)</small></label><input type="text" data-f="prix_ar" value="${esc(b.prix_ar)}" placeholder="automatique"></div><div></div></div>
+    <div class="grid2"><div><label>Prix Ariary <small>(vide = calculé)</small></label><input type="text" data-f="prix_ar" value="${esc(b.prix_ar)}" placeholder="automatique"></div>
+      <div><label>Rubrique <small>(titre de section)</small></label><input type="text" data-f="rubrique" list="rubs" value="${esc(b.rubrique)}" placeholder="aucune"></div></div>
     <div class="grid3"><div><label>Édition <small>(n°)</small></label><input type="text" data-f="edition" value="${esc(b.edition)}" placeholder="ex. 9"></div>
       <div><label>Taux spécial <small>(Ar/€)</small></label><input type="text" data-f="taux" value="${esc(b.taux)}" placeholder="taux général"></div>
       <div><label>Titre court <small>(tableau)</small></label><input type="text" data-f="titre_tableau" value="${esc(b.titre_tableau)}" placeholder="automatique"></div></div>
@@ -375,7 +425,11 @@ function replaceCard(b, force){
 }
 function renderAll(){
   const n = S.books.length;
-  $("main").classList.toggle("vide", n === 0); $("empty").classList.toggle("hide", n > 0); $("listwrap").classList.toggle("hide", n === 0); $("prev").classList.toggle("hide", n === 0);
+  $("main").classList.toggle("vide", n === 0); $("empty").classList.toggle("hide", n > 0); $("listwrap").classList.toggle("hide", n === 0 || step !== 1); $("prev").classList.toggle("hide", n === 0);
+  $("steps").classList.toggle("hide", n === 0); $("structure").classList.toggle("hide", n === 0 || step !== 2);
+  chosen.forEach(i => { if (!byIsbn(i)) chosen.delete(i); }); renderBulk();
+  $("rubs").innerHTML = [...new Set(S.books.map(b => (b.rubrique || "").trim()).filter(Boolean))].map(r => `<option value="${esc(r)}">`).join("");
+  if (step === 2) renderStruct();
   const todo = S.books.filter(b => !b.fetched).length;
   $("b-fetch").disabled = n === 0; $("b-gen").disabled = n === 0;
   const nr = S.books.filter(b => b.titre && !b.resume).length; $("b-ai").disabled = n === 0;
@@ -427,6 +481,7 @@ function renderNotes(){
 // clics sur la liste
 $("list").addEventListener("click", async e => {
   const card = e.target.closest(".card"); if (!card) return;
+  if (e.target.closest(".chk-b") || e.target.closest(".grip")) return;
   const isbn = card.dataset.isbn, act = e.target.dataset && e.target.dataset.act;
   if (act === "up" || act === "down") { const r = await api("/api/book/move", {isbn, dir: act === "up" ? -1 : 1}); setState(r.state); return; }
   if (act === "del") {
@@ -443,6 +498,7 @@ $("list").addEventListener("click", async e => {
   if (e.target.closest(".chead")) selectBook(sel === isbn ? null : isbn, true);
 });
 function selectBook(isbn, fromList, noJump){
+  if (isbn && step !== 1) setStep(1);
   const prevSel = sel; sel = isbn;
   if (prevSel) { const b = byIsbn(prevSel); b && replaceCard(b, true); }
   if (isbn) {
@@ -614,7 +670,8 @@ $("pg-cancel").onclick = () => api("/api/fetch/cancel");
 // ------------------------------------------------------------ aperçu
 let pvT = null, pvSeq = 0, pvCount = 0, pvRev = 0, pvTable = null;
 function schedulePreview(){ clearTimeout(pvT); pvT = setTimeout(loadPreview, 400); }
-const pageUrl = (n, rev) => `/api/page.png?n=${n}&dpi=100&rev=${rev}&t=${TOKEN}`;
+const pageUrl = (n, rev, dpi = 100) => `/api/page.png?n=${n}&dpi=${dpi}&rev=${rev}&t=${TOKEN}`;
+let pvPages = [], spread = false;
 async function loadPreview(){
   if (!S.books.length) return;
   clearTimeout(pvT);
@@ -622,7 +679,7 @@ async function loadPreview(){
   try {
     const r = await api("/api/preview", {page, dpi: 100});
     if (my !== pvSeq) return;
-    page = r.page; where = r.where; pvCount = r.count; pvRev = r.rev; pvTable = r.table_start;
+    page = r.page; where = r.where; pvCount = r.count; pvRev = r.rev; pvTable = r.table_start; pvPages = r.pages || [];
     closeCell();
     $("pimg").src = pageUrl(r.page, r.rev);
     $("p-lab").textContent = r.label || "Page " + (r.page + 1);
@@ -641,6 +698,8 @@ async function loadPreview(){
       box.appendChild(d);
     });
     placeHot(r.w); markHot();
+    if (spread) renderSpreads();
+    if (step === 2) renderStruct();
     [r.page + 1, r.page - 1].forEach(n => { if (n >= 0 && n < r.count) { const im = new Image(); im.src = pageUrl(n, r.rev); } });      // pages voisines préchargées
   } catch (e) { toast("Aperçu : " + e.message); }
 }
@@ -668,6 +727,83 @@ document.addEventListener("keydown", e => {
   else if (e.key === "ArrowRight") { goPage(page + 1); e.preventDefault(); }
   else if (e.key === "Home") { goPage(0); e.preventDefault(); }
   else if (e.key === "End") { goPage(pvCount - 1); e.preventDefault(); }
+});
+
+// planches : pages côte à côte comme dans le livret (couverture seule à droite, 4e seule à gauche)
+function renderSpreads(){
+  const N = pvCount, fig = n => `<figure data-n="${n}"><img loading="lazy" src="${pageUrl(n, pvRev, 50)}"><figcaption>${esc((pvPages[n] || {}).label || "")}</figcaption></figure>`, ph = `<figure class="ph"></figure>`;
+  const last = N % 2 === 0 && N > 1 ? N - 1 : null, lim = last == null ? N : last;
+  let h = `<div class="spr">${ph}${fig(0)}</div>`;
+  for (let n = 1; n < lim; n += 2) h += `<div class="spr">${fig(n)}${n + 1 < lim ? fig(n + 1) : ph}</div>`;
+  if (last != null) h += `<div class="spr">${fig(last)}${ph}</div>`;
+  $("spreads").innerHTML = h;
+}
+function setSpread(on){
+  spread = on; $("prevbox").classList.toggle("spread", on); $("p-spread").textContent = on ? "Retour" : "Planches"; $("st-spread").textContent = on ? "Retour à une page" : "Vue en planches";
+  if (on) renderSpreads();
+}
+$("p-spread").onclick = () => setSpread(!spread);
+$("spreads").addEventListener("click", e => { const f = e.target.closest("figure[data-n]"); if (f) { setSpread(false); goPage(+f.dataset.n); } });
+
+// étapes et panneau « Structure »
+function setStep(n){
+  if (n === 3) { if (!$("b-gen").disabled) $("b-gen").click(); return; }
+  step = n; document.body.dataset.step = n;
+  document.querySelectorAll("#steps button").forEach(b => b.classList.toggle("on", +b.dataset.step === n));
+  $("listwrap").classList.toggle("hide", n !== 1 || !S.books.length); $("structure").classList.toggle("hide", n !== 2 || !S.books.length);
+  if (n === 2) renderStruct();
+}
+document.querySelectorAll("#steps button").forEach(b => b.onclick = () => setStep(+b.dataset.step));
+const STRUCT = {"st-pg": "p_garde", "st-pt": "inclure_prix", "st-pc": "p_cond", "st-pp": "p_proforma", "st-pd": "p_dos", "st-m4": "p_multi4"};
+function renderStruct(){
+  const st = S.settings || {};
+  Object.entries(STRUCT).forEach(([id, k]) => { $(id).checked = st[k] !== false; });
+  const cur = S.meta.garde_couleur || "bleu";
+  $("st-col").innerHTML = (S.themes || []).map(([k, lab, hex]) => `<button data-c="${k}" class="${k === cur ? "on" : ""}" style="background:${hex}" title="${esc(lab)}"></button>`).join("");
+  $("st-title").textContent = `${pvPages.length} page${pvPages.length > 1 ? "s" : ""}`;
+  $("st-grid").innerHTML = pvPages.map((p, i) => `<div class="pt ${i === page ? "cur" : ""}" data-n="${i}"><img loading="lazy" src="${pageUrl(i, pvRev, 40)}"><div>${esc(p.label.replace("Demande de facture proforma", "Proforma").replace("Tableau des prix", "Tableau"))}</div></div>`).join("");
+}
+Object.keys(STRUCT).forEach(id => $(id).onchange = async () => {
+  try { const r = await api("/api/settings", {[STRUCT[id]]: $(id).checked}); S.settings = r.settings; loadPreview(); } catch (e) { toast(e.message); }
+});
+$("st-col").addEventListener("click", async e => {
+  const b = e.target.closest("button[data-c]"); if (!b) return;
+  await api("/api/meta", {garde_couleur: b.dataset.c}); S.meta.garde_couleur = b.dataset.c; loadPreview();
+});
+$("st-grid").addEventListener("click", e => { const t = e.target.closest(".pt"); if (t) { setSpread(false); goPage(+t.dataset.n); } });
+$("st-spread").onclick = () => setSpread(!spread);
+
+// livres : cases à cocher (rubrique en lot), tri, glisser-déposer
+function renderBulk(){
+  const n = chosen.size; $("bulk").classList.toggle("hide", n === 0); $("bulk-n").textContent = n ? `${n} livre${n > 1 ? "s" : ""} :` : "";
+  $("l-all").textContent = n === S.books.length && n ? "Tout décocher" : "Tout cocher";
+}
+$("list").addEventListener("change", e => {
+  const c = e.target.closest(".chk-b"); if (!c) return;
+  c.checked ? chosen.add(c.dataset.isbn) : chosen.delete(c.dataset.isbn); renderBulk();
+});
+$("l-all").onclick = () => { const all = chosen.size === S.books.length; chosen.clear(); if (!all) S.books.forEach(b => chosen.add(b.isbn)); document.querySelectorAll(".chk-b").forEach(c => c.checked = chosen.has(c.dataset.isbn)); renderBulk(); };
+$("bulk-none").onclick = () => { chosen.clear(); document.querySelectorAll(".chk-b").forEach(c => c.checked = false); renderBulk(); };
+$("bulk-ok").onclick = async () => {
+  try { const r = await api("/api/rubrique", {isbns: [...chosen], rubrique: $("bulk-rub").value}); setState(r.state); toast($("bulk-rub").value.trim() ? "✓ Rubrique appliquée" : "✓ Rubrique retirée"); } catch (e) { toast(e.message); }
+};
+$("l-sort").onchange = async e => {
+  const k = e.target.value; e.target.value = ""; if (!k) return;
+  try { const r = await api("/api/sort", {key: k}); setState(r.state); toast("✓ Livres triés (↶ pour annuler)"); } catch (er) { toast(er.message); }
+};
+let dragIsbn = null;
+$("list").addEventListener("dragstart", e => {
+  const g = e.target.closest && e.target.closest(".grip"); if (!g) return;
+  const c = g.closest(".card"); dragIsbn = c.dataset.isbn; e.dataTransfer.setData("text/plain", dragIsbn); e.dataTransfer.effectAllowed = "move";
+  try { e.dataTransfer.setDragImage(c, 20, 20); } catch (er) {}
+});
+$("list").addEventListener("dragend", () => { dragIsbn = null; });
+$("list").addEventListener("drop", async e => {
+  if (!dragIsbn) return;
+  const c = e.target.closest(".card"), from = dragIsbn; dragIsbn = null;
+  if (!c || c.dataset.isbn === from) return;
+  e.preventDefault();
+  try { const r = await api("/api/reorder", {isbn: from, before: c.dataset.isbn}); setState(r.state); } catch (er) { toast(er.message); }
 });
 
 // clic dans l'aperçu : notice -> fiche ; cellule du tableau -> mini-éditeur

@@ -73,3 +73,5 @@ Pages fixes (v0.6.0) : page de garde, conditions de vente, demande de facture pr
 
 Catalogues (v0.8.0) : le bouton Catalogues enregistre le catalogue sous un nom, le rouvre, et permet de "Repartir de celui-ci" pour le suivant : on garde les livres, resumes et couvertures, puis on importe le nouveau panier Dilicom (les prix modifies sont signales). ↶ ↷ (Ctrl+Z / Ctrl+Y) annulent et retablissent. Des sauvegardes automatiques (10 dernieres) sont dans le meme menu. Avant de generer, une fenetre de controle liste ce qui manque.
 
+Organisation (v0.9.0) : etape 1 Livres (import, recherche, corrections, tri, glisser-deposer, rubriques en cochant des livres), etape 2 Mise en page (pages incluses, couleur, miniatures, planches), etape 3 Generer.
+

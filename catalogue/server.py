@@ -157,7 +157,7 @@ def public_state():
             lib = {"id": CAT["meta"]["lib_id"], "nom": libs.load_catalogue(CAT["meta"]["lib_id"]).get("nom", "")}
         except Exception:
             CAT["meta"].pop("lib_id", None)
-    return {"meta": CAT["meta"], "books": [catalog.public(b) for b in CAT["books"]], "settings": public_settings(s), "lib": lib}
+    return {"meta": CAT["meta"], "books": [catalog.public(b) for b in CAT["books"]], "settings": public_settings(s), "lib": lib, "themes": [list(t) for t in fixedlib.THEMES]}
 
 
 def public_settings(s):
@@ -202,6 +202,35 @@ def add_rows(rows, replace=False):
                     changes.append({"isbn": b["isbn"], "titre": b.get("titre") or b["isbn"], "ancien": old, "nouveau": new})
         save()
     return added, changes
+
+
+# ------------------------------------------------------------------ tri
+def _fold(t):
+    t = unicodedata.normalize("NFD", str(t or "")).encode("ascii", "ignore").decode().lower().strip()
+    return re.sub(r"^(le|la|les|l'|un|une|des|the)\s+", "", t)
+
+
+def _date_key(b):
+    m = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", b.get("date") or "") or re.search(r"()(\d{1,2})/(\d{4})", b.get("date") or "")
+    if m:
+        g = m.groups()
+        return (int(g[2]), int(g[1]), int(g[0] or 0))
+    m = re.search(r"(\d{4})", b.get("date") or "")
+    return (int(m.group(1)), 0, 0) if m else (0, 0, 0)
+
+
+def sort_books(key):
+    keys = {"titre": lambda b: _fold(b.get("titre")) or "~",
+            "auteur": lambda b: _fold((b.get("auteurs") or [""])[0]) or "~",
+            "editeur": lambda b: _fold(b.get("editeur")) or "~",
+            "rubrique": lambda b: (not (b.get("rubrique") or "").strip(), _fold(b.get("rubrique"))),
+            "prix": lambda b: (b.get("prix") in (None, ""), float(b.get("prix") or 0)),
+            "date": lambda b: tuple(-x for x in _date_key(b))}
+    if key not in keys:
+        raise ValueError("tri inconnu")
+    with LOCK:
+        CAT["books"].sort(key=keys[key])
+        save()
 
 
 # ------------------------------------------------------------------ contrôle avant génération
@@ -320,7 +349,8 @@ def build_all(with_prices=None):
         meta = dict(CAT["meta"])
     s = store.load_settings()
     name = meta.get("titre") or "Catalogue"
-    book_pages = pagelib.build_pages(books, name)
+    col = fixedlib.theme_color(meta.get("garde_couleur"))
+    book_pages = pagelib.build_pages(books, name, col)
     if with_prices is None:
         with_prices = bool(s.get("inclure_prix", True))
     price_pages = prixlib.build_pages(books, meta.get("selection") or name, meta.get("indicatif", ""), s.get("taux") or 3366, s.get("arrondi") or 1) if (with_prices and books) else []
@@ -331,7 +361,7 @@ def build_all(with_prices=None):
     if s.get("p_proforma", True):
         post.append(fixedlib.proforma_page())
     if s.get("p_dos", True):
-        post.append(fixedlib.back_page())
+        post.append(fixedlib.back_page(col))
     if s.get("p_multi4", True):                    # impression en folio : nombre de pages multiple de 4, pages blanches avant la 4e de couverture
         reste = (-(len(front) + len(book_pages) + len(price_pages) + len(post))) % 4
         at = len(post) - 1 if s.get("p_dos", True) else len(post)
@@ -374,7 +404,9 @@ def preview(page=0, dpi=100):
     for i, p in enumerate(bp):
         for h in p.hot:
             where.setdefault(h["isbn"], len(fr) + i)
-    return {"count": len(pgs), "page": page, "label": labels[page], "rev": rev, "table_start": len(fr) + len(bp) if pp else None,
+    kinds = ["garde"] * len(fr) + ["livres"] * len(bp) + ["tableau"] * len(pp) + \
+            [{"Conditions de vente": "conditions", "Demande de facture proforma": "proforma", "Page blanche": "blanche", "4e de couverture": "dos"}.get(p.name, "autre") for p in post]
+    return {"count": len(pgs), "page": page, "label": labels[page], "rev": rev, "pages": [{"label": l, "kind": k} for l, k in zip(labels, kinds)], "table_start": len(fr) + len(bp) if pp else None,
             "w": round(pg.w * k), "h": round(pg.h * k), "hot": hot, "where": where}
 
 
@@ -484,7 +516,7 @@ def open_file(path):
 
 
 EDITABLE = ("titre", "auteurs", "resume", "date", "collection", "editeur", "pages", "illustrations", "dimensions", "prix",
-            "edition", "taux", "titre_tableau", "prix_ar")
+            "edition", "taux", "titre_tableau", "prix_ar", "rubrique")
 
 
 def update_book(isbn, fields):
@@ -619,7 +651,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/page.png":
             m = re.search(r"n=(\d+)", query)
             d = re.search(r"dpi=(\d+)", query)
-            return self._send(200, page_png(int(m.group(1)) if m else 0, max(40, min(int(d.group(1)) if d else 100, 200))),
+            return self._send(200, page_png(int(m.group(1)) if m else 0, max(30, min(int(d.group(1)) if d else 100, 200))),
                               "image/png", {"Cache-Control": "private, max-age=600"})
         if path == "/api/cover":
             m = re.search(r"isbn=(\d+)", query)
@@ -657,6 +689,27 @@ class Handler(BaseHTTPRequestHandler):
                         x = find(i)
                         if x is not None and x.get("prix_ancien") not in (None, ""):
                             x["prix"], x["prix_ancien"] = x["prix_ancien"], ""
+                    save()
+                return self._send(200, {"state": public_state()})
+            if path == "/api/sort":
+                sort_books(b.get("key", "titre"))
+                return self._send(200, {"state": public_state()})
+            if path == "/api/reorder":
+                with LOCK:
+                    L = CAT["books"]
+                    mv = find(b.get("isbn"))
+                    if mv is not None and b.get("isbn") != b.get("before"):
+                        L.remove(mv)
+                        j = next((k for k, x in enumerate(L) if x["isbn"] == b.get("before")), len(L))
+                        L.insert(j, mv)
+                        save()
+                return self._send(200, {"state": public_state()})
+            if path == "/api/rubrique":
+                with LOCK:
+                    for i in b.get("isbns", []):
+                        x = find(i)
+                        if x is not None:
+                            x["rubrique"] = str(b.get("rubrique") or "").strip()
                     save()
                 return self._send(200, {"state": public_state()})
             if path == "/api/check":
@@ -807,7 +860,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if path == "/api/meta":
                 with LOCK:
-                    CAT["meta"].update({k: str(v) for k, v in b.items() if k in ("titre", "date", "indicatif", "selection", "garde_titre", "garde_date", "garde_acc")})
+                    CAT["meta"].update({k: str(v) for k, v in b.items() if k in ("titre", "date", "indicatif", "selection", "garde_titre", "garde_date", "garde_acc", "garde_couleur")})
                     save()
                 return self._send(200, {})
             if path == "/api/garde/image":

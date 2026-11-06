@@ -182,3 +182,20 @@ import openpyxl as _ox; _ws = _ox.load_workbook(_r["files"][2]).active; assert _
 _st.update_settings({"p_garde": True, "p_cond": True, "p_proforma": True, "p_dos": True, "p_multi4": True, "inclure_prix": True})
 assert _srv.check()["pages"] % 4 == 0
 print("OK annuler/bibliotheque")
+
+# rubriques, tri, couleur de garde
+_bs = []
+for _i, (_r, _t) in enumerate([("Droit", "Zebre"), ("Droit", "Abeille"), ("Economie", "Le chat"), ("", "Orphelin"), ("Economie", "Banque")]):
+    _x = catalog.new_book("97821008701%02d" % _i); _x.update(titre=_t, auteurs=["A, B"], resume="Texte " * 30, rubrique=_r, date="03/06/2024", editeur="Dunod", prix=24.0, fetched=True); _bs.append(_x)
+_srv.CAT["books"] = _bs; _srv.CAT["meta"]["garde_couleur"] = "orange"; _srv.save()
+_srv.sort_books("rubrique"); assert [b["rubrique"] for b in _srv.CAT["books"]] == ["Droit", "Droit", "Economie", "Economie", ""]
+_srv.sort_books("titre"); assert [b["titre"] for b in _srv.CAT["books"]][:2] == ["Abeille", "Banque"]
+_srv.sort_books("rubrique")
+_pg = pages.build_pages(_srv.CAT["books"], "T", "#F0A04B")
+_heads = [e.name for p in _pg for e in p.elements if getattr(e, "name", "").startswith("Rubrique :")]
+assert _heads == ["Rubrique : Droit", "Rubrique : Economie", "Rubrique : Autres titres"], _heads
+assert not any(getattr(e, "name", "").startswith("Rubrique") for p in pages.build_pages([catalog.new_book("9782100870165")], "T") for e in p.elements)
+_st.update_settings({"p_garde": True, "p_cond": True, "p_proforma": True, "p_dos": True, "p_multi4": True, "inclure_prix": True})
+_pv = _srv.preview(0); assert len(_pv["pages"]) == _pv["count"] and _pv["pages"][0]["kind"] == "garde" and _pv["pages"][-1]["kind"] == "dos"
+assert any(e.fill == "#F0A04B" for e in _srv.build_all()[0][0].elements if hasattr(e, "fill"))
+print("OK rubriques")

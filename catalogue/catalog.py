@@ -12,7 +12,7 @@ FIELDS = ("titre", "auteurs", "resume", "date", "collection", "editeur", "pages"
 def new_book(isbn, **kw):
     b = {"isbn": isbn, "titre": "", "auteurs": [], "resume": "", "date": "", "collection": "", "editeur": "",
          "pages": "", "illustrations": "", "dimensions": "", "prix": None, "sujets": [],
-         "edition": "", "taux": "", "titre_tableau": "", "prix_ar": "",
+         "edition": "", "taux": "", "titre_tableau": "", "prix_ar": "", "rubrique": "", "prix_ancien": "",
          "resume_ia": False, "cover_path": "", "cover_origin": "", "cover_log": [], "titre_origin": "", "dispo": "", "dilicom": {}, "edited": [], "fetched": False, "errors": []}
     b.update(kw)
     return b

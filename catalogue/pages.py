@@ -167,8 +167,18 @@ def entry_cached(book):
     return hit
 
 
-def build_pages(books, name="Catalogue"):
-    """Répartit les livres sur des pages A4. Retourne une liste de Page (avec .hot = zones cliquables)."""
+HEAD_H, HEAD_GAP = 8.0, 2.0
+
+
+def _heading(x, y, title, color):
+    w = PAGE_W - 2 * MARGIN_X
+    return [Rect(x, y, w, HEAD_H, fill=color, name="Rubrique"),
+            TextBox(x, y, w, HEAD_H, [Para([_run(title, 11.5, bold=True, color="#FFFFFF")], align="l")], anchor="m", inset=3.0, name="Rubrique : " + title)]
+
+
+def build_pages(books, name="Catalogue", color="#5DADE1"):
+    """Répartit les livres sur des pages A4. Retourne une liste de Page (avec .hot = zones cliquables).
+    Un livre dont la rubrique change démarre une nouvelle ligne précédée d'un bandeau de titre."""
     pages = []
     cur = None
     y = MARGIN_TOP
@@ -179,22 +189,32 @@ def build_pages(books, name="Catalogue"):
         pages.append(pg)
         return pg
 
+    named = any((b.get("rubrique") or "").strip() for b in books)
+    rub = lambda b: (b.get("rubrique") or "").strip() or ("Autres titres" if named else "")
     limit = PAGE_H - MARGIN_BOTTOM
-    i = 0
+    i, prev = 0, ""
     while i < len(books):
-        row = books[i:i + 2]
+        row = [books[i]]
+        if i + 1 < len(books) and rub(books[i + 1]) == rub(books[i]):
+            row.append(books[i + 1])
+        title = rub(books[i]) if rub(books[i]) != prev and rub(books[i]) else ""
+        prev = rub(books[i])
         laid = []
         for c, b in enumerate(row):
             x = MARGIN_X + c * (COL_W + GUTTER)
             laid.append((b, x) + entry_cached(b))
         h = max(l[3] for l in laid)
-        if cur is None or (y + h > limit and y > MARGIN_TOP + 1):
+        need = h + ((HEAD_H + HEAD_GAP) if title else 0)
+        if cur is None or (y + need > limit and y > MARGIN_TOP + 1):
             cur, y = new_page(), MARGIN_TOP
+        if title:
+            cur.elements.extend(_heading(MARGIN_X, y, title, color))
+            y += HEAD_H + HEAD_GAP
         for b, x, els, eh in laid:
             cur.elements.extend(_shift(els, x, y))
             cur.hot.append({"isbn": b["isbn"], "x": x, "y": y, "w": COL_W, "h": h})
         y += h
-        i += 2
+        i += len(row)
     if not pages:
         new_page()
     return pages
