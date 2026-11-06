@@ -1,9 +1,7 @@
-Premiere version : import d'un fichier d'ISBN, recherche automatique des fiches (Google Books + BnF), revue et correction, export PDF / PowerPoint.
-
+0.3.1 : descriptions IA corrigees (plus de textes coupes en plein milieu), ecrites dans le style du catalogue, avec le modele Haiku (le moins cher). Les resumes IA coupes sont a refaire avec "Reecrire".
 0.2.0 : import des exports Dilicom (.slk : prix, editeur, disponibilite ; titre/auteur en secours), descriptions ecrites par l'IA
 (API Anthropic, cle dans les reglages, resumes marques "a relire"), saisie rapide des prix, couvertures : sources de secours
 (BnF, AbeBooks, Amazon, Open Library) testees en parallele avec journal par livre.
-
 0.3.0 : mise a jour automatique (bandeau + fenetre au lancement), pages/collection/illustrations absentes = simple indication (jamais bloquant),
 correction de la lecture du nombre de pages BnF, "Nouveau" peut oublier les recherches memorisees pour repartir de zero,
 boutons "Tout rechercher a nouveau" et "Valider toutes les couvertures" (Reglages).

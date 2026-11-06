@@ -74,16 +74,16 @@ bk["edited"].append("titre"); assert "titre à vérifier" not in catalog.status(
 from catalogue import ai
 import urllib.error, io as _io
 sent = []
-def fake_post(key, model, prompt, max_tokens=400):
+def fake_post(key, model, prompt, max_tokens=1500):
     sent.append((key, model, prompt))
-    return {"content": [{"type": "text", "text": "\"Un ouvrage de référence pour comprendre les bases. " + "Texte utile. " * 50 + "\""}]}
+    return {"stop_reason": "end_turn", "content": [{"type": "text", "text": "\"Un ouvrage de référence pour comprendre les bases. " + "Texte utile. " * 50 + "\""}]}
 ai._post = fake_post
 b = catalog.new_book("9782100000001", titre="Droit fiscal", auteurs=["Nom, Prénom"], editeur="Dunod", sujets=["Fiscalité"])
 txt = ai.describe(b, "sk-ant-x", 300); assert 150 < len(txt) <= 301 and not txt.startswith('"') and "Fiscalité" in sent[-1][2]
 try: ai.describe(b, "", 300); assert 0
 except ai.AIError as e: assert "clé" in str(e)
 def err(code, msg):
-    def f(key, model, prompt, max_tokens=400): raise urllib.error.HTTPError("u", code, "x", {}, _io.BytesIO(('{"error":{"message":"%s"}}' % msg).encode()))
+    def f(key, model, prompt, max_tokens=1500): raise urllib.error.HTTPError("u", code, "x", {}, _io.BytesIO(('{"error":{"message":"%s"}}' % msg).encode()))
     return f
 ai._post = err(401, "invalid x-api-key")
 try: ai.describe(b, "k", 300); assert 0
@@ -91,6 +91,12 @@ except ai.AIError as e: assert "refusée" in str(e)
 ai._post = err(400, "Your credit balance is too low")
 try: ai.describe(b, "k", 300); assert 0
 except ai.AIError as e: assert "crédit" in str(e)
+ai._post = lambda key, model, prompt, max_tokens=1500: {"stop_reason": "max_tokens", "content": [{"type": "text", "text": "Ouvrage de référence en anatomie humaine, il associe la description"}]}
+try: ai.describe(b, "k", 300); assert 0
+except ai.AIError as e: assert "coupée" in str(e), e
+ai._post = lambda key, model, prompt, max_tokens=1500: {"stop_reason": "end_turn", "content": [{"type": "thinking", "thinking": "..."}, {"type": "text", "text": "Ouvrage de référence en anatomie humaine, il associe la description des structures à leur fonction et à la clinique."}]}
+assert ai.describe(b, "k", 300).endswith("clinique.")
+assert ai.MODELS[0] == "claude-haiku-5-5" and "Cyberattaques" in ai.SYSTEM
 ai._post = fake_post
 job = catalog.FetchJob(["9782100000001"], dict(ST, claude_key="k")); job.kind = "ai"
 store_b = {"9782100000001": b}

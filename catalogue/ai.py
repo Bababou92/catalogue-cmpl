@@ -10,17 +10,28 @@ import urllib.request
 from . import sources
 
 API = "https://api.anthropic.com/v1/messages"
-MODELS = ("claude-sonnet-5-5", "claude-haiku-5-5")          # le 2e sert de secours si le 1er est refusé
+MODELS = ("claude-haiku-5-5", "claude-sonnet-5-5")          # Haiku suffit largement ; Sonnet sert de secours si le 1er est refusé
 
 SYSTEM = (
     "Tu rédiges les descriptions d'un catalogue de librairie universitaire et professionnelle (éditions CMPL, Madagascar). "
-    "Style : français soigné, sobre et informatif, comme une quatrième de couverture d'ouvrage de référence. "
-    "Tu t'appuies UNIQUEMENT sur les informations fournies et sur ce que tu sais avec certitude de cet ouvrage. "
-    "N'invente jamais : pas de chiffres, de chapitres, de nouveautés d'édition ou de prix qui ne figurent pas dans les données. "
-    "Si les données sont minces, reste général (public visé, domaine, utilité de l'ouvrage) plutôt que d'inventer des détails. "
+    "Style : celui des notices professionnelles de librairie — phrases nominales, informatives et sobres, sans enthousiasme, "
+    "environ 250 à 400 caractères. Tu t'appuies UNIQUEMENT sur les informations fournies et sur ce que tu sais avec certitude "
+    "de cet ouvrage. N'invente jamais : pas de chiffres, de chapitres, de nouveautés d'édition ou de prix qui ne figurent pas dans "
+    "les données. Si les données sont minces, reste général (contenu, public visé, utilité) plutôt que d'inventer des détails. "
     "Un seul paragraphe, sans titre, sans liste, sans guillemets, sans émojis. "
-    "Ne commence pas par le titre du livre ni par « Ce livre » ; ne cite pas les auteurs ni l'éditeur. "
-    "Réponds uniquement par le texte de la description."
+    "Ne commence pas par le titre du livre ni par « Ce livre » / « Cet ouvrage » ; ne cite pas les auteurs ni l'éditeur. "
+    "Termine toujours par une phrase complète. Réponds uniquement par le texte de la description.\n\n"
+    "Exemples du ton attendu :\n"
+    "- Un guide pratique pour aider l'étudiant dans toutes les étapes de la rédaction du mémoire ou du rapport de stage : choix du "
+    "sujet, conception du plan, gestion du temps, rédaction, mise en forme des citations et de la bibliographie. Il prend également "
+    "en compte des problématiques liées à Internet telles que le tri d'informations ou le plagiat.\n"
+    "- Présentation pédagogique de la comptabilité permettant d'en acquérir les bases : le rôle de la comptabilité générale, les "
+    "documents de synthèse ou encore le plan comptable général. Avec un chapitre abordant la comptabilité environnementale et le "
+    "rôle du commissaire aux comptes ainsi que des exemples, des astuces et des exercices corrigés.\n"
+    "- En complément du manuel, l'ouvrage propose tous les corrigés détaillés, des applications et des études de cas. Ils sont "
+    "assortis de conseils, de rappels méthodologiques et d'un décryptage des compétences.\n"
+    "- Cyberattaques sur les infrastructures, hacking, espionnage, fake news, le cyberespace est devenu un champ privilégié des "
+    "relations internationales. Panorama des enjeux de la cyberconflictualité."
 )
 
 
@@ -46,7 +57,7 @@ def build_prompt(book, max_chars):
     return "\n".join(L)
 
 
-def _post(key, model, prompt, max_tokens=400):
+def _post(key, model, prompt, max_tokens=1500):
     body = json.dumps({"model": model, "max_tokens": max_tokens, "system": SYSTEM,
                        "messages": [{"role": "user", "content": prompt}]}).encode("utf-8")
     req = urllib.request.Request(API, data=body, method="POST", headers={
@@ -76,9 +87,15 @@ def describe(book, key, max_chars=420, model=None):
             try:
                 j = _post(key, m, prompt)
                 txt = "".join(c.get("text", "") for c in j.get("content", []) if c.get("type") == "text").strip()
-                if not txt:
-                    raise AIError("réponse vide")
-                return sources.clean_resume(re.sub(r"^[\"«»\s]+|[\"«»\s]+$", "", txt), max_chars)
+                txt = re.sub(r"^[\"«»\s]+|[\"«»\s]+$", "", txt)
+                if j.get("stop_reason") == "max_tokens":          # réponse coupée : on ne l'enregistre jamais
+                    last = "réponse coupée par l'IA, réessaie"
+                    continue
+                txt = sources.clean_resume(txt, max_chars)
+                if not txt or (len(txt) < 40 and not re.search(r"[.!?…]$", txt)):
+                    last = "réponse vide ou incomplète"
+                    continue
+                return txt
             except urllib.error.HTTPError as e:
                 msg = _error_text(e)
                 if e.code == 401:
