@@ -193,6 +193,9 @@
       <ol class="steps"><li>Va sur <b>console.anthropic.com</b> et connecte-toi (compte distinct de claude.ai).</li>
         <li><b>Settings → Billing</b> : achète du crédit (5 $ suffisent pour des années).</li>
         <li><b>Settings → API Keys → Create Key</b> : copie la clé tout de suite (elle ne s'affiche qu'une fois) et colle-la ici.</li></ol></details>
+    <label>Taux Ariary <small>— 1 € = … Ar, pour le tableau des prix</small></label>
+    <div class="row2"><input type="text" id="s-taux" style="max-width:140px"><select id="s-arr" style="max-width:220px"><option value="1">arrondi : à l'Ariary</option><option value="10">arrondi : à 10 Ar</option><option value="100">arrondi : à 100 Ar</option><option value="500">arrondi : à 500 Ar</option></select></div>
+    <label class="chk"><input type="checkbox" id="s-incl"> Ajouter le tableau des prix à la fin du catalogue</label>
     <label>Maintenance</label>
     <div class="maint"><button class="btn small" id="s-upd">Vérifier les mises à jour</button><button class="btn small" id="s-refetch">Tout rechercher à nouveau</button><button class="btn small" id="s-okcov">Valider toutes les couvertures</button></div>
     <label>Dossier où créer les catalogues</label>
@@ -306,6 +309,9 @@ function bodyHTML(b){
       <div><label>Prix public (€)</label><input type="text" data-f="prix" value="${b.prix == null ? "" : esc(String(b.prix).replace(".", ","))}"></div></div>
     <div class="grid2"><div><label>Éditeur</label><input type="text" data-f="editeur" value="${esc(b.editeur)}"></div>
       <div><label>Collection</label><input type="text" data-f="collection" value="${esc(b.collection)}"></div></div>
+    <div class="grid3"><div><label>Édition <small>(n°)</small></label><input type="text" data-f="edition" value="${esc(b.edition)}" placeholder="ex. 9"></div>
+      <div><label>Taux spécial <small>(Ar/€)</small></label><input type="text" data-f="taux" value="${esc(b.taux)}" placeholder="taux général"></div>
+      <div><label>Titre court <small>(tableau)</small></label><input type="text" data-f="titre_tableau" value="${esc(b.titre_tableau)}" placeholder="automatique"></div></div>
     <div class="grid3"><div><label>Pages</label><input type="text" data-f="pages" value="${esc(b.pages)}" placeholder="XII-369"></div>
       <div><label>Dimensions</label><input type="text" data-f="dimensions" value="${esc(b.dimensions)}" placeholder="24 x 17 cm"></div>
       <div><label>Illustrations</label><select data-f="illustrations">${ill}</select></div></div>
@@ -361,6 +367,7 @@ $("mp-apply").onclick = async () => {
   await savePrices(map); openPrix(); toast("✓ Prix par défaut appliqué");
 };
 $("mp-ok").onclick = $("mp-x").onclick = () => hide("m-prix");
+function monthYear(){ const m = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"], d = new Date(); return m[d.getMonth()].replace(/^./, c => c.toUpperCase()) + " " + d.getFullYear(); }
 function renderNotes(){
   const box = $("notes"); box.innerHTML = "";
   const np = S.books.filter(b => b.prix == null || b.prix === "").length;
@@ -569,7 +576,7 @@ async function loadPreview(){
     if (my !== pvSeq) return;
     page = r.page; where = r.where;
     $("pimg").src = r.image;
-    $("p-lab").textContent = `Page ${r.page + 1} sur ${r.count}`;
+    $("p-lab").textContent = `${r.label || "Page " + (r.page + 1)} · ${r.page + 1} sur ${r.count}`;
     $("p-prev").disabled = r.page === 0; $("p-next").disabled = r.page >= r.count - 1;
     $("pwrap").dataset.k = r.w;
     const box = $("phot"); box.innerHTML = "";
@@ -596,6 +603,7 @@ function openSettings(){
   const s = S.settings;
   $("s-key").value = s.google_key_set ? s.google_key_hint : ""; $("s-keyhint").textContent = s.google_key_set ? "Clé enregistrée. Laisse tel quel pour la garder." : "Pas encore de clé.";
   $("s-ckey").value = s.claude_key_set ? s.claude_key_hint : ""; $("s-ckeyhint").textContent = s.claude_key_set ? "Clé enregistrée. Laisse tel quel pour la garder." : "Pas encore de clé : sans elle, les descriptions manquantes sont à écrire à la main.";
+  $("s-taux").value = s.taux || 3366; $("s-arr").value = String(s.arrondi || 1); $("s-incl").checked = s.inclure_prix !== false;
   $("s-out").value = s.out_dir || ""; $("s-cov").value = s.covers_dir || ""; $("s-max").value = s.resume_max || 420;
   show("m-set");
 }
@@ -617,8 +625,8 @@ async function confirmAllCovers(){
 }
 $("ms-ok").onclick = async () => {
   try {
-    const r = await api("/api/settings", {google_key: $("s-key").value, claude_key: $("s-ckey").value, out_dir: $("s-out").value, covers_dir: $("s-cov").value, resume_max: +$("s-max").value || 420});
-    S.settings = r.settings; hide("m-set"); renderNotes(); toast("✓ Réglages enregistrés");
+    const r = await api("/api/settings", {google_key: $("s-key").value, claude_key: $("s-ckey").value, taux: $("s-taux").value, arrondi: +$("s-arr").value, inclure_prix: $("s-incl").checked, out_dir: $("s-out").value, covers_dir: $("s-cov").value, resume_max: +$("s-max").value || 420});
+    S.settings = r.settings; hide("m-set"); renderNotes(); schedulePreview(); toast("✓ Réglages enregistrés");
   } catch (e) { toast(e.message); }
 };
 
@@ -631,6 +639,11 @@ $("b-gen").onclick = async () => {
     warn = `<div class="note warn">À savoir : ${[notit && notit + " sans titre", nocov && nocov + " sans couverture", nores && nores + " sans résumé", S.books.some(b => !b.fetched) && "des livres pas encore cherchés"].filter(Boolean).join(", ")}. Ils apparaîtront incomplets dans le fichier.</div>`;
   $("g-title").textContent = "Générer le catalogue";
   $("g-body").innerHTML = `${warn}<label style="margin-top:0">Nom du catalogue</label><input type="text" id="g-name" value="${esc(S.meta.titre || "Catalogue CMPL")}">
+    <label>Tableau des prix</label>
+    <label class="chk"><input type="checkbox" id="g-incl" ${S.settings.inclure_prix !== false ? "checked" : ""}> Ajouter le tableau des prix à la fin</label>
+    <div class="grid3"><div><label>Taux <small>(1 € = … Ar)</small></label><input type="text" id="g-taux" value="${esc(S.settings.taux || 3366)}"></div>
+      <div><label>Prix indicatifs</label><input type="text" id="g-ind" value="${esc(S.meta.indicatif || monthYear())}"></div>
+      <div><label>Titre du tableau</label><input type="text" id="g-sel" value="${esc(S.meta.selection || S.meta.titre || "Catalogue CMPL")}"></div></div>
     <label>Formats</label><label class="chk"><input type="checkbox" id="g-pdf" checked> PDF (à envoyer ou imprimer)</label>
     <label class="chk"><input type="checkbox" id="g-pptx"> PowerPoint modifiable (.pptx)</label>
     <div class="hint">Dossier : <code class="path">${esc(S.settings.out_dir || "")}</code></div>`;
@@ -642,7 +655,9 @@ $("b-gen").onclick = async () => {
     if (!pdf && !pptx) { toast("Coche au moins un format."); return; }
     $("g-go").disabled = true; $("g-go").textContent = "Génération en cours…";
     try {
-      const name = $("g-name").value; api("/api/meta", {titre: name});
+      const name = $("g-name").value;
+      await api("/api/meta", {titre: name, indicatif: $("g-ind").value, selection: $("g-sel").value}); S.meta.titre = name; S.meta.indicatif = $("g-ind").value; S.meta.selection = $("g-sel").value;
+      const rs = await api("/api/settings", {taux: $("g-taux").value, inclure_prix: $("g-incl").checked}); S.settings = rs.settings;
       const r = await api("/api/generate", {pdf, pptx, name});
       $("g-title").textContent = "✓ Catalogue créé";
       $("g-body").innerHTML = `<div class="hint" style="margin:0">${r.pages} page${r.pages > 1 ? "s" : ""} dans le dossier</div><code class="path">${esc(r.folder)}</code><ul class="problems" style="color:var(--muted)">${r.files.map(f => `<li>${esc(f.split(/[\\/]/).pop())}</li>`).join("")}</ul>`;

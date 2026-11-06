@@ -15,7 +15,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from PIL import Image
 
-from . import catalog, errlog, importer, isbn as isbnlib, pages as pagelib, render_pdf, render_pptx, render_png, sources, store, updater, version
+from . import catalog, prix as prixlib, errlog, importer, isbn as isbnlib, pages as pagelib, render_pdf, render_pptx, render_png, sources, store, updater, version
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 APP_ID = "cmpl-catalogue"
@@ -147,16 +147,26 @@ def start_ai(isbns):
 
 
 # ------------------------------------------------------------------ aperçu et génération
-def build_pages():
+def build_pages(with_prices=None):
+    """(pages de livres, pages du tableau des prix)."""
     with LOCK:
         books = [dict(b) for b in CAT["books"]]
-    return pagelib.build_pages(books, CAT["meta"].get("titre") or "Catalogue")
+        meta = dict(CAT["meta"])
+    s = store.load_settings()
+    name = meta.get("titre") or "Catalogue"
+    book_pages = pagelib.build_pages(books, name)
+    if with_prices is None:
+        with_prices = bool(s.get("inclure_prix", True))
+    price_pages = prixlib.build_pages(books, meta.get("selection") or name, meta.get("indicatif", ""), s.get("taux") or 3366, s.get("arrondi") or 1) if (with_prices and books) else []
+    return book_pages, price_pages
 
 
 def preview(page=0, dpi=90):
-    pgs = build_pages()
+    bp, pp = build_pages()
+    pgs = bp + pp
     page = max(0, min(int(page), len(pgs) - 1))
     pg = pgs[page]
+    labels = [f"Page {i + 1}" for i in range(len(bp))] + [f"Tableau des prix {i + 1}/{len(pp)}" for i in range(len(pp))]
     img = render_png.render_page(pg, dpi=dpi)
     buf = io.BytesIO()
     img.save(buf, "PNG")
@@ -166,7 +176,7 @@ def preview(page=0, dpi=90):
     for i, p in enumerate(pgs):
         for h in p.hot:
             where[h["isbn"]] = i
-    return {"count": len(pgs), "page": page, "image": "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode(),
+    return {"count": len(pgs), "page": page, "label": labels[page], "image": "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode(),
             "w": img.width, "h": img.height, "hot": hot, "where": where}
 
 
@@ -178,17 +188,21 @@ def generate(out_dir, name, want_pdf=True, want_pptx=False):
     name = safe_name(name or CAT["meta"].get("titre") or "Catalogue")
     folder = os.path.join(os.path.abspath(os.path.expanduser(out_dir)), name)
     os.makedirs(folder, exist_ok=True)
-    pgs = pagelib.build_pages(books, name)
+    bp, pp = build_pages()
     files = []
     if want_pdf:
         p = os.path.join(folder, name + ".pdf")
-        render_pdf.build_pdf(pgs, p, title=name, author="CMPL")
+        render_pdf.build_pdf(bp + pp, p, title=name, author="CMPL")
         files.append(p)
     if want_pptx:
         p = os.path.join(folder, name + ".pptx")
-        render_pptx.build_pptx(pgs, p, title=name)
+        render_pptx.build_pptx(bp, p, title=name)
         files.append(p)
-    return {"folder": folder, "files": files, "pages": len(pgs)}
+        if pp:                                   # le tableau est en paysage : un fichier PowerPoint à part
+            p = os.path.join(folder, name + " - Tableau des prix.pptx")
+            render_pptx.build_pptx(pp, p, title=name + " - Tableau des prix")
+            files.append(p)
+    return {"folder": folder, "files": files, "pages": len(bp) + len(pp), "tableau": len(pp)}
 
 
 # ------------------------------------------------------------------ utilitaires système
@@ -251,7 +265,8 @@ def open_file(path):
         return False
 
 
-EDITABLE = ("titre", "auteurs", "resume", "date", "collection", "editeur", "pages", "illustrations", "dimensions", "prix")
+EDITABLE = ("titre", "auteurs", "resume", "date", "collection", "editeur", "pages", "illustrations", "dimensions", "prix",
+            "edition", "taux", "titre_tableau")
 
 
 def update_book(isbn, fields):
@@ -270,10 +285,16 @@ def update_book(isbn, fields):
                 v = [x.strip() for x in (v if isinstance(v, list) else str(v).split("\n")) if x.strip()]
             elif k == "prix":
                 v = importer.parse_price(v)
+            elif k == "taux":
+                tv = str(v or "").replace(",", ".").replace(" ", "")
+                try:
+                    v = (int(float(tv)) if float(tv) == int(float(tv)) else float(tv)) if tv else ""
+                except ValueError:
+                    v = ""
             else:
                 v = str(v or "").strip() if k != "resume" else re.sub(r"\s+", " ", str(v or "")).strip()
             b[k] = v
-            if k != "prix" and k not in b["edited"]:
+            if k not in ("prix", "taux") and k not in b["edited"]:
                 b["edited"].append(k)
         save()
         return catalog.public(b)
@@ -499,7 +520,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if path == "/api/meta":
                 with LOCK:
-                    CAT["meta"].update({k: str(v) for k, v in b.items() if k in ("titre", "date")})
+                    CAT["meta"].update({k: str(v) for k, v in b.items() if k in ("titre", "date", "indicatif", "selection")})
                     save()
                 return self._send(200, {})
             if path == "/api/cover/upload":
@@ -540,6 +561,18 @@ class Handler(BaseHTTPRequestHandler):
                     patch["google_key"] = str(patch["google_key"] or "").strip()
                     if patch["google_key"].startswith("••"):
                         patch.pop("google_key")
+                if "taux" in patch:
+                    try:
+                        t = float(str(patch["taux"]).replace(",", ".").replace(" ", ""))
+                        if not 0 < t < 1_000_000:
+                            raise ValueError
+                    except ValueError:
+                        return self._send(400, {"error": "Le taux doit être un nombre positif (ex. 3366)."})
+                    patch["taux"] = int(t) if t == int(t) else t
+                if "arrondi" in patch:
+                    patch["arrondi"] = int(patch["arrondi"]) if str(patch["arrondi"]).isdigit() and int(patch["arrondi"]) in (1, 5, 10, 50, 100, 500, 1000) else 1
+                if "inclure_prix" in patch:
+                    patch["inclure_prix"] = bool(patch["inclure_prix"])
                 if "claude_key" in patch:
                     patch["claude_key"] = str(patch["claude_key"] or "").strip()
                     if patch["claude_key"].startswith("••"):

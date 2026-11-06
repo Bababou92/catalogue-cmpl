@@ -171,6 +171,12 @@ def clean_publisher(s):
 _EDITION = re.compile(r"\s*\((?:\[?(?:Nouvelle\s+)?[ÉE]d(?:ition|\.)?\]?|\d+\s*(?:e|re|ème)\s*[ée]d)[^)]*\)", re.I)
 
 
+def parse_edition(title):
+    """'Strategor (9e éd.) J. Albino…' -> '9' ; '' si la notice ne donne pas de numéro d'édition."""
+    m = re.search(r"\((?:\[?)(\d+)\s*(?:e|re|ème|er|è)\s*[ée]d", title or "", re.I)
+    return m.group(1) if m else ""
+
+
 def clean_bnf_title(t):
     t = (t or "").split(" / ")[0]
     m = _EDITION.search(t)
@@ -223,7 +229,7 @@ def merge(isbn, raw, resume_max=420, extra_publishers=None):
     g = ((raw or {}).get("google") or {}).get("volumeInfo") or {}
     b = (raw or {}).get("bnf") or {}
     out = {"titre": "", "auteurs": [], "resume": "", "date": "", "collection": "", "editeur": "",
-           "pages": "", "illustrations": "", "dimensions": "", "sujets": []}
+           "pages": "", "illustrations": "", "dimensions": "", "sujets": [], "edition": ""}
 
     gt = " : ".join(x for x in [g.get("title"), lower_first(g.get("subtitle"))] if x)
     out["titre"] = gt or clean_bnf_title(" ".join(b.get("title", [])[:1]))
@@ -251,6 +257,7 @@ def merge(isbn, raw, resume_max=420, extra_publishers=None):
     out["pages"] = pages or (str(g["pageCount"]) if g.get("pageCount") else "")
     out["illustrations"], out["dimensions"] = ill, dim
     out["sujets"] = b.get("subject", [])
+    out["edition"] = parse_edition(" ".join(b.get("title", [])[:1]))
     return out
 
 

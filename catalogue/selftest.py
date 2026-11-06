@@ -7,7 +7,7 @@ import traceback
 
 def run(out_path):
     try:
-        from . import catalog, pages, render_pdf, render_pptx, render_png, sources, version
+        from . import catalog, pages, prix, render_pdf, render_pptx, render_png, sources, version
         books = []
         for i, (t, a) in enumerate([("Analyse financière : concepts et méthodes", ["Marion, Alain", "Lantin, François"]),
                                     ("Strategor : la référence en stratégie", ["Albino-Pimentel, João"]),
@@ -21,7 +21,10 @@ def run(out_path):
         assert pgs and pgs[0].hot, "mise en page vide"
         with tempfile.TemporaryDirectory() as tmp:
             render_png.render_page(pgs[0], dpi=60).save(os.path.join(tmp, "p.png"))
-            render_pdf.build_pdf(pgs, os.path.join(tmp, "t.pdf"))
+            tab = prix.build_pages(books, "Essai", "Janvier 2026", 3366)
+            assert tab and prix._logo() is not None, "tableau des prix ou logo manquant"
+            render_pdf.build_pdf(pgs + tab, os.path.join(tmp, "t.pdf"))
+            render_pptx.build_pptx(tab, os.path.join(tmp, "tab.pptx"))
             render_pptx.build_pptx(pgs, os.path.join(tmp, "t.pptx"))
             for f in os.listdir(tmp):
                 assert os.path.getsize(os.path.join(tmp, f)) > 1000, f"fichier vide : {f}"

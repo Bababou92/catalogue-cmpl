@@ -57,3 +57,14 @@ Faire des essais / repartir de zero
 -----------------------------------
 Bouton "Nouveau" : vide la liste ; cocher "Oublier aussi les recherches memorisees" pour que tout soit cherche a nouveau,
 et (option) "Supprimer aussi mes images du dossier des couvertures" pour effacer les couvertures d'essai.
+
+Tableau des prix (Ariary)
+-------------------------
+A la fin du catalogue : un tableau (A4 paysage) avec, pour chaque livre : Titre, Auteurs, Edition, Date de parution, ISBN,
+Editeur, Prix France (Euros), Prix CMPL (Ariary). Prix Ariary = prix France x taux (3366 par defaut).
+- Le taux se change dans Reglages ou directement dans la fenetre "Generer le catalogue" (avec le mois des "Prix indicatifs"
+  et le titre du tableau). Arrondi possible a 10, 100 ou 500 Ar (Reglages).
+- Un livre peut avoir son propre taux (champ "Taux special" de sa fiche). Le "Titre court" de la fiche remplace le titre
+  affiche dans le tableau (par defaut : le titre avant les deux-points).
+- PDF : le tableau suit les pages de livres. PowerPoint : fichier separe "... - Tableau des prix.pptx" (page en paysage).
+- Pour ne pas l'ajouter : decocher dans Reglages ou dans "Generer".

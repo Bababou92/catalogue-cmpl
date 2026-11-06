@@ -79,11 +79,12 @@ def _draw_text(c, tb: TextBox, page_h_pt):
 
 
 def build_pdf(pages, path, title="Catalogue CMPL", author="CMPL"):
-    W, H = pages[0].w * PT_PER_MM, pages[0].h * PT_PER_MM
-    c = canvas.Canvas(path, pagesize=(W, H), pageCompression=1)
+    c = canvas.Canvas(path, pagesize=(pages[0].w * PT_PER_MM, pages[0].h * PT_PER_MM), pageCompression=1)
     c.setTitle(title)
     c.setAuthor(author)
     for page in pages:
+        W, H = page.w * PT_PER_MM, page.h * PT_PER_MM          # les pages peuvent avoir des tailles différentes (tableau en paysage)
+        c.setPageSize((W, H))
         if page.bg and page.bg.upper() != "#FFFFFF":
             c.setFillColor(HexColor(page.bg))
             c.rect(0, 0, W, H, fill=1, stroke=0)

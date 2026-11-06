@@ -119,6 +119,22 @@ open(os.path.join(store.cover_cache_dir(), "x.jpg"), "wb").write(b"x"); store.cl
 assert store.cache_get("9782100000002") is None and not os.listdir(store.cover_cache_dir())
 d_ = tempfile.mkdtemp(); Image.new("RGB", (200, 300)).save(os.path.join(d_, "9782100870165.jpg")); Image.new("RGB", (200, 300)).save(os.path.join(d_, "logo.png"))
 assert sources.delete_cover_files(d_) == 1 and os.listdir(d_) == ["logo.png"]
+
+# ---- tableau des prix
+from catalogue import prix
+assert prix.ariary(23, 3366) == 77418 and prix.ariary(19.9, 3366) == 66983 and prix.ariary(19.9, 3366, 100) == 67000 and prix.ariary(None, 3366) is None
+assert prix.fmt_date("03/06/2024") == "3-juin-24" and prix.fmt_date("06/2024") == "juin-24" and prix.fmt_date("2024") == "2024"
+assert prix.fmt_isbn("9782100851638") == "9 782 100 851 638" and prix.fmt_eur(16.5) == "16,50"
+assert sources.parse_edition("Strategor : la référence (9e éd.) J. Albino") == "9" and sources.parse_edition("Atlas ([Nouvelle édition]) P. B.") == ""
+tb = catalog.new_book("9782100851638", titre="Cas de compta : 10 récits pour enrichir sa pratique", auteurs=["Ragaigne, Alexandre", "Gond, Jean-Pascal", "Lachuer, X", "Autre, Y"],
+                      editeur="Éditions \"Le Moniteur\"", date="03/06/2024", prix=23, edition="1")
+rv = prix.row_values(tb, 3366)
+assert rv == ["Cas de compta", "RAGAIGNE/GOND/LACHUER ET AL", "1", "3-juin-24", "9 782 100 851 638", "LE MONITEUR", "23,00", prix.fmt_int(77418)], rv
+tb["taux"] = "4488"; assert prix.row_values(tb, 3366)[7] == prix.fmt_int(103224)
+pp = prix.build_pages([dict(tb, isbn="97821008516%02d" % i) for i in range(60)], "Test", "Octobre 2024", 3366)
+assert len(pp) >= 2 and all(p.w > p.h for p in pp) and any("2/%d" % len(pp) in "".join(r.text for e in p.elements if hasattr(e, "paras") for pa in e.paras for r in pa.runs) for p in pp)
+op = os.path.join(tempfile.mkdtemp(), "mix.pdf"); render_pdf.build_pdf(pages.build_pages(books[:2] if "books" in dir() else [tb]) + pp, op)
+import pypdf as _pp; _r = _pp.PdfReader(op); assert _r.pages[0].mediabox.width < _r.pages[-1].mediabox.width and "Prix indicatifs Octobre 2024" in _r.pages[-1].extract_text()
 # mise en page : plusieurs pages, PDF avec texte sélectionnable
 books = []
 for k in range(23):
