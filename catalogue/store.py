@@ -7,7 +7,7 @@ import time
 
 _lock = threading.Lock()
 
-SETTING_KEYS = ("google_key", "out_dir", "covers_dir", "resume_max", "taux", "theme", "update_popup")
+SETTING_KEYS = ("google_key", "out_dir", "covers_dir", "resume_max", "taux", "theme", "update_popup", "claude_key", "ai_model")
 
 
 def data_dir():
@@ -46,7 +46,7 @@ def _write(name, obj):
 
 # ---------------------------------------------------------------- réglages
 def load_settings():
-    s = {"google_key": "", "out_dir": docs_dir(), "covers_dir": os.path.join(docs_dir(), "Couvertures"),
+    s = {"google_key": "", "claude_key": "", "ai_model": "", "out_dir": docs_dir(), "covers_dir": os.path.join(docs_dir(), "Couvertures"),
          "resume_max": 420, "taux": 3366, "theme": "light", "update_popup": True}
     s.update({k: v for k, v in _read("reglages.json", {}).items() if k in SETTING_KEYS})
     return s

@@ -50,6 +50,10 @@
   .cinfo{flex:1;min-width:0}
   .ctitle{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .csub{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .plist{display:grid;grid-template-columns:1fr 110px;gap:6px 10px;align-items:center;max-height:55vh;overflow:auto}.plist .t{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.plist input{padding:5px 8px}
+  .clog{margin-top:6px;font-size:12px;color:var(--muted)}.clog summary{cursor:pointer}
+  .iaNote{margin-top:5px;font-size:12.5px;color:var(--warn);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .calert{font-size:12px;color:var(--bad);margin-top:1px}
   .cstat{font-size:12px;display:flex;gap:6px;align-items:center;margin-top:1px}
   .cstat.orange{color:var(--warn)}.cstat.rouge{color:var(--bad)}.cstat.vert{color:var(--ok)}.cstat.gris{color:var(--muted)}
   .cbtns{display:flex;flex-direction:column;gap:2px}
@@ -114,13 +118,14 @@
 <body>
 <header>
   <h1>Catalogue CMPL <small id="ver"></small></h1>
-  <button id="b-import" title="Charger un fichier Excel / CSV avec les ISBN">Importer un fichier</button>
+  <button id="b-import" title="Charger un fichier Excel / CSV / export Dilicom avec les ISBN">Importer un fichier</button>
   <button id="b-add" title="Coller quelques ISBN">Ajouter des ISBN</button>
   <button id="b-fetch" class="hfetch" title="Chercher titre, auteurs, résumé, couverture… pour chaque ISBN" disabled>Récupérer les infos</button>
-  <button id="b-set" title="Clé Google, dossiers…">Réglages</button>
+  <button id="b-ai" class="hfetch" title="Écrire un résumé avec l'IA pour les livres qui n'en ont pas" disabled>Écrire les descriptions</button>
+  <button id="b-set" title="Clés, dossiers…">Réglages</button>
   <button id="b-new" title="Vider le catalogue">Nouveau</button>
   <button id="b-gen" class="hgen" disabled>Générer le catalogue</button>
-  <input type="file" id="f-import" accept=".xlsx,.csv,.txt,.tsv" class="hide">
+  <input type="file" id="f-import" accept=".xlsx,.csv,.txt,.tsv,.slk" class="hide">
   <input type="file" id="f-cover" accept="image/*" class="hide">
 </header>
 <main id="main">
@@ -129,7 +134,7 @@
     <div id="notes"></div>
     <div id="empty" class="empty hide">
       <h2>Commence avec ton fichier d'ISBN</h2>
-      <p>Glisse ici un fichier Excel ou CSV : une ligne par livre, avec l'ISBN et le prix public en euros.<br>Le programme cherche ensuite tout seul les titres, auteurs, résumés et couvertures.</p>
+      <p>Glisse ici un export de panier Dilicom (.slk), ou un fichier Excel / CSV : une ligne par livre, avec l'ISBN et le prix public en euros.<br>Le programme cherche ensuite tout seul les titres, auteurs, résumés et couvertures.</p>
       <div class="row">
         <button class="btn primary" id="e-import">Choisir un fichier</button>
         <button class="btn" id="e-add">Coller des ISBN</button>
@@ -169,6 +174,13 @@
       <ol class="steps"><li>Va sur <b>console.cloud.google.com</b> avec un compte Google et crée un projet.</li>
         <li>« API et services » → « Bibliothèque » → cherche <b>Books API</b> → Activer.</li>
         <li>« Identifiants » → « Créer des identifiants » → « Clé API », puis copie-la ici.</li></ol></details>
+    <label>Clé Claude <small>— pour écrire les descriptions des livres sans résumé (facultatif)</small></label>
+    <input type="password" id="s-ckey" placeholder="Colle ta clé ici (commence par sk-ant-…)" autocomplete="off">
+    <div class="hint" id="s-ckeyhint"></div>
+    <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--muted);font-size:13px">Comment obtenir la clé (quelques centimes par catalogue)</summary>
+      <ol class="steps"><li>Va sur <b>console.anthropic.com</b> et connecte-toi (compte distinct de claude.ai).</li>
+        <li><b>Settings → Billing</b> : achète du crédit (5 $ suffisent pour des années).</li>
+        <li><b>Settings → API Keys → Create Key</b> : copie la clé tout de suite (elle ne s'affiche qu'une fois) et colle-la ici.</li></ol></details>
     <label>Dossier où créer les catalogues</label>
     <div class="row2"><input type="text" id="s-out"><button class="btn small" id="s-browse1">Parcourir…</button></div>
     <label>Dossier des couvertures <small>— tes images nommées avec l'ISBN (ex. 9782100870165.jpg) y sont reprises automatiquement</small></label>
@@ -177,6 +189,16 @@
     <input type="number" id="s-max" min="150" max="1500" step="10" style="max-width:140px">
   </div>
   <div class="mfoot"><button class="btn" id="ms-cancel">Annuler</button><button class="btn primary" id="ms-ok">Enregistrer</button></div>
+</div></div>
+
+<div class="modal hide" id="m-prix"><div class="mbox" style="max-width:640px">
+  <div class="mhead"><h3>Prix publics</h3><button class="xbtn" id="mp-x">✕</button></div>
+  <div class="mbody">
+    <div class="row2" style="margin-bottom:10px"><input type="text" id="mp-def" placeholder="Prix par défaut (€)" style="max-width:170px"><button class="btn small" id="mp-apply">Appliquer aux livres sans prix</button></div>
+    <div id="mp-list" class="plist"></div>
+    <div class="hint" style="margin-top:8px">Un prix par ligne, en euros (ex. 24,90). Tab pour passer au livre suivant.</div>
+  </div>
+  <div class="mfoot"><button class="btn primary" id="mp-ok">Terminé</button></div>
 </div></div>
 
 <div class="modal hide" id="m-confirm"><div class="mbox">
@@ -226,6 +248,7 @@ function setState(st){
 }
 
 // ------------------------------------------------------------ liste
+const SRC = {google: "Google", bnf: "BnF", abebooks: "AbeBooks", amazon: "Amazon", openlibrary: "Open Library", web: "Internet"};
 const ILLS = [["", "(aucune)"], ["illustrations en noir et blanc", "en noir et blanc"], ["illustrations en couleur", "en couleur"], ["illustrations en noir et en couleur", "noir et couleur"]];
 function coverStyle(b){ return b.has_cover ? `style="background-image:url('/api/cover?isbn=${b.isbn}&t=${TOKEN}&v=${covRev[b.isbn] || 0}')"` : ""; }
 function headHTML(b){
@@ -233,13 +256,14 @@ function headHTML(b){
   return `<div class="thumb" ${coverStyle(b)}>${b.has_cover ? "" : "sans couv."}</div>
     <div class="cinfo"><div class="ctitle">${esc(b.titre || "(titre à saisir)")}</div>
       <div class="csub">${esc(b.isbn)}${authors ? " · " + esc(authors) : ""}</div>
-      <div class="cstat ${b.statut}"><span class="dot ${b.statut}"></span>${esc(b.statut_txt)}</div></div>
+      <div class="cstat ${b.statut}"><span class="dot ${b.statut}"></span>${esc(b.statut_txt)}</div>
+      ${b.alerte ? `<div class="calert">⚠ ${esc(b.alerte)} (Dilicom)</div>` : ""}</div>
     <div class="cbtns"><button data-act="up" title="Monter">▲</button><button data-act="down" title="Descendre">▼</button><button data-act="del" title="Retirer du catalogue">✕</button></div>`;
 }
 function bodyHTML(b){
   const ill = ILLS.map(([v, l]) => `<option value="${esc(v)}" ${b.illustrations === v ? "selected" : ""}>${esc(l)}</option>`).join("");
-  const o = b.cover_origin;
-  const covState = !b.has_cover ? `<span class="badge">pas de couverture</span>` : o === "google?" ? `<span class="badge">à vérifier : est-ce la bonne ?</span>` : `<span class="badge ok">couverture ${o === "manuel" ? "ajoutée" : o === "dossier" ? "du dossier" : "trouvée"}</span>`;
+  const o = b.cover_origin || "";
+  const covState = !b.has_cover ? `<span class="badge">pas de couverture</span>` : o.endsWith("?") ? `<span class="badge">à vérifier (${esc(SRC[o.slice(0, -1)] || o.slice(0, -1))}) : est-ce la bonne ?</span>` : `<span class="badge ok">couverture ${o === "manuel" ? "ajoutée" : o === "dossier" ? "du dossier" : "trouvée"}</span>`;
   return `<div class="covbox" data-drop="${b.isbn}">
       <div class="thumb" ${coverStyle(b)}>${b.has_cover ? "" : "aucune"}</div>
       <div class="acts">${covState}
@@ -247,12 +271,14 @@ function bodyHTML(b){
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn small" data-act="search">Chercher sur Internet</button>
           <button class="btn small" data-act="pick">Choisir une image…</button>
-          ${o === "google?" ? `<button class="btn small" data-act="okcov">✓ C'est la bonne</button>` : ""}
+          ${o.endsWith("?") ? `<button class="btn small" data-act="okcov">✓ C'est la bonne</button>` : ""}
           ${b.has_cover ? `<button class="btn small" data-act="nocov">Retirer</button>` : ""}
         </div></div></div>
+    ${(b.cover_log || []).length ? `<details class="clog"><summary>Sources de couverture testées</summary><div>${b.cover_log.map(esc).join("<br>")}</div></details>` : ""}
     <label>Titre</label><input type="text" data-f="titre" value="${esc(b.titre)}">
     <label>Auteurs <small>— un par ligne, « Nom, Prénom »</small></label><textarea data-f="auteurs" rows="${Math.max(2, Math.min(6, (b.auteurs || []).length + 1))}">${esc((b.auteurs || []).join("\n"))}</textarea>
     <label>Résumé <span class="cnt" data-cnt>${(b.resume || "").length} car.</span></label><textarea data-f="resume" rows="6">${esc(b.resume)}</textarea>
+    ${b.resume_ia ? `<div class="iaNote">✍ Écrit par l'IA : relis-le, corrige-le si besoin. <button class="btn small" data-act="okia">✓ Relu</button> <button class="btn small" data-act="reia">Réécrire</button></div>` : `<div style="margin-top:4px"><button class="btn small" data-act="reia">${b.resume ? "Réécrire avec l'IA" : "Écrire avec l'IA"}</button></div>`}
     <div class="grid2"><div><label>Date de parution</label><input type="text" data-f="date" value="${esc(b.date)}" placeholder="28/08/2024"></div>
       <div><label>Prix public (€)</label><input type="text" data-f="prix" value="${b.prix == null ? "" : esc(String(b.prix).replace(".", ","))}"></div></div>
     <div class="grid2"><div><label>Éditeur</label><input type="text" data-f="editeur" value="${esc(b.editeur)}"></div>
@@ -287,15 +313,41 @@ function renderAll(){
   $("main").classList.toggle("vide", n === 0); $("empty").classList.toggle("hide", n > 0); $("listwrap").classList.toggle("hide", n === 0); $("prev").classList.toggle("hide", n === 0);
   const todo = S.books.filter(b => !b.fetched).length;
   $("b-fetch").disabled = n === 0; $("b-gen").disabled = n === 0;
+  const nr = S.books.filter(b => b.titre && !b.resume).length; $("b-ai").disabled = n === 0;
+  $("b-ai").textContent = nr ? `Écrire les descriptions (${nr})` : "Écrire les descriptions";
   $("b-fetch").textContent = todo ? `Récupérer les infos (${todo})` : "Récupérer les infos";
   const ok = S.books.filter(b => b.statut === "vert").length, to = S.books.filter(b => b.statut === "orange").length, bad = S.books.filter(b => b.statut === "rouge").length;
   $("list-title").textContent = `${n} livre${n > 1 ? "s" : ""}` + (n && todo === 0 ? ` — ${ok} complet${ok > 1 ? "s" : ""}, ${to} à compléter${bad ? ", " + bad + " introuvable" + (bad > 1 ? "s" : "") : ""}` : "");
   renderNotes(); renderList(); schedulePreview();
 }
+function openPrix(){
+  const box = $("mp-list"); box.innerHTML = "";
+  S.books.forEach(b => {
+    const t = document.createElement("div"); t.className = "t"; t.textContent = (b.titre || b.isbn); t.title = b.isbn;
+    const i = document.createElement("input"); i.type = "text"; i.dataset.isbn = b.isbn; i.value = b.prix == null ? "" : String(b.prix).replace(".", ",");
+    box.append(t, i);
+  });
+  $("mp-def").value = ""; show("m-prix");
+  const f = box.querySelector("input:not([value=''])") ; const first = [...box.querySelectorAll("input")].find(x => !x.value); (first || box.querySelector("input")) && (first || box.querySelector("input")).focus();
+}
+async function savePrices(map){ const r = await api("/api/prices", {prices: map}); S.books = r.state.books; S.settings = r.state.settings || S.settings; renderAll(); }
+$("mp-list").addEventListener("change", e => { if (e.target.dataset.isbn) savePrices({[e.target.dataset.isbn]: e.target.value}); });
+$("mp-apply").onclick = async () => {
+  const v = $("mp-def").value; if (!v.trim()) { toast("Tape d'abord un prix par défaut."); return; }
+  const map = {}; S.books.forEach(b => { if (b.prix == null) map[b.isbn] = v; });
+  await savePrices(map); openPrix(); toast("✓ Prix par défaut appliqué");
+};
+$("mp-ok").onclick = $("mp-x").onclick = () => hide("m-prix");
 function renderNotes(){
   const box = $("notes"); box.innerHTML = "";
+  const np = S.books.filter(b => b.prix == null || b.prix === "").length;
+  if (np) {
+    const d = document.createElement("div"); d.className = "note warn";
+    d.innerHTML = `${np} livre${np > 1 ? "s" : ""} sans prix. <a href="#" id="n-prix">Saisir les prix</a>`; box.appendChild(d);
+    $("n-prix").onclick = e => { e.preventDefault(); openPrix(); };
+  }
   if (S.books.length && !S.settings.google_key_set) {
-    box.innerHTML = `<div class="note warn">Pas de clé Google Books : tu n'auras ni les résumés ni les dates exactes. <a href="#" id="n-set">Ajouter la clé</a></div>`;
+    box.insertAdjacentHTML("afterbegin", `<div class="note warn">Pas de clé Google Books : tu n'auras ni les résumés ni les dates exactes. <a href="#" id="n-set">Ajouter la clé</a></div>`);
     $("n-set").onclick = e => { e.preventDefault(); openSettings(); };
   }
 }
@@ -314,6 +366,8 @@ $("list").addEventListener("click", async e => {
   if (act === "nocov") { const r = await api("/api/cover/clear", {isbn}); bump(r.book); return; }
   if (act === "okcov") { const r = await api("/api/cover/confirm", {isbn}); bump(r.book, true); return; }
   if (act === "refetch") { startFetch([isbn], true); return; }
+  if (act === "okia") { const r = await api("/api/book/update", {isbn, fields: {resume_ia: false}}); mergeBook(r.book); replaceCard(byIsbn(isbn), true); renderAllLight(); return; }
+  if (act === "reia") { startAI([isbn]); return; }
   if (e.target.closest(".chead")) selectBook(sel === isbn ? null : isbn, true);
 });
 function selectBook(isbn, fromList){
@@ -327,7 +381,8 @@ function selectBook(isbn, fromList){
 }
 function bump(b, force){ covRev[b.isbn] = (covRev[b.isbn] || 0) + 1; mergeBook(b); replaceCard(byIsbn(b.isbn), true); renderAllLight(); schedulePreview(); }
 function mergeBook(nb){ const i = S.books.findIndex(x => x.isbn === nb.isbn); if (i >= 0) S.books[i] = nb; }
-function renderAllLight(){ const n = S.books.length, todo = S.books.filter(b => !b.fetched).length; $("b-fetch").textContent = todo ? `Récupérer les infos (${todo})` : "Récupérer les infos"; }
+function renderAllLight(){ const todo = S.books.filter(b => !b.fetched).length; $("b-fetch").textContent = todo ? `Récupérer les infos (${todo})` : "Récupérer les infos";
+  const nr = S.books.filter(b => b.titre && !b.resume).length; $("b-ai").textContent = nr ? `Écrire les descriptions (${nr})` : "Écrire les descriptions"; }
 
 // saisie dans les champs
 let saveT = {};
@@ -338,7 +393,7 @@ $("list").addEventListener("input", e => {
   clearTimeout(saveT[isbn]);
   saveT[isbn] = setTimeout(async () => {
     const fields = {}; card.querySelectorAll("[data-f]").forEach(el => fields[el.dataset.f] = el.value);
-    try { const r = await api("/api/book/update", {isbn, fields}); mergeBook(r.book); card.querySelector(".chead").innerHTML = headHTML(r.book); schedulePreview(); }
+    try { const r = await api("/api/book/update", {isbn, fields}); mergeBook(r.book); card.querySelector(".chead").innerHTML = headHTML(r.book); renderNotes(); renderAllLight(); schedulePreview(); }
     catch (er) { toast(er.message); }
   }, 450);
 });
@@ -407,7 +462,7 @@ $("b-new").onclick = async () => {
 };
 
 // ------------------------------------------------------------ récupération
-let polling = false;
+let polling = false, kind = "fetch", lastErrs = [];
 async function askFetch(){
   if (!S.books.some(b => !b.fetched)) return;
   await startFetch(null, false);
@@ -423,6 +478,17 @@ async function startFetch(isbns, force){
     pollFetch(0);
   } catch (e) { toast(e.message); }
 }
+async function startAI(isbns){
+  if (!S.settings.claude_key_set) {
+    const ok = await confirmBox("Pas de clé Claude", `<div>L'écriture des descriptions utilise l'IA Claude : il faut une clé (crédit à acheter sur console.anthropic.com, quelques centimes par catalogue).</div><div class="hint" style="margin-top:8px">Les réglages expliquent comment l'obtenir.</div>`, "Ouvrir les réglages", "Annuler");
+    if (ok) openSettings(); return;
+  }
+  try {
+    const r = await api("/api/ai", {isbns});
+    if (!r.total) { toast("Tous les livres ont déjà un résumé."); return; }
+    pollFetch(0);
+  } catch (e) { toast(e.message); }
+}
 async function pollFetch(since){
   if (polling && since === 0) return; polling = true;
   show("progress");
@@ -431,7 +497,8 @@ async function pollFetch(since){
       const r = await api("/api/fetch/status", {since});
       since = r.next || since;
       r.updated.forEach(b => { mergeBook(b); replaceCard(b); });
-      $("pg-txt").textContent = `Récupération des infos… ${r.done} / ${r.total}`;
+      kind = r.kind || "fetch"; lastErrs = r.errors || [];
+      $("pg-txt").textContent = `${kind === "ai" ? "Écriture des descriptions" : "Récupération des infos"}… ${r.done} / ${r.total}`;
       $("pg-bar").style.width = (r.total ? 100 * r.done / r.total : 0) + "%";
       renderAllLight(); if (r.updated.length) schedulePreview();
       if (!r.running) break;
@@ -440,11 +507,20 @@ async function pollFetch(since){
   } catch (e) { toast(e.message); }
   polling = false; hide("progress");
   const st = await api("/api/state"); setState(st);
+  if (kind === "ai") { toast(lastErrs.length ? "⚠ " + lastErrs[0] : "✓ Descriptions écrites : relis-les (pastilles orange)"); return; }
   const errs = [...new Set(S.books.flatMap(b => b.errors || []))];
   if (errs.length) toast("⚠ " + errs[0]);
   else toast("✓ Infos récupérées");
 }
 $("b-fetch").onclick = () => startFetch(null, false);
+$("b-ai").onclick = async () => {
+  const noRes = S.books.filter(b => b.titre && !b.resume).length;
+  if (!noRes) {
+    if (await confirmBox("Tous les livres ont un résumé", `<div>Réécrire <b>tous</b> les résumés avec l'IA ? Les résumés actuels seront remplacés.</div>`, "Tout réécrire", "Annuler")) startAI(S.books.filter(b => b.titre).map(b => b.isbn));
+    return;
+  }
+  startAI(null);
+};
 $("pg-cancel").onclick = () => api("/api/fetch/cancel");
 
 // ------------------------------------------------------------ aperçu
@@ -484,6 +560,7 @@ $("p-next").onclick = () => { page++; loadPreview(); };
 function openSettings(){
   const s = S.settings;
   $("s-key").value = s.google_key_set ? s.google_key_hint : ""; $("s-keyhint").textContent = s.google_key_set ? "Clé enregistrée. Laisse tel quel pour la garder." : "Pas encore de clé.";
+  $("s-ckey").value = s.claude_key_set ? s.claude_key_hint : ""; $("s-ckeyhint").textContent = s.claude_key_set ? "Clé enregistrée. Laisse tel quel pour la garder." : "Pas encore de clé : sans elle, les descriptions manquantes sont à écrire à la main.";
   $("s-out").value = s.out_dir || ""; $("s-cov").value = s.covers_dir || ""; $("s-max").value = s.resume_max || 420;
   show("m-set");
 }
@@ -494,7 +571,7 @@ $("s-browse2").onclick = async () => { const r = await api("/api/browse", {initi
 $("s-opencov").onclick = () => api("/api/open_folder", {path: $("s-cov").value, create: true});
 $("ms-ok").onclick = async () => {
   try {
-    const r = await api("/api/settings", {google_key: $("s-key").value, out_dir: $("s-out").value, covers_dir: $("s-cov").value, resume_max: +$("s-max").value || 420});
+    const r = await api("/api/settings", {google_key: $("s-key").value, claude_key: $("s-ckey").value, out_dir: $("s-out").value, covers_dir: $("s-cov").value, resume_max: +$("s-max").value || 420});
     S.settings = r.settings; hide("m-set"); renderNotes(); toast("✓ Réglages enregistrés");
   } catch (e) { toast(e.message); }
 };
@@ -532,7 +609,7 @@ $("b-gen").onclick = async () => {
 
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
-  for (const id of ["m-confirm", "m-gen", "m-set", "m-add"]) if (!$(id).classList.contains("hide")) { id === "m-confirm" ? $("c-cancel").click() : hide(id); return; }
+  for (const id of ["m-confirm", "m-gen", "m-set", "m-add", "m-prix"]) if (!$(id).classList.contains("hide")) { id === "m-confirm" ? $("c-cancel").click() : hide(id); return; }
 });
 window.addEventListener("pagehide", () => navigator.sendBeacon("/api/bye?t=" + TOKEN, "{}"));
 

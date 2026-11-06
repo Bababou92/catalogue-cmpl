@@ -62,3 +62,14 @@ def publisher_for(d, extra=None):
         if d[:n] in table:
             return table[d[:n]]
     return ""
+
+
+def to10(d13):
+    """ISBN-13 en 978… -> ISBN-10 (pour certains services de couvertures) ; '' sinon."""
+    d = clean(d13)
+    if len(d) != 13 or not d.startswith("978"):
+        return ""
+    core = d[3:12]
+    tot = sum((10 - i) * int(c) for i, c in enumerate(core))
+    chk = (11 - tot % 11) % 11
+    return core + ("X" if chk == 10 else str(chk))

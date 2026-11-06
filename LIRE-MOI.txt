@@ -7,7 +7,8 @@ Double-clic sur Catalogue-CMPL.exe : l'interface s'ouvre dans le navigateur. Pou
 
 En 4 etapes
 -----------
-1. Importer un fichier (bouton "Importer un fichier", ou le glisser sur la page) : Excel (.xlsx) ou CSV,
+1. Importer un fichier (bouton "Importer un fichier", ou le glisser sur la page) : export de panier Dilicom (.slk,
+   il donne les prix, l'editeur et la disponibilite), Excel (.xlsx) ou CSV,
    une ligne par livre : l'ISBN (avec ou sans tirets) et le prix public en euros. La collection est facultative.
    Le bouton "Telecharger le modele Excel" donne un fichier tout pret. On peut aussi coller des ISBN a la main.
 2. "Recuperer les infos" : le programme cherche titre, auteurs, resume, date, collection, editeur, pages et couverture.
@@ -19,6 +20,18 @@ Cle Google Books (une seule fois)
 ---------------------------------
 Sans cle, le programme ne trouve que la fiche technique (BnF). Avec une cle gratuite, il trouve aussi les resumes,
 les dates exactes et parfois les couvertures. Reglages > "Comment obtenir la cle" (5 minutes, gratuit).
+
+Descriptions ecrites par l'IA (facultatif)
+------------------------------------------
+Bouton "Ecrire les descriptions" : l'IA Claude redige un resume pour les livres qui n'en ont pas. Ils sont marques
+"a relire" (pastille orange) jusqu'a ce que tu cliques "Relu". Il faut une cle Claude : console.anthropic.com >
+Settings > Billing (acheter du credit, 5 $ suffisent) puis Settings > API Keys > Create Key ; la coller dans Reglages.
+Cout : quelques centimes par catalogue.
+
+Prix
+----
+Les prix viennent du fichier importe (Dilicom en particulier). S'il en manque : lien "Saisir les prix" en haut de la
+liste (tableau + prix par defaut).
 
 Couvertures
 -----------

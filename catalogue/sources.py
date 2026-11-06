@@ -73,7 +73,7 @@ def bnf_raw(isbn):
 
     return {"title": all_("title"), "creator": all_("creator"), "contributor": all_("contributor"),
             "publisher": all_("publisher"), "date": all_("date"), "format": all_("format"),
-            "description": all_("description"), "subject": all_("subject")}
+            "description": all_("description"), "subject": all_("subject"), "identifier": all_("identifier")}
 
 
 def fetch_raw(isbn, key, use_cache=True):
@@ -289,24 +289,61 @@ def save_cover_bytes(data, dest_dir, isbn, ext=None):
     return path
 
 
-def download_cover(isbn, raw):
-    """Essaie les adresses de couverture Google. Retourne (chemin, origine) ou ('', '')."""
+def _bnf_ark(raw):
+    for ident in ((raw or {}).get("bnf") or {}).get("identifier", []):
+        m = re.search(r"ark:/12148/[A-Za-z0-9]+", ident)
+        if m:
+            return m.group()
+    return ""
+
+
+def cover_candidates(isbn, raw):
+    """[(nom, adresse, vérifier)] par ordre de préférence."""
     g = ((raw or {}).get("google") or {}).get("volumeInfo") or {}
     links = g.get("imageLinks") or {}
-    cands = []
+    c = []
     for k in ("extraLarge", "large", "medium", "thumbnail", "smallThumbnail"):
         if links.get(k):
-            cands.append((links[k].replace("http://", "https://").replace("&edge=curl", ""), "google"))
+            c.append(("Google", links[k].replace("http://", "https://").replace("&edge=curl", ""), False))
             break
-    cands.append(("https://books.google.com/books/content?vid=ISBN%s&printsec=frontcover&img=1&zoom=1&source=gbs_api" % isbn,
-                  "google?"))
-    for url, origin in cands:
-        try:
-            data = http_get(url, timeout=20)
-            im = Image.open(io.BytesIO(data))
-            im.load()
-            if looks_like_cover(im):
-                return save_cover_bytes(data, store.cover_cache_dir(), isbn), origin
-        except Exception:
-            continue
-    return "", ""
+    ark = _bnf_ark(raw)
+    if ark:
+        c.append(("BnF", "https://catalogue.bnf.fr/couverture?&appName=NE&idArk=%s&couverture=1" % ark, True))
+    c.append(("Google (devinée)", "https://books.google.com/books/content?vid=ISBN%s&printsec=frontcover&img=1&zoom=1&source=gbs_api" % isbn, True))
+    c.append(("AbeBooks", "https://pictures.abebooks.com/isbn/%s-fr.jpg" % isbn, True))
+    i10 = isbnlib.to10(isbn)
+    if i10:
+        c.append(("Amazon", "https://images-na.ssl-images-amazon.com/images/P/%s.01.LZZZZZZZ.jpg" % i10, True))
+    c.append(("Open Library", "https://covers.openlibrary.org/b/isbn/%s-L.jpg?default=false" % isbn, True))
+    return c
+
+
+def _try_cover(url):
+    try:
+        data = http_get(url, timeout=10)
+        im = Image.open(io.BytesIO(data))
+        im.load()
+        return (data, "") if looks_like_cover(im) else (None, "image vide ou trop petite")
+    except urllib.error.HTTPError as e:
+        return None, f"erreur {e.code}"
+    except Exception as e:
+        return None, "pas de réponse" if "timed out" in str(e) or isinstance(e, OSError) else "image illisible"
+
+
+def download_cover(isbn, raw):
+    """Teste toutes les sources en parallèle. Retourne (chemin, origine, journal) ; origine finissant par « ? » = à vérifier."""
+    from concurrent.futures import ThreadPoolExecutor
+    cands = cover_candidates(isbn, raw)
+    with ThreadPoolExecutor(max_workers=len(cands) or 1) as ex:
+        res = list(ex.map(lambda c: _try_cover(c[1]), cands))
+    log, chosen = [], None
+    for (name, url, verif), (data, why) in zip(cands, res):
+        log.append(f"{name} : {'✓' if data else why}")
+        if data and chosen is None:
+            chosen = (data, name, verif)
+    if not chosen:
+        return "", "", log
+    data, name, verif = chosen
+    path = save_cover_bytes(data, store.cover_cache_dir(), isbn)
+    origin = ("google" if name == "Google" else name.split(" (")[0].lower().replace(" ", "")) + ("?" if verif else "")
+    return path, origin, log

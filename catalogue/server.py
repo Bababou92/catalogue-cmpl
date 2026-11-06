@@ -57,6 +57,10 @@ def public_state():
 
 def public_settings(s):
     out = dict(s)
+    ck = out.pop("claude_key", "")
+    out["claude_key_set"] = bool(ck)
+    out["claude_key_hint"] = ("•••• " + ck[-4:]) if len(ck) >= 8 else ("••••" if ck else "")
+    out.pop("ai_model", None)
     k = out.pop("google_key", "")
     out["google_key_set"] = bool(k)
     out["google_key_hint"] = ("•••• " + k[-4:]) if len(k) >= 8 else ("••••" if k else "")
@@ -80,11 +84,8 @@ def add_rows(rows, replace=False):
                 CAT["books"].append(catalog.from_import_row(r))
                 added += 1
             else:
-                for k, v in r.items():
-                    if k != "isbn":
-                        b[k] = v
-                        if k != "prix" and k not in b["edited"]:
-                            b["edited"].append(k)
+                catalog.apply_row(b, r)
+                catalog.use_dilicom_fallback(b) if b.get("fetched") else None
         save()
     return added
 
@@ -104,7 +105,7 @@ def start_fetch(isbns, force=False):
             b = find(i)
             return dict(b, edited=list(b["edited"])) if b else None
 
-    def set_book(nb):
+    def set_book(nb, ia=False):
         with LOCK:
             b = find(nb["isbn"])
             if b is not None:
@@ -115,6 +116,33 @@ def start_fetch(isbns, force=False):
                 save()
 
     threading.Thread(target=catalog.run_fetch, args=(job, get_book, set_book, force), daemon=True, name="recuperation").start()
+    return job
+
+
+def start_ai(isbns):
+    with LOCK:
+        j = JOB["job"]
+        if j and j.running:
+            return j
+        job = catalog.FetchJob(isbns, store.load_settings())
+        job.kind = "ai"
+        JOB["job"] = job
+
+    def get_book(i):
+        with LOCK:
+            b = find(i)
+            return dict(b, edited=list(b["edited"])) if b else None
+
+    def set_book(nb, ia=False):
+        with LOCK:
+            b = find(nb["isbn"])
+            if b is not None:
+                b["resume"], b["resume_ia"] = nb["resume"], True
+                if "resume" not in b["edited"]:
+                    b["edited"].append("resume")
+                save()
+
+    threading.Thread(target=catalog.run_ai, args=(job, get_book, set_book), daemon=True, name="ia").start()
     return job
 
 
@@ -231,9 +259,13 @@ def update_book(isbn, fields):
         b = find(isbn)
         if b is None:
             raise ValueError("livre introuvable")
+        if fields.get("resume_ia") is False:
+            b["resume_ia"] = False
         for k, v in fields.items():
             if k not in EDITABLE:
                 continue
+            if k == "resume" and v != b.get("resume"):
+                b["resume_ia"] = False
             if k == "auteurs":
                 v = [x.strip() for x in (v if isinstance(v, list) else str(v).split("\n")) if x.strip()]
             elif k == "prix":
@@ -245,6 +277,21 @@ def update_book(isbn, fields):
                 b["edited"].append(k)
         save()
         return catalog.public(b)
+
+
+def set_prices(prices):
+    with LOCK:
+        n = 0
+        for isbn, v in (prices or {}).items():
+            b = find(isbn)
+            if b is None:
+                continue
+            p = importer.parse_price(v)
+            if p is not None or v in ("", None):
+                b["prix"] = p
+                n += 1
+        save()
+        return n
 
 
 def set_cover(isbn, data):
@@ -371,6 +418,21 @@ class Handler(BaseHTTPRequestHandler):
                         todo = [x["isbn"] for x in CAT["books"] if not x.get("fetched")]
                 job = start_fetch(todo, force=bool(b.get("force")))
                 return self._send(200, {"total": len(job.isbns), "running": job.running})
+            if path == "/api/ai":
+                s = store.load_settings()
+                if not s.get("claude_key"):
+                    return self._send(400, {"error": "Pas de clé Claude : ajoute-la dans les Réglages."})
+                with LOCK:
+                    if b.get("isbns"):
+                        todo = [i for i in b["isbns"] if find(i)]
+                    elif b.get("all"):
+                        todo = [x["isbn"] for x in CAT["books"] if x.get("titre")]
+                    else:
+                        todo = [x["isbn"] for x in CAT["books"] if x.get("titre") and not x.get("resume")]
+                if not todo:
+                    return self._send(200, {"total": 0, "running": False})
+                job = start_ai(todo)
+                return self._send(200, {"total": len(job.isbns), "running": job.running})
             if path == "/api/fetch/status":
                 j = JOB["job"]
                 if not j:
@@ -378,11 +440,15 @@ class Handler(BaseHTTPRequestHandler):
                 since = int(b.get("since", 0))
                 with LOCK:
                     upd = [catalog.public(find(i)) for i in j.updated[since:] if find(i)]
-                return self._send(200, {"running": j.running, "done": j.done, "total": len(j.isbns), "updated": upd, "next": len(j.updated)})
+                return self._send(200, {"running": j.running, "done": j.done, "total": len(j.isbns), "updated": upd,
+                                        "next": len(j.updated), "kind": j.kind, "errors": list(j.errors)})
             if path == "/api/fetch/cancel":
                 if JOB["job"]:
                     JOB["job"].cancel = True
                 return self._send(200, {})
+            if path == "/api/prices":
+                n = set_prices(b.get("prices") or {})
+                return self._send(200, {"n": n, "state": public_state()})
             if path == "/api/book/update":
                 return self._send(200, {"book": update_book(b["isbn"], b["fields"])})
             if path == "/api/book/remove":
@@ -423,8 +489,8 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/cover/confirm":
                 with LOCK:
                     x = find(b["isbn"])
-                    if x and x.get("cover_origin") == "google?":
-                        x["cover_origin"] = "google"
+                    if x and (x.get("cover_origin") or "").endswith("?"):
+                        x["cover_origin"] = x["cover_origin"][:-1]
                         save()
                     return self._send(200, {"book": catalog.public(x)})
             if path == "/api/preview":
@@ -439,6 +505,10 @@ class Handler(BaseHTTPRequestHandler):
                     patch["google_key"] = str(patch["google_key"] or "").strip()
                     if patch["google_key"].startswith("••"):
                         patch.pop("google_key")
+                if "claude_key" in patch:
+                    patch["claude_key"] = str(patch["claude_key"] or "").strip()
+                    if patch["claude_key"].startswith("••"):
+                        patch.pop("claude_key")
                 store.update_settings(patch)
                 return self._send(200, {"settings": public_settings(store.load_settings())})
             if path == "/api/browse":
