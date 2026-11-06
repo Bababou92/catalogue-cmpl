@@ -68,3 +68,5 @@ Editeur, Prix France (Euros), Prix CMPL (Ariary). Prix Ariary = prix France x ta
   affiche dans le tableau (par defaut : le titre avant les deux-points).
 - PDF : le tableau suit les pages de livres. PowerPoint : fichier separe "... - Tableau des prix.pptx" (page en paysage).
 - Pour ne pas l'ajouter : decocher dans Reglages ou dans "Generer".
+
+Pages fixes (v0.6.0) : page de garde, conditions de vente, demande de facture proforma et 4e de couverture. Clique sur la page de garde dans l'apercu pour changer le titre, le mois, les accroches ou l'image. Le texte des conditions se modifie dans Reglages. Les pages se cochent dans Reglages ou dans la fenetre Generer. Dans le PDF tout est a la suite ; en PowerPoint, le tableau des prix et le proforma (paysage) sont dans un fichier a part.

@@ -16,7 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from PIL import Image
 
-from . import catalog, prix as prixlib, errlog, importer, isbn as isbnlib, pages as pagelib, render_pdf, render_pptx, render_png, sources, store, updater, version
+from . import fixed as fixedlib, catalog, prix as prixlib, errlog, importer, isbn as isbnlib, pages as pagelib, render_pdf, render_pptx, render_png, sources, store, updater, version
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 APP_ID = "cmpl-catalogue"
@@ -41,7 +41,7 @@ def load():
 
 REV = {"n": 0}                       # change à chaque modification : invalide la mise en page et les images d'aperçu
 LAY_LOCK = threading.Lock()
-LAY = {"rev": -1, "bp": [], "pp": []}
+LAY = {"rev": -1, "all": ([], [], [], [])}
 PNG_LOCK = threading.Lock()
 PNGS = OrderedDict()
 
@@ -70,6 +70,7 @@ def public_settings(s):
     out["claude_key_set"] = bool(ck)
     out["claude_key_hint"] = ("•••• " + ck[-4:]) if len(ck) >= 8 else ("••••" if ck else "")
     out.pop("ai_model", None)
+    out["conditions_defaut"] = fixedlib.CONDITIONS
     k = out.pop("google_key", "")
     out["google_key_set"] = bool(k)
     out["google_key_hint"] = ("•••• " + k[-4:]) if len(k) >= 8 else ("••••" if k else "")
@@ -156,8 +157,18 @@ def start_ai(isbns):
 
 
 # ------------------------------------------------------------------ aperçu et génération
-def build_pages(with_prices=None):
-    """(pages de livres, pages du tableau des prix)."""
+def garde_image():
+    p = os.path.join(store.data_dir(), "garde.jpg")
+    try:
+        im = Image.open(p)
+        im.load()
+        return im.convert("RGB")
+    except Exception:
+        return None
+
+
+def build_all(with_prices=None):
+    """(page de garde, pages de livres, pages du tableau, pages finales) : les pages décochées sont absentes."""
     with LOCK:
         books = [dict(b) for b in CAT["books"]]
         meta = dict(CAT["meta"])
@@ -167,40 +178,57 @@ def build_pages(with_prices=None):
     if with_prices is None:
         with_prices = bool(s.get("inclure_prix", True))
     price_pages = prixlib.build_pages(books, meta.get("selection") or name, meta.get("indicatif", ""), s.get("taux") or 3366, s.get("arrondi") or 1) if (with_prices and books) else []
-    return book_pages, price_pages
+    front = [fixedlib.cover_page(meta, garde_image(), prixlib.mois_annee())] if s.get("p_garde", True) else []
+    post = []
+    if s.get("p_cond", True):
+        post.append(fixedlib.conditions_page(s.get("conditions_texte") or ""))
+    if s.get("p_proforma", True):
+        post.append(fixedlib.proforma_page())
+    if s.get("p_dos", True):
+        post.append(fixedlib.back_page())
+    return front, book_pages, price_pages, post
+
+
+def build_pages(with_prices=None):
+    """(pages de livres, pages du tableau des prix)."""
+    _, bp, pp, _ = build_all(with_prices)
+    return bp, pp
 
 
 def layout_pages():
-    """(version, pages de livres, pages du tableau) : recalculé seulement si le catalogue a changé."""
+    """(version, garde, livres, tableau, fin) : recalculé seulement si le catalogue a changé."""
     with LAY_LOCK:
         rev = REV["n"]
         if LAY["rev"] != rev:
-            bp, pp = build_pages()
-            LAY.update(rev=rev, bp=bp, pp=pp)
+            LAY.update(rev=rev, all=build_all())
             with PNG_LOCK:
                 PNGS.clear()
-        return LAY["rev"], LAY["bp"], LAY["pp"]
+        return (LAY["rev"],) + tuple(LAY["all"])
+
+
+def _all_pages():
+    rev, fr, bp, pp, post = layout_pages()
+    labels = [p.name for p in fr] + [f"Page {i + 1}" for i in range(len(bp))] + \
+             [f"Tableau des prix {i + 1}/{len(pp)}" for i in range(len(pp))] + [p.name for p in post]
+    return rev, fr, bp, pp, post, fr + bp + pp + post, labels
 
 
 def preview(page=0, dpi=100):
-    rev, bp, pp = layout_pages()
-    pgs = bp + pp
+    rev, fr, bp, pp, post, pgs, labels = _all_pages()
     page = max(0, min(int(page), len(pgs) - 1))
     pg = pgs[page]
-    labels = [f"Page {i + 1}" for i in range(len(bp))] + [f"Tableau des prix {i + 1}/{len(pp)}" for i in range(len(pp))]
     k = dpi / 25.4
-    hot = [dict(h, x=h["x"] * k, y=h["y"] * k, w=h["w"] * k, h=h["h"] * k) for h in pg.hot]
+    hot = [dict(h, x=h["x"] * k, y=h["y"] * k, w=h["w"] * k, h=h["h"] * k) for h in getattr(pg, "hot", [])]
     where = {}
     for i, p in enumerate(bp):
         for h in p.hot:
-            where.setdefault(h["isbn"], i)
-    return {"count": len(pgs), "page": page, "label": labels[page], "rev": rev, "table_start": len(bp) if pp else None,
+            where.setdefault(h["isbn"], len(fr) + i)
+    return {"count": len(pgs), "page": page, "label": labels[page], "rev": rev, "table_start": len(fr) + len(bp) if pp else None,
             "w": round(pg.w * k), "h": round(pg.h * k), "hot": hot, "where": where}
 
 
 def page_png(n, dpi=100):
-    rev, bp, pp = layout_pages()
-    pgs = bp + pp
+    rev, fr, bp, pp, post, pgs, labels = _all_pages()
     n = max(0, min(int(n), len(pgs) - 1))
     key = (rev, n, dpi)
     with PNG_LOCK:
@@ -224,21 +252,23 @@ def generate(out_dir, name, want_pdf=True, want_pptx=False):
     name = safe_name(name or CAT["meta"].get("titre") or "Catalogue")
     folder = os.path.join(os.path.abspath(os.path.expanduser(out_dir)), name)
     os.makedirs(folder, exist_ok=True)
-    bp, pp = build_pages()
+    fr, bp, pp, post = build_all()
+    portrait = [p for p in post if p.w < p.h]
+    landscape = pp + [p for p in post if p.w >= p.h]
     files = []
     if want_pdf:
         p = os.path.join(folder, name + ".pdf")
-        render_pdf.build_pdf(bp + pp, p, title=name, author="CMPL")
+        render_pdf.build_pdf(fr + bp + pp + post, p, title=name, author="CMPL")
         files.append(p)
     if want_pptx:
         p = os.path.join(folder, name + ".pptx")
-        render_pptx.build_pptx(bp, p, title=name)
+        render_pptx.build_pptx(fr + bp + portrait, p, title=name)
         files.append(p)
-        if pp:                                   # le tableau est en paysage : un fichier PowerPoint à part
-            p = os.path.join(folder, name + " - Tableau des prix.pptx")
-            render_pptx.build_pptx(pp, p, title=name + " - Tableau des prix")
+        if landscape:                            # tableau et proforma sont en paysage : un fichier PowerPoint à part
+            p = os.path.join(folder, name + (" - Tableau des prix.pptx" if pp else " - Proforma.pptx"))
+            render_pptx.build_pptx(landscape, p, title=name + (" - Tableau des prix" if pp else " - Proforma"))
             files.append(p)
-    return {"folder": folder, "files": files, "pages": len(bp) + len(pp), "tableau": len(pp)}
+    return {"folder": folder, "files": files, "pages": len(fr) + len(bp) + len(pp) + len(post), "tableau": len(pp)}
 
 
 # ------------------------------------------------------------------ utilitaires système
@@ -538,6 +568,10 @@ class Handler(BaseHTTPRequestHandler):
                 with LOCK:
                     CAT["books"] = []
                     CAT["meta"] = {"titre": "", "date": ""}
+                    try:
+                        os.remove(os.path.join(store.data_dir(), "garde.jpg"))
+                    except OSError:
+                        pass
                     save()
                 if b.get("cache"):
                     store.clear_cache()
@@ -567,7 +601,25 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if path == "/api/meta":
                 with LOCK:
-                    CAT["meta"].update({k: str(v) for k, v in b.items() if k in ("titre", "date", "indicatif", "selection")})
+                    CAT["meta"].update({k: str(v) for k, v in b.items() if k in ("titre", "date", "indicatif", "selection", "garde_titre", "garde_date", "garde_acc")})
+                    save()
+                return self._send(200, {})
+            if path == "/api/garde/image":
+                gp = os.path.join(store.data_dir(), "garde.jpg")
+                if not b.get("data"):
+                    if os.path.exists(gp):
+                        os.remove(gp)
+                else:
+                    im = Image.open(io.BytesIO(base64.b64decode(b["data"])))
+                    im.load()
+                    if im.mode in ("RGBA", "LA", "P"):
+                        bg = Image.new("RGB", im.size, "#FFFFFF")
+                        bg.paste(im.convert("RGBA"), mask=im.convert("RGBA").split()[3])
+                        im = bg
+                    im = im.convert("RGB")
+                    im.thumbnail((1600, 1600))
+                    im.save(gp, "JPEG", quality=90)
+                with LOCK:
                     save()
                 return self._send(200, {})
             if path == "/api/cover/upload":
@@ -618,8 +670,13 @@ class Handler(BaseHTTPRequestHandler):
                     patch["taux"] = int(t) if t == int(t) else t
                 if "arrondi" in patch:
                     patch["arrondi"] = int(patch["arrondi"]) if str(patch["arrondi"]).isdigit() and int(patch["arrondi"]) in (1, 5, 10, 50, 100, 500, 1000) else 1
-                if "inclure_prix" in patch:
-                    patch["inclure_prix"] = bool(patch["inclure_prix"])
+                for k in ("inclure_prix", "p_garde", "p_cond", "p_proforma", "p_dos"):
+                    if k in patch:
+                        patch[k] = bool(patch[k])
+                if "conditions_texte" in patch:
+                    patch["conditions_texte"] = str(patch["conditions_texte"] or "").strip()
+                    if patch["conditions_texte"] == fixedlib.CONDITIONS.strip():
+                        patch["conditions_texte"] = ""
                 if "claude_key" in patch:
                     patch["claude_key"] = str(patch["claude_key"] or "").strip()
                     if patch["claude_key"].startswith("••"):

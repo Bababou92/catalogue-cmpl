@@ -151,6 +151,7 @@
   <button id="b-gen" class="hgen" disabled>Générer le catalogue</button>
   <input type="file" id="f-import" accept=".xlsx,.csv,.txt,.tsv,.slk" class="hide">
   <input type="file" id="f-cover" accept="image/*" class="hide">
+  <input type="file" id="f-garde" accept="image/*" class="hide">
 </header>
 <div class="upd hide" id="upd"></div>
 <main id="main">
@@ -210,6 +211,11 @@
     <label>Taux Ariary <small>— 1 € = … Ar, pour le tableau des prix</small></label>
     <div class="row2"><input type="text" id="s-taux" style="max-width:140px"><select id="s-arr" style="max-width:220px"><option value="1">arrondi : à l'Ariary</option><option value="10">arrondi : à 10 Ar</option><option value="100">arrondi : à 100 Ar</option><option value="500">arrondi : à 500 Ar</option></select></div>
     <label class="chk"><input type="checkbox" id="s-incl"> Ajouter le tableau des prix à la fin du catalogue</label>
+    <label>Pages du catalogue <small>— à cocher selon ce que tu veux dans le fichier</small></label>
+    <div class="row2" style="flex-wrap:wrap"><label class="chk" style="margin:0 14px 0 0"><input type="checkbox" id="s-pg"> Page de garde</label><label class="chk" style="margin:0 14px 0 0"><input type="checkbox" id="s-pc"> Conditions de vente</label><label class="chk" style="margin:0 14px 0 0"><input type="checkbox" id="s-pp"> Demande de proforma</label><label class="chk" style="margin:0"><input type="checkbox" id="s-pd"> 4e de couverture</label></div>
+    <label>Texte des conditions de vente</label>
+    <textarea id="s-cond" rows="7"></textarea>
+    <div class="maint"><button class="btn small" id="s-condreset">Remettre le texte d'origine</button></div>
     <label>Maintenance</label>
     <div class="maint"><button class="btn small" id="s-upd">Vérifier les mises à jour</button><button class="btn small" id="s-refetch">Tout rechercher à nouveau</button><button class="btn small" id="s-okcov">Valider toutes les couvertures</button></div>
     <label>Dossier où créer les catalogues</label>
@@ -456,6 +462,10 @@ async function uploadCover(isbn, file){
   try { const r = await api("/api/cover/upload", {isbn, data: await fileB64(file)}); bump(r.book); toast("✓ Couverture ajoutée"); }
   catch (e) { toast(e.message); }
 }
+$("f-garde").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  try { await api("/api/garde/image", {data: await fileB64(f)}); loadPreview(); toast("✓ Image de la page de garde changée"); } catch (er) { toast(er.message); }
+};
 $("f-cover").onchange = e => { uploadCover(coverTarget, e.target.files[0]); };
 document.addEventListener("paste", e => {
   if (!sel || /INPUT|TEXTAREA/.test((e.target.tagName || ""))) { if (!(e.clipboardData && [...e.clipboardData.files].some(f => f.type.startsWith("image/")))) return; }
@@ -598,13 +608,14 @@ async function loadPreview(){
     if (document.activeElement !== $("p-num")) $("p-num").value = r.page + 1;
     $("p-cnt").textContent = "sur " + r.count;
     $("p-first").disabled = $("p-prev").disabled = r.page === 0; $("p-next").disabled = $("p-last").disabled = r.page >= r.count - 1;
-    $("p-tab").classList.toggle("hide", r.table_start == null); $("p-tab").disabled = r.table_start == null || r.page >= r.table_start;
+    $("p-tab").classList.toggle("hide", r.table_start == null); $("p-tab").disabled = r.table_start == null || r.page === r.table_start;
     $("pwrap").dataset.k = r.w;
     const box = $("phot"); box.innerHTML = "";
     r.hot.forEach(h => {
-      const d = document.createElement("div"); d.className = "hs" + (h.field ? " cell" : ""); d.dataset.isbn = h.isbn;
+      const d = document.createElement("div"); d.className = "hs" + (h.field ? " cell" : ""); d.dataset.isbn = h.isbn || "";
+      if (h.meta) d.dataset.meta = "1";
       d.dataset.x = h.x; d.dataset.y = h.y; d.dataset.w = h.w; d.dataset.h = h.h;
-      if (h.field) { d.dataset.field = h.field; d.dataset.v = h.v || ""; d.dataset.auto = h.auto || ""; d.title = h.field === "fiche" ? "Ouvrir la fiche du livre" : "Cliquer pour modifier"; }
+      if (h.field) { d.dataset.field = h.field; d.dataset.v = h.v || ""; d.dataset.auto = h.auto || ""; d.title = h.field === "fiche" ? "Ouvrir la fiche du livre" : h.field === "garde_image" ? "Cliquer pour changer l'image" : "Cliquer pour modifier"; }
       else d.title = (byIsbn(h.isbn) || {}).titre || h.isbn;
       box.appendChild(d);
     });
@@ -647,17 +658,22 @@ const CELLS = {
   editeur: ["Éditeur", "Modifie aussi la notice du livre.", "text"],
   prix: ["Prix France (€)", "Prix public. Le prix en Ariary est recalculé.", "text"],
   prix_ar: ["Prix en Ariary", "Valeur forcée pour ce livre (ignore le taux).", "text"],
+  garde_titre: ["Titre de la page de garde", "Entrée = retour à la ligne (Ctrl+Entrée pour valider).", "area"],
+  garde_date: ["Mois et année", "Affiché dans le bandeau « Les sélections CMPL – … ».", "text"],
+  garde_acc: ["Lignes d'accroche", "Une ligne par accroche.", "area"],
 };
 let cellEl = null;
 function closeCell(){ $("cellpop").classList.add("hide"); document.querySelectorAll("#phot .hs.edit").forEach(d => d.classList.remove("edit")); cellEl = null; }
 function openCell(h){
-  const f = h.dataset.field, isbn = h.dataset.isbn, b = byIsbn(isbn);
+  const f = h.dataset.field, isbn = h.dataset.isbn, b = byIsbn(isbn), meta = h.dataset.meta === "1";
+  if (f === "conditions") { closeCell(); openSettings(); setTimeout(() => $("s-cond").focus(), 50); return; }
+  if (f === "garde_image") { closeCell(); $("f-garde").click(); return; }
   if (f === "fiche") { closeCell(); selectBook(isbn, true, true); return; }
   const c = CELLS[f]; if (!c) return;
   closeCell(); cellEl = h; h.classList.add("edit");
   const pop = $("cellpop");
   const field = c[2] === "area" ? `<textarea id="cp-in" rows="${Math.max(3, Math.min(6, (h.dataset.v.match(/\n/g) || []).length + 2))}"></textarea>` : `<input id="cp-in" type="text">`;
-  pop.innerHTML = `<b>${esc(c[0])}</b><div class="hint">${esc(b ? b.titre || isbn : isbn)}</div>` + field +
+  pop.innerHTML = `<b>${esc(c[0])}</b>${meta ? "" : `<div class="hint">${esc(b ? b.titre || isbn : isbn)}</div>`}` + field +
     `<div class="hint" style="margin-top:4px">${esc(c[1])}${f === "prix_ar" && h.dataset.auto ? " Calcul automatique : " + esc(h.dataset.auto) + " Ar." : ""}</div>` +
     `<div class="row"><button class="btn small primary" id="cp-ok">OK</button><button class="btn small" id="cp-cancel">Annuler</button>` +
     (f === "prix_ar" && h.dataset.v ? `<button class="btn small" id="cp-auto">Revenir au calcul automatique</button>` : "") +
@@ -671,12 +687,14 @@ function openCell(h){
   inp.focus(); inp.select();
   const save = async (val) => {
     try {
+      if (meta) { await api("/api/meta", {[f]: val}); S.meta[f] = val; closeCell(); loadPreview(); return; }
       const rr = await api("/api/book/update", {isbn, fields: {[f]: val}});
       mergeBook(rr.book); replaceCard(byIsbn(isbn)); renderNotes(); renderAllLight(); closeCell(); loadPreview();
     } catch (er) { toast(er.message); }
   };
   $("cp-ok").onclick = () => save(inp.value);
   $("cp-cancel").onclick = closeCell;
+  if (meta) { $("cp-fiche").remove(); } else
   $("cp-fiche").onclick = () => { closeCell(); selectBook(isbn, true, true); };
   if ($("cp-auto")) $("cp-auto").onclick = () => save("");
   inp.onkeydown = e => { if (e.key === "Escape") { closeCell(); e.stopPropagation(); } else if (e.key === "Enter" && (c[2] !== "area" || e.ctrlKey)) { e.preventDefault(); save(inp.value); } };
@@ -690,11 +708,14 @@ function openSettings(){
   $("s-key").value = s.google_key_set ? s.google_key_hint : ""; $("s-keyhint").textContent = s.google_key_set ? "Clé enregistrée. Laisse tel quel pour la garder." : "Pas encore de clé.";
   $("s-ckey").value = s.claude_key_set ? s.claude_key_hint : ""; $("s-ckeyhint").textContent = s.claude_key_set ? "Clé enregistrée. Laisse tel quel pour la garder." : "Pas encore de clé : sans elle, les descriptions manquantes sont à écrire à la main.";
   $("s-taux").value = s.taux || 3366; $("s-arr").value = String(s.arrondi || 1); $("s-incl").checked = s.inclure_prix !== false;
+  $("s-pg").checked = s.p_garde !== false; $("s-pc").checked = s.p_cond !== false; $("s-pp").checked = s.p_proforma !== false; $("s-pd").checked = s.p_dos !== false;
+  $("s-cond").value = s.conditions_texte || s.conditions_defaut || "";
   $("s-out").value = s.out_dir || ""; $("s-cov").value = s.covers_dir || ""; $("s-max").value = s.resume_max || 420;
   show("m-set");
 }
 $("b-set").onclick = openSettings;
 $("ms-x").onclick = $("ms-cancel").onclick = () => hide("m-set");
+$("s-condreset").onclick = () => { $("s-cond").value = S.settings.conditions_defaut || ""; };
 $("s-browse1").onclick = async () => { const r = await api("/api/browse", {initial: $("s-out").value}); if (r.path) $("s-out").value = r.path; };
 $("s-browse2").onclick = async () => { const r = await api("/api/browse", {initial: $("s-cov").value}); if (r.path) $("s-cov").value = r.path; };
 $("s-opencov").onclick = () => api("/api/open_folder", {path: $("s-cov").value, create: true});
@@ -711,7 +732,7 @@ async function confirmAllCovers(){
 }
 $("ms-ok").onclick = async () => {
   try {
-    const r = await api("/api/settings", {google_key: $("s-key").value, claude_key: $("s-ckey").value, taux: $("s-taux").value, arrondi: +$("s-arr").value, inclure_prix: $("s-incl").checked, out_dir: $("s-out").value, covers_dir: $("s-cov").value, resume_max: +$("s-max").value || 420});
+    const r = await api("/api/settings", {google_key: $("s-key").value, claude_key: $("s-ckey").value, taux: $("s-taux").value, arrondi: +$("s-arr").value, inclure_prix: $("s-incl").checked, p_garde: $("s-pg").checked, p_cond: $("s-pc").checked, p_proforma: $("s-pp").checked, p_dos: $("s-pd").checked, conditions_texte: $("s-cond").value, out_dir: $("s-out").value, covers_dir: $("s-cov").value, resume_max: +$("s-max").value || 420});
     S.settings = r.settings; hide("m-set"); renderNotes(); schedulePreview(); toast("✓ Réglages enregistrés");
   } catch (e) { toast(e.message); }
 };
@@ -730,6 +751,8 @@ $("b-gen").onclick = async () => {
     <div class="grid3"><div><label>Taux <small>(1 € = … Ar)</small></label><input type="text" id="g-taux" value="${esc(S.settings.taux || 3366)}"></div>
       <div><label>Prix indicatifs</label><input type="text" id="g-ind" value="${esc(S.meta.indicatif || monthYear())}"></div>
       <div><label>Titre du tableau</label><input type="text" id="g-sel" value="${esc(S.meta.selection || S.meta.titre || "Catalogue CMPL")}"></div></div>
+    <label>Pages à inclure</label>
+    <div class="row2" style="flex-wrap:wrap"><label class="chk" style="margin:0 14px 0 0"><input type="checkbox" id="g-pg" ${S.settings.p_garde !== false ? "checked" : ""}> Page de garde</label><label class="chk" style="margin:0 14px 0 0"><input type="checkbox" id="g-pc" ${S.settings.p_cond !== false ? "checked" : ""}> Conditions de vente</label><label class="chk" style="margin:0 14px 0 0"><input type="checkbox" id="g-pp" ${S.settings.p_proforma !== false ? "checked" : ""}> Demande de proforma</label><label class="chk" style="margin:0"><input type="checkbox" id="g-pd" ${S.settings.p_dos !== false ? "checked" : ""}> 4e de couverture</label></div>
     <label>Formats</label><label class="chk"><input type="checkbox" id="g-pdf" checked> PDF (à envoyer ou imprimer)</label>
     <label class="chk"><input type="checkbox" id="g-pptx"> PowerPoint modifiable (.pptx)</label>
     <div class="hint">Dossier : <code class="path">${esc(S.settings.out_dir || "")}</code></div>`;
@@ -743,7 +766,7 @@ $("b-gen").onclick = async () => {
     try {
       const name = $("g-name").value;
       await api("/api/meta", {titre: name, indicatif: $("g-ind").value, selection: $("g-sel").value}); S.meta.titre = name; S.meta.indicatif = $("g-ind").value; S.meta.selection = $("g-sel").value;
-      const rs = await api("/api/settings", {taux: $("g-taux").value, inclure_prix: $("g-incl").checked}); S.settings = rs.settings;
+      const rs = await api("/api/settings", {taux: $("g-taux").value, inclure_prix: $("g-incl").checked, p_garde: $("g-pg").checked, p_cond: $("g-pc").checked, p_proforma: $("g-pp").checked, p_dos: $("g-pd").checked}); S.settings = rs.settings;
       const r = await api("/api/generate", {pdf, pptx, name});
       $("g-title").textContent = "✓ Catalogue créé";
       $("g-body").innerHTML = `<div class="hint" style="margin:0">${r.pages} page${r.pages > 1 ? "s" : ""} dans le dossier</div><code class="path">${esc(r.folder)}</code><ul class="problems" style="color:var(--muted)">${r.files.map(f => `<li>${esc(f.split(/[\\/]/).pop())}</li>`).join("")}</ul>`;
