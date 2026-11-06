@@ -162,3 +162,22 @@ for opts in ({}, {"p_garde": False}, {"p_dos": False, "p_cond": False}, {"p_mult
     else:
         assert not any(p.name == "Page blanche" for p in allp)
 print("OK pages fixes")
+
+# annuler / bibliotheque / sauvegardes / prix modifies / excel
+import copy as _copy, time as _time
+from catalogue import libs as _libs
+_srv.load()
+_b = catalog.new_book("9782100870165"); _b.update(titre="Analyse", auteurs=["A, B"], resume="x" * 50, date="03/06/2024", editeur="Dunod", prix=24.0, fetched=True)
+_srv.CAT["books"] = [_b]; _srv.save(); _time.sleep(1.3)
+_srv.CAT["books"][0]["titre"] = "Modifie"; _srv.save()
+_srv.undo_redo(-1); assert _srv.CAT["books"][0]["titre"] == "Analyse"
+_srv.undo_redo(1); assert _srv.CAT["books"][0]["titre"] == "Modifie"
+_cid = _libs.save_catalogue(_srv.CAT, "Nov"); _d = _libs.duplicate_catalogue(_cid)
+assert {c["nom"] for c in _libs.list_catalogues()} == {"Nov", "Nov (copie)"}
+assert "indicatif" not in _libs.load_catalogue(_d)["meta"]
+assert _libs.backup(_srv.CAT, "test") and _libs.backup(_srv.CAT, "test") is None
+_added, _chg = _srv.add_rows([{"isbn": "9782100870165", "prix": 26.0}]); assert _added == 0 and _chg[0]["ancien"] == 24.0
+_o = tempfile.mkdtemp(); _r = _srv.generate(_o, "T", True, True, True); assert len(_r["files"]) == 3
+import openpyxl as _ox; _ws = _ox.load_workbook(_r["files"][2]).active; assert _ws.cell(6, 7).value == 26.0
+assert _srv.check()["pages"] % 4 == 0
+print("OK annuler/bibliotheque")

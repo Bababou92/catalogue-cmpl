@@ -70,3 +70,6 @@ Editeur, Prix France (Euros), Prix CMPL (Ariary). Prix Ariary = prix France x ta
 - Pour ne pas l'ajouter : decocher dans Reglages ou dans "Generer".
 
 Pages fixes (v0.6.0) : page de garde, conditions de vente, demande de facture proforma et 4e de couverture. Clique sur la page de garde dans l'apercu pour changer le titre, le mois, les accroches ou l'image. Le texte des conditions se modifie dans Reglages. Les pages se cochent dans Reglages ou dans la fenetre Generer. Toutes les pages sont verticales. Le nombre de pages est complete a un multiple de 4 (impression en folio) avec des pages blanches avant la 4e de couverture.
+
+Catalogues (v0.8.0) : le bouton Catalogues enregistre le catalogue sous un nom, le rouvre, et permet de "Repartir de celui-ci" pour le suivant : on garde les livres, resumes et couvertures, puis on importe le nouveau panier Dilicom (les prix modifies sont signales). ↶ ↷ (Ctrl+Z / Ctrl+Y) annulent et retablissent. Des sauvegardes automatiques (10 dernieres) sont dans le meme menu. Avant de generer, une fenetre de controle liste ce qui manque.
+

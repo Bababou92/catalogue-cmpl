@@ -1,5 +1,6 @@
 """Petit serveur local : l'interface s'ouvre dans le navigateur, tout reste sur l'ordinateur."""
 import base64
+import copy
 from collections import OrderedDict
 import io
 import json
@@ -16,7 +17,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from PIL import Image
 
-from . import fixed as fixedlib, catalog, prix as prixlib, errlog, importer, isbn as isbnlib, pages as pagelib, render_pdf, render_pptx, render_png, sources, store, updater, version
+from . import fixed as fixedlib, catalog, prix as prixlib, errlog, importer, isbn as isbnlib, pages as pagelib, libs, render_pdf, render_pptx, render_png, sources, store, updater, version
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 APP_ID = "cmpl-catalogue"
@@ -34,9 +35,8 @@ def load():
     CAT = store.load_catalogue()
     CAT.setdefault("meta", {"titre": "", "date": ""})
     CAT.setdefault("books", [])
-    for b in CAT["books"]:                       # rétablit les champs ajoutés dans des versions plus récentes
-        for k, v in catalog.new_book(b.get("isbn", "")).items():
-            b.setdefault(k, v)
+    _normalize()                                 # rétablit les champs ajoutés dans des versions plus récentes
+    HIST.update(stack=[_snap()], idx=0, t=0.0, jobstep=False)
 
 
 REV = {"n": 0}                       # change à chaque modification : invalide la mise en page et les images d'aperçu
@@ -46,10 +46,100 @@ PNG_LOCK = threading.Lock()
 PNGS = OrderedDict()
 
 
+HIST = {"stack": [], "idx": -1, "t": 0.0, "jobstep": False}
+HIST_MAX = 60
+
+
+def _snap():
+    return json.dumps(CAT, ensure_ascii=False, sort_keys=True)
+
+
+def _job_running():
+    j = JOB.get("job")
+    return bool(j and j.running)
+
+
+def _hist_push():
+    """Mémorise l'état courant pour « Annuler ». Les modifications rapprochées (saisie, récupération en lot) forment une seule étape."""
+    s = _snap()
+    st, i = HIST["stack"], HIST["idx"]
+    if i >= 0 and st[i] == s:
+        return
+    now = time.time()
+    running = _job_running()
+    merge = i >= 1 and i == len(st) - 1 and ((running and HIST["jobstep"]) or (not running and not HIST["jobstep"] and now - HIST["t"] < 1.2))
+    if merge:
+        st[i] = s
+    else:
+        del st[i + 1:]
+        st.append(s)
+        if len(st) > HIST_MAX:
+            del st[0]
+        HIST["idx"] = len(st) - 1
+    HIST["jobstep"] = running
+    HIST["t"] = now
+
+
+def hist_state():
+    return {"undo": HIST["idx"] > 0, "redo": HIST["idx"] < len(HIST["stack"]) - 1}
+
+
+def _autosave_lib():
+    cid = CAT["meta"].get("lib_id")
+    if cid:
+        try:
+            libs.save_catalogue(CAT, libs.load_catalogue(cid).get("nom"), cid)
+        except Exception:
+            CAT["meta"].pop("lib_id", None)
+
+
 def save():
     with LOCK:
         REV["n"] += 1
+        _hist_push()
         store.save_catalogue(CAT)
+        _autosave_lib()
+
+
+def _normalize():
+    CAT.setdefault("meta", {"titre": "", "date": ""})
+    CAT.setdefault("books", [])
+    for b in CAT["books"]:
+        for k, v in catalog.new_book(b.get("isbn", "")).items():
+            b.setdefault(k, v)
+
+
+def replace_catalogue(new, reason="remplace", history=True):
+    """Remplace tout le catalogue en cours (ouverture, restauration, annulation), avec une copie de secours avant."""
+    with LOCK:
+        if reason and reason != "annuler":
+            libs.backup(CAT, reason)
+        CAT.clear()
+        CAT.update(copy.deepcopy(new))
+        _normalize()
+        REV["n"] += 1
+        if history:
+            _hist_push()
+        store.save_catalogue(CAT)
+        _autosave_lib()
+
+
+def undo_redo(step):
+    with LOCK:
+        if _job_running():
+            raise ValueError("Attends la fin de la récupération en cours.")
+        i = HIST["idx"] + step
+        if not 0 <= i < len(HIST["stack"]):
+            raise ValueError("Rien à annuler." if step < 0 else "Rien à rétablir.")
+        HIST["idx"] = i
+        HIST["jobstep"] = False
+        HIST["t"] = 0.0
+        CAT.clear()
+        CAT.update(json.loads(HIST["stack"][i]))
+        _normalize()
+        REV["n"] += 1
+        store.save_catalogue(CAT)
+        _autosave_lib()
 
 
 def find(isbn):
@@ -61,7 +151,13 @@ def find(isbn):
 
 def public_state():
     s = store.load_settings()
-    return {"meta": CAT["meta"], "books": [catalog.public(b) for b in CAT["books"]], "settings": public_settings(s)}
+    lib = None
+    if CAT["meta"].get("lib_id"):
+        try:
+            lib = {"id": CAT["meta"]["lib_id"], "nom": libs.load_catalogue(CAT["meta"]["lib_id"]).get("nom", "")}
+        except Exception:
+            CAT["meta"].pop("lib_id", None)
+    return {"meta": CAT["meta"], "books": [catalog.public(b) for b in CAT["books"]], "settings": public_settings(s), "lib": lib}
 
 
 def public_settings(s):
@@ -84,8 +180,11 @@ def safe_name(text):
 
 
 def add_rows(rows, replace=False):
+    """Ajoute ou met à jour des livres. Retourne (nombre ajouté, prix modifiés)."""
+    changes = []
     with LOCK:
         if replace:
+            libs.backup(CAT, "import")
             CAT["books"] = []
         added = 0
         for r in rows:
@@ -94,10 +193,57 @@ def add_rows(rows, replace=False):
                 CAT["books"].append(catalog.from_import_row(r))
                 added += 1
             else:
+                old = b.get("prix")
                 catalog.apply_row(b, r)
                 catalog.use_dilicom_fallback(b) if b.get("fetched") else None
+                new = b.get("prix")
+                if old not in (None, "") and new not in (None, "") and abs(float(old) - float(new)) > 0.004:
+                    b["prix_ancien"] = old
+                    changes.append({"isbn": b["isbn"], "titre": b.get("titre") or b["isbn"], "ancien": old, "nouveau": new})
         save()
-    return added
+    return added, changes
+
+
+# ------------------------------------------------------------------ contrôle avant génération
+def check():
+    """Liste ce qui reste à vérifier : groupes de livres + informations sur les pages."""
+    with LOCK:
+        books = [dict(b) for b in CAT["books"]]
+    groups = {}
+
+    def add(key, label, level, b):
+        g = groups.setdefault(key, {"key": key, "label": label, "level": level, "items": []})
+        g["items"].append({"isbn": b["isbn"], "titre": b.get("titre") or b["isbn"]})
+
+    for b in books:
+        if not b.get("fetched"):
+            add("nofetch", "pas encore cherchés", "warn", b)
+            continue
+        if not b.get("titre"):
+            add("notitre", "sans titre (introuvables)", "bad", b)
+        else:
+            for m in catalog.missing(b):
+                add("m_" + m, {"auteurs": "sans auteur", "résumé": "sans résumé", "date de parution": "sans date de parution",
+                                "éditeur": "sans éditeur", "couverture": "sans couverture", "prix": "sans prix"}.get(m, "sans " + m), "bad" if m in ("prix", "couverture") else "warn", b)
+        if (b.get("cover_origin") or "").endswith("?") and b.get("cover_path"):
+            add("covq", "couverture à vérifier", "warn", b)
+        if b.get("resume_ia") and b.get("resume"):
+            add("ia", "résumé écrit par l'IA, à relire", "info", b)
+        if b.get("titre_origin") == "dilicom" and "titre" not in b.get("edited", []):
+            add("dtitre", "titre à vérifier (sans accents)", "warn", b)
+        al = catalog.dispo_alert(b.get("dispo"))
+        if al:
+            add("dispo_" + al, f"Dilicom : {al}", "warn", b)
+    order = {"bad": 0, "warn": 1, "info": 2}
+    out = sorted(groups.values(), key=lambda g: order[g["level"]])
+    fr, bp, pp, post = build_all()
+    blanks = sum(1 for p in post if p.name == "Page blanche")
+    last = 0
+    if bp:
+        ids = {h["isbn"] for h in bp[-1].hot}
+        last = len(ids)
+    return {"groups": out, "total": len(books), "pages": len(fr) + len(bp) + len(pp) + len(post), "blanches": blanks,
+            "pages_livres": len(bp), "dernier_nb": last}
 
 
 # ------------------------------------------------------------------ récupération en tâche de fond
@@ -249,7 +395,7 @@ def page_png(n, dpi=100):
     return data
 
 
-def generate(out_dir, name, want_pdf=True, want_pptx=False):
+def generate(out_dir, name, want_pdf=True, want_pptx=False, want_xlsx=False):
     with LOCK:
         books = [dict(b) for b in CAT["books"]]
     if not books:
@@ -257,6 +403,7 @@ def generate(out_dir, name, want_pdf=True, want_pptx=False):
     name = safe_name(name or CAT["meta"].get("titre") or "Catalogue")
     folder = os.path.join(os.path.abspath(os.path.expanduser(out_dir)), name)
     os.makedirs(folder, exist_ok=True)
+    libs.backup(CAT, "generation")
     fr, bp, pp, post = build_all()
     files = []
     if want_pdf:
@@ -266,6 +413,12 @@ def generate(out_dir, name, want_pdf=True, want_pptx=False):
     if want_pptx:
         p = os.path.join(folder, name + ".pptx")
         render_pptx.build_pptx(fr + bp + pp + post, p, title=name)
+        files.append(p)
+    if want_xlsx:
+        s = store.load_settings()
+        meta = dict(CAT["meta"])
+        p = os.path.join(folder, name + " - Tableau des prix.xlsx")
+        prixlib.export_xlsx(p, books, meta.get("selection") or name, meta.get("indicatif", ""), s.get("taux") or 3366, s.get("arrondi") or 1)
         files.append(p)
     return {"folder": folder, "files": files, "pages": len(fr) + len(bp) + len(pp) + len(post), "tableau": len(pp)}
 
@@ -425,6 +578,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        if ctype.startswith("application/json"):
+            h = hist_state()
+            self.send_header("X-Hist", f"{int(h['undo'])}{int(h['redo'])}")
         for k, v in (extra or {}).items():
             self.send_header(k, v)
         self.end_headers()
@@ -487,13 +643,62 @@ class Handler(BaseHTTPRequestHandler):
             b = self._json()
             if path == "/api/bye":
                 _state["bye_at"] = time.time()
+                with LOCK:
+                    libs.backup(CAT, "fermeture")
                 return self._send(200, {})
             if path == "/api/state":
                 return self._send(200, public_state())
+            if path in ("/api/undo", "/api/redo"):
+                undo_redo(-1 if path == "/api/undo" else 1)
+                return self._send(200, {"state": public_state()})
+            if path == "/api/prices/revert":
+                with LOCK:
+                    for i in b.get("isbns", []):
+                        x = find(i)
+                        if x is not None and x.get("prix_ancien") not in (None, ""):
+                            x["prix"], x["prix_ancien"] = x["prix_ancien"], ""
+                    save()
+                return self._send(200, {"state": public_state()})
+            if path == "/api/check":
+                return self._send(200, check())
+            if path == "/api/lib/list":
+                return self._send(200, {"items": libs.list_catalogues(), "backups": libs.list_backups(), "current": CAT["meta"].get("lib_id")})
+            if path == "/api/lib/save":
+                with LOCK:
+                    cid = CAT["meta"].get("lib_id") if not b.get("new") else None
+                    cid = libs.save_catalogue(CAT, b.get("nom") or CAT["meta"].get("titre"), cid)
+                    CAT["meta"]["lib_id"] = cid
+                    if b.get("nom"):
+                        libs.rename_catalogue(cid, b["nom"])
+                    save()
+                return self._send(200, {"state": public_state()})
+            if path == "/api/lib/open":
+                c = libs.load_catalogue(b["id"])
+                replace_catalogue({"meta": dict(c.get("meta", {}), lib_id=c["id"]), "books": c.get("books", [])}, "ouverture")
+                return self._send(200, {"state": public_state()})
+            if path == "/api/lib/duplicate":
+                cid = libs.duplicate_catalogue(b["id"], b.get("nom"))
+                if b.get("open"):
+                    c = libs.load_catalogue(cid)
+                    replace_catalogue({"meta": c.get("meta", {}), "books": c.get("books", [])}, "ouverture")
+                return self._send(200, {"state": public_state()})
+            if path == "/api/lib/rename":
+                libs.rename_catalogue(b["id"], b.get("nom", ""))
+                return self._send(200, {"state": public_state()})
+            if path == "/api/lib/delete":
+                libs.delete_catalogue(b["id"])
+                with LOCK:
+                    if CAT["meta"].get("lib_id") == b["id"]:
+                        CAT["meta"].pop("lib_id", None)
+                        save()
+                return self._send(200, {"state": public_state()})
+            if path == "/api/backup/restore":
+                replace_catalogue(libs.load_backup(b.get("name")), "restauration")
+                return self._send(200, {"state": public_state()})
             if path == "/api/import":
                 rows, problems = importer.read_rows(base64.b64decode(b["data"]), b.get("filename", ""))
-                added = add_rows(rows, replace=bool(b.get("replace")))
-                return self._send(200, {"added": added, "problems": problems, "state": public_state()})
+                added, changes = add_rows(rows, replace=bool(b.get("replace")))
+                return self._send(200, {"added": added, "problems": problems, "changes": changes, "state": public_state()})
             if path == "/api/add_isbns":
                 found = re.findall(r"[0-9][0-9\- ]{8,15}[0-9Xx]", b.get("text", ""))
                 rows, bad = [], []
@@ -502,7 +707,7 @@ class Handler(BaseHTTPRequestHandler):
                     (rows if d else bad).append({"isbn": d} if d else f)
                 if not found and b.get("text", "").strip():
                     bad.append(b["text"].strip()[:40])
-                added = add_rows(rows)
+                added, _ = add_rows(rows)
                 return self._send(200, {"added": added, "problems": [f"« {x} » n'est pas un ISBN valide." for x in bad],
                                         "state": public_state()})
             if path == "/api/fetch":
@@ -565,6 +770,8 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/clear":
                 n = 0
                 with LOCK:
+                    libs.backup(CAT, "nouveau")
+                    CAT.get("meta", {}).pop("lib_id", None)
                     CAT["books"] = []
                     CAT["meta"] = {"titre": "", "date": ""}
                     try:
@@ -651,7 +858,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, preview(b.get("page", 0), int(b.get("dpi", 100))))
             if path == "/api/generate":
                 s = store.load_settings()
-                r = generate(b.get("out_dir") or s["out_dir"], b.get("name", ""), bool(b.get("pdf", True)), bool(b.get("pptx", False)))
+                r = generate(b.get("out_dir") or s["out_dir"], b.get("name", ""), bool(b.get("pdf", True)), bool(b.get("pptx", False)), bool(b.get("xlsx", False)))
                 return self._send(200, r)
             if path == "/api/settings":
                 patch = {k: v for k, v in b.items() if k in store.SETTING_KEYS}

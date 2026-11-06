@@ -135,17 +135,25 @@
   .chk{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink);font-weight:400;margin:6px 0}
   .chk input{width:auto}
   .problems{margin:8px 0 0;padding-left:18px;color:var(--bad);font-size:13px}
+  .chkbox{background:#f6f8fb;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:13px}
+  .chkbox .cg{margin:5px 0}.chkbox .cg.bad b{color:var(--bad)}.chkbox .cg.warn b{color:var(--warn)}.chkbox .cg.info b{color:var(--muted)}
+  .chkbox a{cursor:pointer;color:var(--accent-2);text-decoration:underline;margin-right:9px;white-space:nowrap}
+  .chkbox .ok{color:var(--ok);font-weight:600}
+  .librow{display:flex;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+  .librow .nm{flex:1;min-width:150px}.librow .nm small{display:block;color:var(--muted);font-weight:400}
   .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1d2433;color:#fff;padding:10px 16px;border-radius:9px;z-index:90;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw}
   .toast.show{opacity:1}
 </style>
 </head>
 <body>
 <header>
-  <h1>Catalogue CMPL <small id="ver"></small></h1>
+  <h1>Catalogue CMPL <small id="ver"></small><small id="libname"></small></h1>
   <button id="b-import" title="Charger un fichier Excel / CSV / export Dilicom avec les ISBN">Importer un fichier</button>
   <button id="b-add" title="Coller quelques ISBN">Ajouter des ISBN</button>
   <button id="b-fetch" class="hfetch" title="Chercher titre, auteurs, résumé, couverture… pour chaque ISBN" disabled>Récupérer les infos</button>
   <button id="b-ai" class="hfetch" title="Écrire un résumé avec l'IA pour les livres qui n'en ont pas" disabled>Écrire les descriptions</button>
+  <button id="b-lib" title="Enregistrer, rouvrir ou dupliquer des catalogues ; sauvegardes automatiques">Catalogues</button>
+  <button id="b-undo" title="Annuler (Ctrl+Z)" disabled>↶</button><button id="b-redo" title="Rétablir (Ctrl+Y)" disabled>↷</button>
   <button id="b-set" title="Clés, dossiers…">Réglages</button>
   <button id="b-new" title="Vider le catalogue">Nouveau</button>
   <button id="b-gen" class="hgen" disabled>Générer le catalogue</button>
@@ -247,17 +255,21 @@
   <div class="mfoot"><button class="btn" id="mu-later">Plus tard</button><button class="btn primary" id="mu-go">Mettre à jour</button></div>
 </div></div>
 
+<div class="modal hide" id="m-gen"><div class="mbox">
+  <div class="mhead"><h3 id="g-title">Générer le catalogue</h3><button class="xbtn" id="g-x">✕</button></div>
+  <div class="mbody" id="g-body"></div>
+  <div class="mfoot" id="g-foot"></div>
+</div></div>
+<div class="modal hide" id="m-lib"><div class="mbox" style="max-width:640px">
+  <div class="mhead"><h3>Mes catalogues</h3><button class="xbtn" id="ml-x">✕</button></div>
+  <div class="mbody" id="ml-body"></div>
+</div></div>
 <div class="modal hide" id="m-confirm"><div class="mbox">
   <div class="mhead"><h3 id="c-title"></h3></div>
   <div class="mbody" id="c-body"></div>
   <div class="mfoot"><button class="btn" id="c-cancel"></button><button class="btn primary" id="c-ok"></button></div>
 </div></div>
 
-<div class="modal hide" id="m-gen"><div class="mbox">
-  <div class="mhead"><h3 id="g-title">Générer le catalogue</h3><button class="xbtn" id="g-x">✕</button></div>
-  <div class="mbody" id="g-body"></div>
-  <div class="mfoot" id="g-foot"></div>
-</div></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -267,6 +279,7 @@ const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&": "&am
 const api = async (path, body) => {
   const r = await fetch(path, {method: "POST", headers: {"X-Token": TOKEN, "Content-Type": "application/json"}, body: JSON.stringify(body || {})});
   let j = {}; try { j = await r.json(); } catch (e) {}
+  const hh = r.headers.get("X-Hist"); if (hh) { $("b-undo").disabled = hh[0] !== "1"; $("b-redo").disabled = hh[1] !== "1"; }
   if (!r.ok) throw new Error(j.error || r.statusText);
   return j;
 };
@@ -289,7 +302,8 @@ let sel = null, page = 0, where = {}, covRev = {};
 const byIsbn = i => S.books.find(b => b.isbn === i);
 
 function setState(st){
-  S.books = st.books; S.settings = st.settings || S.settings; S.meta = st.meta || S.meta;
+  S.books = st.books; S.settings = st.settings || S.settings; S.meta = st.meta || S.meta; S.lib = st.lib || null;
+  $("libname").textContent = S.lib ? " · " + S.lib.nom : "";
   renderAll();
 }
 
@@ -498,8 +512,14 @@ async function importFile(f){
     setState(r.state);
     toast(`${r.added} livre${r.added > 1 ? "s" : ""} ajouté${r.added > 1 ? "s" : ""}`);
     await showProblems(r.problems, r.added);
+    if (r.changes && r.changes.length) await priceChanges(r.changes);
     if (r.added) askFetch();
   } catch (e) { toast("Import impossible : " + e.message); }
+}
+async function priceChanges(list){
+  const f = v => String(v).replace(".", ",") + " €";
+  const keep = await confirmBox(`${list.length} prix modifié${list.length > 1 ? "s" : ""}`, `<div>Ces livres étaient déjà dans le catalogue avec un autre prix :</div><ul class="problems" style="color:var(--ink)">${list.slice(0, 20).map(c => `<li>${esc(c.titre)} : ${f(c.ancien)} → <b>${f(c.nouveau)}</b></li>`).join("")}${list.length > 20 ? `<li>… et ${list.length - 20} autres</li>` : ""}</ul>`, "Garder les nouveaux prix", "Revenir aux anciens");
+  if (!keep) { const r = await api("/api/prices/revert", {isbns: list.map(c => c.isbn)}); setState(r.state); toast("Anciens prix rétablis"); }
 }
 function showProblems(list, added){
   if (!list || !list.length) return Promise.resolve();
@@ -520,7 +540,7 @@ $("ma-ok").onclick = async () => {
 };
 $("b-new").onclick = async () => {
   if (!S.books.length) return;
-  const ok = await confirmBox("Vider le catalogue ?", `<div>Tous les livres seront retirés de la liste.</div>
+  const ok = await confirmBox("Vider le catalogue ?", `<div>Tous les livres seront retirés de la liste. Une copie de secours est gardée (menu Catalogues) et tu peux annuler avec ↶.</div>
     <label class="chk"><input type="checkbox" id="n-cache" checked> <span>Oublier aussi les recherches mémorisées (Google, BnF) et les couvertures téléchargées : repart de zéro, utile pour les essais.</span></label>
     <label class="chk"><input type="checkbox" id="n-cov"> <span>Supprimer aussi mes images du dossier des couvertures (celles nommées avec un ISBN).</span></label>`, "Vider", "Garder");
   if (ok) {
@@ -746,7 +766,7 @@ $("b-gen").onclick = async () => {
   if (notit || nocov || nores || S.books.some(b => !b.fetched))
     warn = `<div class="note warn">À savoir : ${[notit && notit + " sans titre", nocov && nocov + " sans couverture", nores && nores + " sans résumé", S.books.some(b => !b.fetched) && "des livres pas encore cherchés"].filter(Boolean).join(", ")}. Ils apparaîtront incomplets dans le fichier.</div>`;
   $("g-title").textContent = "Générer le catalogue";
-  $("g-body").innerHTML = `${warn}<label style="margin-top:0">Nom du catalogue</label><input type="text" id="g-name" value="${esc(S.meta.titre || "Catalogue CMPL")}">
+  $("g-body").innerHTML = `<div id="g-check" class="chkbox">Contrôle en cours…</div><label style="margin-top:0">Nom du catalogue</label><input type="text" id="g-name" value="${esc(S.meta.titre || "Catalogue CMPL")}">
     <label>Tableau des prix</label>
     <label class="chk"><input type="checkbox" id="g-incl" ${S.settings.inclure_prix !== false ? "checked" : ""}> Ajouter le tableau des prix à la fin</label>
     <div class="grid3"><div><label>Taux <small>(1 € = … Ar)</small></label><input type="text" id="g-taux" value="${esc(S.settings.taux || 3366)}"></div>
@@ -757,19 +777,21 @@ $("b-gen").onclick = async () => {
     <label class="chk"><input type="checkbox" id="g-m4" ${S.settings.p_multi4 !== false ? "checked" : ""}> Pages blanches pour avoir un multiple de 4 pages (folio)</label>
     <label>Formats</label><label class="chk"><input type="checkbox" id="g-pdf" checked> PDF (à envoyer ou imprimer)</label>
     <label class="chk"><input type="checkbox" id="g-pptx"> PowerPoint modifiable (.pptx)</label>
+    <label class="chk"><input type="checkbox" id="g-xlsx"> Tableau des prix en Excel (.xlsx)</label>
     <div class="hint">Dossier : <code class="path">${esc(S.settings.out_dir || "")}</code></div>`;
   $("g-foot").innerHTML = `<button class="btn" id="g-cancel">Annuler</button><button class="btn primary" id="g-go">Générer</button>`;
   show("m-gen");
+  api("/api/check").then(renderCheck).catch(() => { $("g-check") && ($("g-check").textContent = ""); });
   $("g-cancel").onclick = $("g-x").onclick = () => hide("m-gen");
   $("g-go").onclick = async () => {
     const pdf = $("g-pdf").checked, pptx = $("g-pptx").checked;
-    if (!pdf && !pptx) { toast("Coche au moins un format."); return; }
+    if (!pdf && !pptx && !$("g-xlsx").checked) { toast("Coche au moins un format."); return; }
     $("g-go").disabled = true; $("g-go").textContent = "Génération en cours…";
     try {
       const name = $("g-name").value;
       await api("/api/meta", {titre: name, indicatif: $("g-ind").value, selection: $("g-sel").value}); S.meta.titre = name; S.meta.indicatif = $("g-ind").value; S.meta.selection = $("g-sel").value;
       const rs = await api("/api/settings", {taux: $("g-taux").value, inclure_prix: $("g-incl").checked, p_garde: $("g-pg").checked, p_cond: $("g-pc").checked, p_proforma: $("g-pp").checked, p_dos: $("g-pd").checked, p_multi4: $("g-m4").checked}); S.settings = rs.settings;
-      const r = await api("/api/generate", {pdf, pptx, name});
+      const r = await api("/api/generate", {pdf, pptx, xlsx: $("g-xlsx").checked, name});
       $("g-title").textContent = "✓ Catalogue créé";
       $("g-body").innerHTML = `<div class="hint" style="margin:0">${r.pages} page${r.pages > 1 ? "s" : ""} dans le dossier</div><code class="path">${esc(r.folder)}</code><ul class="problems" style="color:var(--muted)">${r.files.map(f => `<li>${esc(f.split(/[\\/]/).pop())}</li>`).join("")}</ul>`;
       $("g-foot").innerHTML = `<button class="btn" id="g-folder">Ouvrir le dossier</button><button class="btn primary" id="g-open">Ouvrir le fichier</button>`;
@@ -779,9 +801,66 @@ $("b-gen").onclick = async () => {
   };
 };
 
+function renderCheck(c){
+  const el = $("g-check"); if (!el) return;
+  let h = `<b>Contrôle avant génération</b><div style="margin-top:3px">${c.total} livre${c.total > 1 ? "s" : ""} · ${c.pages} pages` + (c.blanches ? ` (dont ${c.blanches} page${c.blanches > 1 ? "s" : ""} blanche${c.blanches > 1 ? "s" : ""} ajoutée${c.blanches > 1 ? "s" : ""} pour le folio)` : "") + (c.pages_livres ? ` · dernière page de livres : ${c.dernier_nb} livre${c.dernier_nb > 1 ? "s" : ""}` : "") + `</div>`;
+  if (!c.groups.length) h += `<div class="ok" style="margin-top:4px">✓ Tout est complet.</div>`;
+  c.groups.forEach(g => {
+    h += `<div class="cg ${g.level}"><b>${esc(g.label)}</b> (${g.items.length}) : ` + g.items.slice(0, 5).map(i => `<a data-isbn="${esc(i.isbn)}">${esc((i.titre || "").slice(0, 38))}</a>`).join("") + (g.items.length > 5 ? `… +${g.items.length - 5}` : "") + `</div>`;
+  });
+  el.innerHTML = h;
+  el.querySelectorAll("a[data-isbn]").forEach(a => a.onclick = () => { hide("m-gen"); selectBook(a.dataset.isbn, true); });
+}
+
+// ------------------------------------------------------------ annuler / rétablir
+async function doUndo(step){
+  try { const r = await api(step < 0 ? "/api/undo" : "/api/redo"); setState(r.state); loadPreview(); toast(step < 0 ? "↶ Modification annulée" : "↷ Modification rétablie"); }
+  catch (e) { toast(e.message); }
+}
+$("b-undo").onclick = () => doUndo(-1); $("b-redo").onclick = () => doUndo(1);
+document.addEventListener("keydown", e => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+  const t = e.target; if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
+  const k = e.key.toLowerCase();
+  if (k === "z" && !e.shiftKey) { e.preventDefault(); doUndo(-1); } else if (k === "y" || (k === "z" && e.shiftKey)) { e.preventDefault(); doUndo(1); }
+});
+
+// ------------------------------------------------------------ catalogues enregistrés et sauvegardes
+const when = t => new Date(t * 1000).toLocaleString("fr-FR", {day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"});
+const REASONS = {fermeture: "à la fermeture", generation: "avant génération", nouveau: "avant « Nouveau »", ouverture: "avant ouverture", restauration: "avant restauration", import: "avant import", test: "test"};
+async function openLib(){ show("m-lib"); await refreshLib(); }
+async function refreshLib(){
+  const r = await api("/api/lib/list");
+  let h = S.lib ? `<div>Catalogue en cours : <b>${esc(S.lib.nom)}</b> <span class="hint" style="display:inline">· enregistré automatiquement à chaque modification</span></div>`
+                : `<div>Le catalogue en cours <b>n'est pas encore enregistré</b>. Donne-lui un nom pour le retrouver ici.</div>`;
+  h += `<div class="row2" style="margin-top:8px"><input type="text" id="l-nom" placeholder="Nom, ex. Novembre 2026" value="${esc(S.lib ? "" : S.meta.titre || "")}"><button class="btn primary small" data-act="save">${S.lib ? "Enregistrer une copie" : "Enregistrer"}</button></div>`;
+  h += `<label>Catalogues enregistrés</label>` + (r.items.length ? r.items.map(c => `<div class="librow" data-id="${c.id}"><div class="nm"><b>${esc(c.nom)}</b>${c.id === r.current ? " (en cours)" : ""}<small>${c.n} livre${c.n > 1 ? "s" : ""} · ${when(c.updated)}</small></div>
+      ${c.id === r.current ? "" : `<button class="btn small" data-act="open">Ouvrir</button>`}<button class="btn small" data-act="next" title="Copie ce catalogue (livres, résumés, couvertures) pour préparer le suivant">Repartir de celui-ci</button><button class="btn small" data-act="rename">Renommer</button><button class="btn small" data-act="del">Supprimer</button></div>`).join("") : `<div class="hint">Aucun catalogue enregistré.</div>`);
+  h += `<label>Sauvegardes automatiques <small>— les 10 dernières, faites à la fermeture, avant génération et avant chaque remplacement</small></label>` + (r.backups.length ? r.backups.map(b => `<div class="librow" data-name="${esc(b.name)}"><div class="nm">${when(b.t)} <small>${b.n} livre${b.n > 1 ? "s" : ""}${b.titre ? " · " + esc(b.titre) : ""} · ${esc(REASONS[b.reason] || b.reason)}</small></div><button class="btn small" data-act="restore">Restaurer</button></div>`).join("") : `<div class="hint">Pas encore de sauvegarde.</div>`);
+  $("ml-body").innerHTML = h;
+}
+$("b-lib").onclick = openLib;
+$("ml-x").onclick = () => hide("m-lib");
+$("ml-body").addEventListener("click", async e => {
+  const bt = e.target.closest("[data-act]"); if (!bt) return;
+  const row = bt.closest(".librow"), id = row && row.dataset.id, act = bt.dataset.act;
+  const done = async (r, msg) => { sel = null; page = 0; setState(r.state); hide("m-lib"); loadPreview(); toast(msg); };
+  try {
+    if (act === "save") { const r = await api("/api/lib/save", {nom: $("l-nom").value, new: !!S.lib}); setState(r.state); await refreshLib(); toast("✓ Catalogue enregistré"); }
+    else if (act === "open") { if (await confirmBox("Ouvrir ce catalogue ?", `<div>Le catalogue en cours est sauvegardé automatiquement avant.</div>`, "Ouvrir", "Annuler")) done(await api("/api/lib/open", {id}), "✓ Catalogue ouvert"); }
+    else if (act === "next") { if (await confirmBox("Repartir de ce catalogue ?", `<div>Une copie est créée et ouverte : mêmes livres, résumés et couvertures. Il ne reste qu'à importer le nouveau panier Dilicom (les prix modifiés seront signalés).</div>`, "Créer la copie", "Annuler")) done(await api("/api/lib/duplicate", {id, open: true}), "✓ Copie ouverte"); }
+    else if (act === "rename") {
+      const cur = row.querySelector("b").textContent;
+      if (await confirmBox("Renommer", `<input type="text" id="l-rn" value="${esc(cur)}">`, "Renommer", "Annuler")) { const v = $("l-rn").value; await api("/api/lib/rename", {id, nom: v}); const r = await api("/api/state"); setState(r); await refreshLib(); }
+    }
+    else if (act === "del") { if (await confirmBox("Supprimer ce catalogue ?", `<div>« ${esc(row.querySelector("b").textContent)} » sera supprimé de la liste (les fichiers déjà générés ne sont pas touchés).</div>`, "Supprimer", "Garder")) { const r = await api("/api/lib/delete", {id}); setState(r.state); await refreshLib(); } }
+    else if (act === "restore") { if (await confirmBox("Restaurer cette sauvegarde ?", `<div>Elle remplace le catalogue en cours (une copie de l'état actuel est gardée).</div>`, "Restaurer", "Annuler")) done(await api("/api/backup/restore", {name: row.dataset.name}), "✓ Sauvegarde restaurée"); }
+  } catch (er) { toast(er.message); }
+});
+
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
-  for (const id of ["m-upd", "m-confirm", "m-gen", "m-set", "m-add", "m-prix"]) if (!$(id).classList.contains("hide")) { id === "m-confirm" ? $("c-cancel").click() : id === "m-upd" ? $("mu-later").click() : hide(id); return; }
+  for (const id of ["m-upd", "m-confirm", "m-gen", "m-set", "m-add", "m-prix", "m-lib"]) if (!$(id).classList.contains("hide")) { id === "m-confirm" ? $("c-cancel").click() : id === "m-upd" ? $("mu-later").click() : hide(id); return; }
 });
 window.addEventListener("pagehide", () => navigator.sendBeacon("/api/bye?t=" + TOKEN, "{}"));
 

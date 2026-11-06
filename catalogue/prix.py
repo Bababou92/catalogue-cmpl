@@ -254,3 +254,43 @@ def build_pages(books, titre="Catalogue", indicatif=None, taux=3366, arrondi=1):
             pg.elements.append(Rect(x - line / 2, top + head_h, line, bottom - top - head_h, fill=GRID, name="Filet vertical"))
         pages.append(pg)
     return pages
+
+
+def export_xlsx(path, books, titre, indicatif, taux, arrondi=1):
+    """Le tableau des prix en Excel (mêmes colonnes que le PDF, montants en nombres)."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Tableau des prix"
+    ws.append([f"Sélection {titre}"])
+    ws.append([f"Prix indicatifs {(indicatif or '').strip() or mois_annee()}"])
+    ws.append([NOTE.split("\n")[0]])
+    ws.append([])
+    ws.append([c[0] for c in COLS])
+    for c in ws[5]:
+        c.font = Font(bold=True, color="FFFFFF")
+        c.fill = PatternFill("solid", fgColor="8C8C8C")
+        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"].font = Font(bold=True)
+    for b in books:
+        v = row_values(b, taux, arrondi)
+        pr = b.get("prix")
+        ar = ariary(pr, _taux_of(b, taux), arrondi) if pr not in (None, "") else None
+        forced = b.get("prix_ar")
+        if forced not in (None, ""):
+            try:
+                ar = int(float(str(forced).replace(",", ".").replace(" ", "")))
+            except ValueError:
+                pass
+        ws.append([v[0], v[1], v[2], v[3], re.sub(r"\D", "", b.get("isbn") or ""), v[5],
+                   float(pr) if pr not in (None, "") else None, ar])
+    for r in ws.iter_rows(min_row=6):
+        r[4].number_format = "@"
+        r[6].number_format = '0.00'
+        r[7].number_format = '# ##0'
+    for col, w in zip("ABCDEFGH", (46, 36, 9, 14, 17, 20, 14, 16)):
+        ws.column_dimensions[col].width = w
+    ws.freeze_panes = "A6"
+    wb.save(path)
