@@ -234,20 +234,77 @@
   html.dark .qbox .qia{background:#3a2d12;color:#f0b865}
   html.dark #cellpop{border-color:#3b4558}
   html.dark .toast{background:#e4e8ef;color:#1d2433}
+  /* v0.12 : en-tête, menu, onglets, cartes, prochaine étape */
+  header{gap:6px}
+  header h1{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  header h1 small#libname{font-size:12px;opacity:.75;margin-left:8px}
+  header button.hicon{padding:7px 9px;min-width:34px}
+  .menuwrap{position:relative}
+  .menu{position:absolute;right:0;top:calc(100% + 8px);width:290px;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 34px rgba(10,20,40,.35);padding:6px;z-index:40}
+  header .menu button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;width:100%;text-align:left;background:none;border:0;color:var(--ink);padding:8px 10px;border-radius:8px}
+  header .menu button:hover,header .menu button:focus-visible{background:rgba(59,95,143,.12);outline:none}
+  header .menu button.danger .mi-t{color:var(--bad)}
+  .menu .mi-t{font-weight:600;font-size:14px}.menu .mi-d{font-size:12px;color:var(--muted)}
+  .menu hr{border:0;border-top:1px solid var(--line);margin:5px 4px}
+  .tabs{display:flex;gap:4px;padding:8px 18px 0;border-bottom:1px solid var(--line);overflow-x:auto}
+  .tabs button{border:0;background:none;padding:8px 14px;font:inherit;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap}
+  .tabs button:hover{color:var(--ink)}
+  .tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
+  html.dark .tabs button.on{color:#cfe0f5;border-bottom-color:#6f9ad0}
+  .stab>:first-child{margin-top:0}
+  #m-set .mbox{max-width:600px}
+  #m-set .mbody{min-height:360px}
+  /* cartes des livres */
+  .card{border-radius:12px;margin-bottom:10px;transition:box-shadow .15s,border-color .15s}
+  .card:hover{border-color:#c5ccd9;box-shadow:0 2px 10px rgba(20,30,50,.08)}
+  .chead{padding:10px 12px;gap:12px}
+  .thumb{width:44px;height:62px;border-radius:4px}
+  .ctitle{font-size:14.5px}
+  .csub{margin-top:1px}
+  .cstat{margin-top:4px;gap:7px;min-width:0}
+  .cstat .pill{display:inline-flex;align-items:center;gap:5px;font-weight:600;font-size:11.5px;padding:2px 9px 2px 7px;border-radius:999px;background:#eef1f6;color:var(--ink);flex:none}
+  .cstat.vert .pill{background:#e4f5ea;color:var(--ok)}.cstat.orange .pill{background:#fff1d6;color:var(--warn)}.cstat.rouge .pill{background:#fde8e8;color:var(--bad)}.cstat.gris .pill{background:#eceff4;color:var(--muted)}
+  .cstat .why{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);min-width:0}
+  .cflag{display:inline-block;margin-top:4px;font-size:11.5px;color:var(--bad);background:#fde8e8;border-radius:6px;padding:1px 7px}
+  .cbtns{opacity:.35;transition:opacity .15s}.card:hover .cbtns,.card.sel .cbtns{opacity:1}
+  .cbody .infos{font-size:12px;color:var(--muted);margin:10px 0 2px}
+  html.dark .card:hover{border-color:#3b4558;box-shadow:none}
+  html.dark .cstat .pill{background:#232b39}
+  html.dark .cstat.vert .pill{background:#173a26}html.dark .cstat.orange .pill{background:#3a2d12}html.dark .cstat.rouge .pill{background:#3d1d1d}
+  html.dark .cflag{background:#3d1d1d}
+  /* prochaine étape */
+  .next{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-left:5px solid var(--accent-2);border-radius:12px;padding:11px 14px;margin-bottom:12px}
+  .next .nt{flex:1;min-width:0}.next .nt b{display:block;font-size:14.5px}.next .nt span{font-size:12.5px;color:var(--muted)}
+  .next .btn{white-space:nowrap}
+  .next.done{border-left-color:var(--ok)}
+  /* accueil */
+  .howto{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:2px 0 20px;text-align:left}
+  .howto div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--muted)}
+  .howto b{display:block;color:var(--ink);font-size:13.5px;margin-bottom:2px}
+  .howto i{font-style:normal;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:700;margin-right:6px}
+  @media(max-width:620px){.howto{grid-template-columns:1fr}}
+  .kbd{font:12px Consolas,monospace;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 6px;background:var(--card);color:var(--ink)}
+  .kbdhelp{margin-top:6px;font-size:12.5px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
 </style>
 </head>
 <body>
 <header>
   <h1>Catalogue CMPL <small id="ver"></small><small id="libname"></small></h1>
   <button id="b-import" class="step1only" title="Charger un fichier Excel / CSV / export Dilicom avec les ISBN">Importer un fichier</button>
-  <button id="b-add" class="step1only" title="Coller quelques ISBN">Ajouter des ISBN</button>
   <button id="b-fetch" class="hfetch step1only" title="Chercher titre, auteurs, résumé, couverture… pour chaque ISBN" disabled>Récupérer les infos</button>
   <button id="b-ai" class="hfetch step1only" title="Écrire un résumé avec l'IA pour les livres qui n'en ont pas" disabled>Écrire les descriptions</button>
-  <button id="b-lib" title="Enregistrer, rouvrir ou dupliquer des catalogues ; sauvegardes automatiques">Catalogues</button>
-  <button id="b-undo" title="Annuler (Ctrl+Z)" disabled>↶</button><button id="b-redo" title="Rétablir (Ctrl+Y)" disabled>↷</button>
-  <button id="b-set" title="Clés, dossiers…">Réglages</button>
-  <button id="b-new" title="Vider le catalogue">Nouveau</button>
-  <button id="b-report" title="Signaler un problème : envoie un rapport par Gmail ou WhatsApp" aria-label="Signaler un problème">⚑</button>
+  <button id="b-undo" class="hicon" title="Annuler (Ctrl+Z)" aria-label="Annuler" disabled>↶</button><button id="b-redo" class="hicon" title="Rétablir (Ctrl+Y)" aria-label="Rétablir" disabled>↷</button>
+  <div class="menuwrap">
+    <button id="b-menu" aria-haspopup="true" aria-expanded="false" title="Catalogues, réglages, nouveau catalogue…">☰ Menu</button>
+    <div id="menu" class="menu hide" role="menu">
+      <button id="b-lib" role="menuitem"><span class="mi-t">Mes catalogues</span><span class="mi-d">Enregistrer, rouvrir, dupliquer, sauvegardes</span></button>
+      <button id="b-set" role="menuitem"><span class="mi-t">Réglages</span><span class="mi-d">Clés, taux Ariary, pages, dossiers</span></button>
+      <button id="b-add" class="step1only" role="menuitem"><span class="mi-t">Ajouter des ISBN</span><span class="mi-d">Coller quelques ISBN</span></button>
+      <hr>
+      <button id="b-new" class="danger" role="menuitem"><span class="mi-t">Nouveau catalogue</span><span class="mi-d">Vider le catalogue en cours</span></button>
+      <button id="b-report" role="menuitem"><span class="mi-t">Signaler un problème</span><span class="mi-d">Rapport à envoyer par Gmail ou WhatsApp</span></button>
+    </div>
+  </div>
   <button id="b-theme" class="themesw" role="switch" aria-checked="false" title="Passer en thème sombre">
     <svg class="ic sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><g stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></g></svg>
     <svg class="ic moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.9 8.9 0 1 0 11.1 11.1z"/></svg>
@@ -264,10 +321,12 @@
 <main id="main">
   <div id="left">
     <div id="progress" class="progress hide"><span id="pg-txt">Récupération…</span><div class="bar"><i id="pg-bar"></i></div><button class="btn small" id="pg-cancel">Arrêter</button></div>
+    <div id="next" class="next hide"></div>
     <div id="notes"></div>
     <div id="empty" class="empty hide">
       <h2>Commence avec ton fichier d'ISBN</h2>
       <p>Glisse ici un export de panier Dilicom (.slk), ou un fichier Excel / CSV : une ligne par livre, avec l'ISBN et le prix public en euros.<br>Le programme cherche ensuite tout seul les titres, auteurs, résumés et couvertures.</p>
+      <div class="howto"><div><b><i>1</i>Importer</b>Ton fichier d'ISBN et de prix.</div><div><b><i>2</i>Compléter</b>Infos, résumés et couvertures trouvés automatiquement.</div><div><b><i>3</i>Générer</b>Mise en page, aperçu, puis PDF et PowerPoint.</div></div>
       <div class="row">
         <button class="btn primary" id="e-import">Choisir un fichier</button>
         <button class="btn" id="e-add">Coller des ISBN</button>
@@ -302,8 +361,9 @@
       <div class="pnav"><button class="btn small" id="p-first" title="Première page (Début)">⏮</button><button class="btn small" id="p-prev" title="Page précédente (←)">◀</button><div class="mid"><span id="p-lab">—</span><input id="p-num" type="text" inputmode="numeric" aria-label="Numéro de page"><small id="p-cnt"></small></div><button class="btn small" id="p-next" title="Page suivante (→)">▶</button><button class="btn small" id="p-last" title="Dernière page (Fin)">⏭</button><button class="btn small hide" id="p-tab" title="Aller au tableau des prix">Tableau des prix</button><button class="btn small" id="p-spread" title="Voir les pages côte à côte, comme dans le livret imprimé">Planches</button></div>
       <div id="cellpop" class="hide"></div>
       <div id="spreads"></div>
+      <div class="kbdhelp" id="kbdhelp"><span><span class="kbd">←</span> <span class="kbd">→</span> changer de page</span><span><span class="kbd">Début</span> <span class="kbd">Fin</span> première / dernière</span><span><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> annuler</span></div>
       <div class="pcenter"><div class="pwrap" id="pwrap"><img id="pimg" alt="Aperçu de la page"><div id="phot"></div></div></div>
-      <div class="hint" id="p-hint">Clique sur un livre pour le modifier, ou sur une case du tableau des prix. Flèches ← → Début Fin pour naviguer.</div>
+      <div class="hint" id="p-hint">Clique sur un livre pour le modifier, ou sur une case du tableau des prix.</div>
     </div>
   </div>
 </main>
@@ -339,7 +399,9 @@
 
 <div class="modal hide" id="m-set"><div class="mbox">
   <div class="mhead"><h3>Réglages</h3><button class="xbtn" id="ms-x">✕</button></div>
+  <div class="tabs" id="set-tabs" role="tablist"><button type="button" role="tab" data-tab="src" class="on">Sources</button><button type="button" role="tab" data-tab="ia">IA</button><button type="button" role="tab" data-tab="cat">Catalogue</button><button type="button" role="tab" data-tab="dos">Dossiers</button></div>
   <div class="mbody">
+  <div class="stab" data-tab="src">
     <label style="margin-top:0">Clé Google Books <small>— pour les résumés, les dates exactes et les couvertures</small></label>
     <input type="password" id="s-key" placeholder="Colle ta clé ici" autocomplete="off">
     <div class="hint" id="s-keyhint"></div>
@@ -347,17 +409,25 @@
       <ol class="steps"><li>Va sur <b>console.cloud.google.com</b> avec un compte Google et crée un projet.</li>
         <li>« API et services » → « Bibliothèque » → cherche <b>Books API</b> → Activer.</li>
         <li>« Identifiants » → « Créer des identifiants » → « Clé API », puis copie-la ici.</li></ol></details>
+    <label>Longueur maximale des résumés <small>(caractères)</small></label>
+    <input type="number" id="s-max" min="150" max="1500" step="10" style="max-width:140px">
+    <label>Maintenance</label>
+    <div class="maint"><button class="btn small" id="s-upd">Vérifier les mises à jour</button><button class="btn small" id="s-refetch">Tout rechercher à nouveau</button><button class="btn small" id="s-okcov">Valider toutes les couvertures</button></div>
+  </div>
+  <div class="stab hide" data-tab="ia">
     <label>Clé Claude <small>— pour écrire les descriptions des livres sans résumé (facultatif)</small></label>
     <input type="password" id="s-ckey" placeholder="Colle ta clé ici (commence par sk-ant-…)" autocomplete="off">
     <div class="hint" id="s-ckeyhint"></div>
-    <label>Consommation de l'IA <small>— estimation calculée sur cet ordinateur, la console Anthropic fait foi</small></label>
-    <div class="note" id="s-usage" style="margin:0">…</div>
-    <label>Crédit acheté ($) <small>— facultatif : permet d'afficher le reste estimé. Montants en dollars, comme sur la console Anthropic.</small></label>
-    <input type="text" id="s-credit" placeholder="ex. 5" inputmode="decimal">
     <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--muted);font-size:13px">Comment obtenir la clé (quelques centimes par catalogue)</summary>
       <ol class="steps"><li>Va sur <b>console.anthropic.com</b> et connecte-toi (compte distinct de claude.ai).</li>
         <li><b>Settings → Billing</b> : achète du crédit (5 $ suffisent pour des années).</li>
         <li><b>Settings → API Keys → Create Key</b> : copie la clé tout de suite (elle ne s'affiche qu'une fois) et colle-la ici.</li></ol></details>
+    <label>Consommation de l'IA <small>— estimation calculée sur cet ordinateur, la console Anthropic fait foi</small></label>
+    <div class="note" id="s-usage" style="margin:0">…</div>
+    <label>Crédit acheté ($) <small>— facultatif : permet d'afficher le reste estimé. Montants en dollars, comme sur la console Anthropic.</small></label>
+    <input type="text" id="s-credit" placeholder="ex. 5" inputmode="decimal">
+  </div>
+  <div class="stab hide" data-tab="cat">
     <label>Taux Ariary <small>— 1 € = … Ar, pour le tableau des prix</small></label>
     <div class="row2"><input type="text" id="s-taux" style="max-width:140px"><select id="s-arr" style="max-width:220px"><option value="1">arrondi : à l'Ariary</option><option value="10">arrondi : à 10 Ar</option><option value="100">arrondi : à 100 Ar</option><option value="500">arrondi : à 500 Ar</option></select></div>
     <label class="chk"><input type="checkbox" id="s-incl"> Ajouter le tableau des prix à la fin du catalogue</label>
@@ -367,14 +437,13 @@
     <label>Texte des conditions de vente</label>
     <textarea id="s-cond" rows="7"></textarea>
     <div class="maint"><button class="btn small" id="s-condreset">Remettre le texte d'origine</button></div>
-    <label>Maintenance</label>
-    <div class="maint"><button class="btn small" id="s-upd">Vérifier les mises à jour</button><button class="btn small" id="s-refetch">Tout rechercher à nouveau</button><button class="btn small" id="s-okcov">Valider toutes les couvertures</button></div>
+  </div>
+  <div class="stab hide" data-tab="dos">
     <label>Dossier où créer les catalogues</label>
     <div class="row2"><input type="text" id="s-out"><button class="btn small" id="s-browse1">Parcourir…</button></div>
     <label>Dossier des couvertures <small>— tes images nommées avec l'ISBN (ex. 9782100870165.jpg) y sont reprises automatiquement</small></label>
     <div class="row2"><input type="text" id="s-cov"><button class="btn small" id="s-browse2">Parcourir…</button><button class="btn small" id="s-opencov">Ouvrir</button></div>
-    <label>Longueur maximale des résumés <small>(caractères)</small></label>
-    <input type="number" id="s-max" min="150" max="1500" step="10" style="max-width:140px">
+  </div>
   </div>
   <div class="mfoot"><button class="btn" id="ms-cancel">Annuler</button><button class="btn primary" id="ms-ok">Enregistrer</button></div>
 </div></div>
@@ -477,6 +546,11 @@ function openReport(errMsg){
   show("m-report"); $("rp-desc").focus();
 }
 $("b-report").onclick = () => openReport("");
+function menuOpen(on){ $("menu").classList.toggle("hide", !on); $("b-menu").setAttribute("aria-expanded", on ? "true" : "false"); }
+$("b-menu").onclick = e => { e.stopPropagation(); menuOpen($("menu").classList.contains("hide")); };
+$("menu").addEventListener("click", e => { if (e.target.closest("button")) menuOpen(false); });
+document.addEventListener("click", e => { if (!e.target.closest(".menuwrap")) menuOpen(false); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("menu").classList.contains("hide")) { menuOpen(false); $("b-menu").focus(); e.stopPropagation(); } }, true);
 function saveDest(){
   const to = $("rp-to").value.trim(), num = $("rp-num").value.trim();
   S.settings.support_email = to; S.settings.support_whatsapp = num;
@@ -554,15 +628,16 @@ function setState(st){
 const SRC = {google: "Google", bnf: "BnF", abebooks: "AbeBooks", amazon: "Amazon", openlibrary: "Open Library", web: "Internet"};
 const ILLS = [["", "(aucune)"], ["illustrations en noir et blanc", "en noir et blanc"], ["illustrations en couleur", "en couleur"], ["illustrations en noir et en couleur", "noir et couleur"]];
 function coverStyle(b){ return b.has_cover ? `style="background-image:url('/api/cover?isbn=${b.isbn}&t=${TOKEN}&v=${covRev[b.isbn] || 0}')"` : ""; }
+const STAT_LAB = {vert: "Complet", orange: "À compléter", rouge: "Introuvable", gris: "Pas encore cherché"};
+function shortWhy(t){ return String(t || "").replace(/^manque\s*:\s*/i, "manque : "); }
 function headHTML(b){
   const authors = (b.auteurs || []).join(" · ");
   return `<input type="checkbox" class="chk-b" data-isbn="${esc(b.isbn)}" ${chosen.has(b.isbn) ? "checked" : ""} title="Cocher pour donner une rubrique à plusieurs livres">
     <div class="thumb" ${coverStyle(b)}>${b.has_cover ? "" : "sans couv."}</div>
     <div class="cinfo"><div class="ctitle">${esc(b.titre || "(titre à saisir)")}</div>
       <div class="csub">${esc(b.isbn)}${authors ? " · " + esc(authors) : ""}</div>
-      <div class="cstat ${b.statut}"><span class="dot ${b.statut}"></span>${esc(b.statut_txt)}</div>
-      ${(b.infos || []).length ? `<div class="cinfo2">ℹ ${esc(b.infos.join(" · "))}</div>` : ""}
-      ${b.alerte ? `<div class="calert">⚠ ${esc(b.alerte)} (Dilicom)</div>` : ""}</div>
+      <div class="cstat ${b.statut}"><span class="pill"><span class="dot ${b.statut}"></span>${esc(STAT_LAB[b.statut] || b.statut)}</span>${b.statut_txt && b.statut !== "vert" ? `<span class="why" title="${esc(b.statut_txt)}">${esc(shortWhy(b.statut_txt))}</span>` : ""}</div>
+      ${b.alerte ? `<span class="cflag" title="Information Dilicom">⚠ ${esc(b.alerte)}</span>` : ""}</div>
     <div class="cbtns"><span class="grip" draggable="true" title="Glisser pour déplacer le livre">⠿</span><button data-act="up" title="Monter">▲</button><button data-act="down" title="Descendre">▼</button><button data-act="del" title="Retirer du catalogue">✕</button></div>`;
 }
 function bodyHTML(b){
@@ -596,6 +671,7 @@ function bodyHTML(b){
     <div class="grid3"><div><label>Pages</label><input type="text" data-f="pages" value="${esc(b.pages)}" placeholder="XII-369"></div>
       <div><label>Dimensions</label><input type="text" data-f="dimensions" value="${esc(b.dimensions)}" placeholder="24 x 17 cm"></div>
       <div><label>Illustrations</label><select data-f="illustrations">${ill}</select></div></div>
+    ${(b.infos || []).length ? `<div class="infos">ℹ ${esc(b.infos.join(" · "))}</div>` : ""}
     ${(b.errors || []).length ? `<div class="hint" style="color:var(--warn);margin-top:8px">⚠ ${esc(b.errors.join(" · "))}</div>` : ""}
     <div style="margin-top:10px;display:flex;gap:8px"><button class="btn small" data-act="refetch">Chercher à nouveau les infos</button></div>`;
 }
@@ -632,7 +708,22 @@ function renderAll(){
   $("b-fetch").textContent = todo ? `Récupérer les infos (${todo})` : "Récupérer les infos";
   const ok = S.books.filter(b => b.statut === "vert").length, to = S.books.filter(b => b.statut === "orange").length, bad = S.books.filter(b => b.statut === "rouge").length;
   $("list-title").textContent = `${n} livre${n > 1 ? "s" : ""}` + (n && todo === 0 ? ` — ${ok} complet${ok > 1 ? "s" : ""}, ${to} à compléter${bad ? ", " + bad + " introuvable" + (bad > 1 ? "s" : "") : ""}` : "");
-  renderNotes(); renderList(); schedulePreview();
+  renderNotes(); renderNext(); renderList(); schedulePreview();
+}
+function renderNext(){
+  const box = $("next"), n = S.books.length;
+  if (!n || (step !== 1 && step !== 2) || !$("progress").classList.contains("hide")) { box.classList.add("hide"); return; }
+  const todo = S.books.filter(b => !b.fetched).length, np = S.books.filter(b => b.prix == null || b.prix === "").length;
+  const nr = S.books.filter(b => b.titre && !b.resume).length, canAI = !!S.settings.claude_key_set;
+  let t, d, label, act, done = false;
+  if (step === 2) { t = "Mise en page"; d = "Vérifie l'aperçu à droite, puis passe à la génération."; label = "Générer le catalogue →"; act = () => setStep(3); }
+  else if (todo) { t = `${todo} livre${todo > 1 ? "s" : ""} à rechercher`; d = "Titres, auteurs, résumés et couvertures sont trouvés automatiquement."; label = "Récupérer les infos"; act = () => $("b-fetch").click(); }
+  else if (np) { t = `${np} livre${np > 1 ? "s" : ""} sans prix`; d = "Le prix public est nécessaire pour le tableau des prix."; label = "Saisir les prix"; act = openPrix; }
+  else if (nr && canAI) { t = `${nr} livre${nr > 1 ? "s" : ""} sans résumé`; d = "L'IA peut les rédiger ; tu les relis ensuite."; label = "Écrire les descriptions"; act = () => $("b-ai").click(); }
+  else { done = true; t = "Les livres sont prêts"; d = "Passe à la mise en page : pages du catalogue, couleur, citation, aperçu."; label = "Mise en page →"; act = () => setStep(2); }
+  box.className = "next" + (done ? " done" : "");
+  box.innerHTML = `<div class="nt"><b>${esc(t)}</b><span>${esc(d)}</span></div><button class="btn primary" id="nx-go">${esc(label)}</button>`;
+  $("nx-go").onclick = act;
 }
 function openPrix(){
   const box = $("mp-list"); box.innerHTML = "";
@@ -656,7 +747,7 @@ function monthYear(){ const m = ["janvier","février","mars","avril","mai","juin
 function renderNotes(){
   const box = $("notes"); box.innerHTML = "";
   const np = S.books.filter(b => b.prix == null || b.prix === "").length;
-  if (np) {
+  if (np && step !== 1) {
     const d = document.createElement("div"); d.className = "note warn";
     d.innerHTML = `${np} livre${np > 1 ? "s" : ""} sans prix. <a href="#" id="n-prix">Saisir les prix</a>`; box.appendChild(d);
     $("n-prix").onclick = e => { e.preventDefault(); openPrix(); };
@@ -705,7 +796,7 @@ function selectBook(isbn, fromList, noJump){
 function bump(b, force){ covRev[b.isbn] = (covRev[b.isbn] || 0) + 1; mergeBook(b); replaceCard(byIsbn(b.isbn), true); renderAllLight(); schedulePreview(); }
 function mergeBook(nb){ const i = S.books.findIndex(x => x.isbn === nb.isbn); if (i >= 0) S.books[i] = nb; }
 function renderAllLight(){ const todo = S.books.filter(b => !b.fetched).length; $("b-fetch").textContent = todo ? `Récupérer les infos (${todo})` : "Récupérer les infos";
-  const nr = S.books.filter(b => b.titre && !b.resume).length; $("b-ai").textContent = nr ? `Écrire les descriptions (${nr})` : "Écrire les descriptions"; }
+  const nr = S.books.filter(b => b.titre && !b.resume).length; $("b-ai").textContent = nr ? `Écrire les descriptions (${nr})` : "Écrire les descriptions"; renderNext(); }
 
 // saisie dans les champs
 let saveT = {};
@@ -961,6 +1052,7 @@ function setStep(n){
   document.querySelectorAll("#steps button").forEach(b => b.classList.toggle("on", +b.dataset.step === n));
   $("listwrap").classList.toggle("hide", n !== 1 || !S.books.length); $("structure").classList.toggle("hide", n !== 2 || !S.books.length);
   if (n === 2) renderStruct();
+  renderNotes(); renderNext();
 }
 document.querySelectorAll("#steps button").forEach(b => b.onclick = () => setStep(+b.dataset.step));
 // ------------------------------------------------------------ citation de la 4e de couverture
@@ -1142,6 +1234,7 @@ function openSettings(){
   $("s-out").value = s.out_dir || ""; $("s-cov").value = s.covers_dir || ""; $("s-max").value = s.resume_max || 420;
   $("s-credit").value = s.ia_credit === "" || s.ia_credit == null ? "" : String(s.ia_credit).replace(".", ",");
   refreshUsage();
+  setTab("src");
   show("m-set");
 }
 const usd = c => c < 0.005 ? "moins de 0,01 $" : c.toFixed(2).replace(".", ",") + " $";
@@ -1154,6 +1247,11 @@ async function refreshUsage(){
   } catch (e) { $("s-usage").textContent = "Indisponible pour le moment."; }
 }
 $("b-set").onclick = openSettings;
+function setTab(k){
+  document.querySelectorAll("#set-tabs button").forEach(b => { const on = b.dataset.tab === k; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
+  document.querySelectorAll("#m-set .stab").forEach(d => d.classList.toggle("hide", d.dataset.tab !== k));
+}
+$("set-tabs").addEventListener("click", e => { const b = e.target.closest("button[data-tab]"); if (b) setTab(b.dataset.tab); });
 $("ms-x").onclick = $("ms-cancel").onclick = () => hide("m-set");
 $("s-condreset").onclick = () => { $("s-cond").value = S.settings.conditions_defaut || ""; };
 $("s-browse1").onclick = async () => { const r = await api("/api/browse", {initial: $("s-out").value}); if (r.path) $("s-out").value = r.path; };
@@ -1173,7 +1271,7 @@ async function confirmAllCovers(){
 $("ms-ok").onclick = async () => {
   try {
     const r = await api("/api/settings", {google_key: $("s-key").value, claude_key: $("s-ckey").value, taux: $("s-taux").value, arrondi: +$("s-arr").value, inclure_prix: $("s-incl").checked, p_garde: $("s-pg").checked, p_cond: $("s-pc").checked, p_proforma: $("s-pp").checked, p_dos: $("s-pd").checked, p_multi4: $("s-m4").checked, conditions_texte: $("s-cond").value, out_dir: $("s-out").value, covers_dir: $("s-cov").value, resume_max: +$("s-max").value || 420, ia_credit: $("s-credit").value});
-    S.settings = r.settings; hide("m-set"); renderNotes(); schedulePreview(); toast("✓ Réglages enregistrés");
+    S.settings = r.settings; hide("m-set"); renderNotes(); renderNext(); schedulePreview(); toast("✓ Réglages enregistrés");
   } catch (e) { toast(e.message); }
 };
 
