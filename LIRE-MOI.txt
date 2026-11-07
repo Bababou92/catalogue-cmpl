@@ -80,3 +80,6 @@ Quand tu as vu toutes les citations, un bouton IA apparait : un clic = une seule
 
 Theme sombre : interrupteur soleil/lune en haut. Signaler un probleme : bouton drapeau en haut (ou dans le bandeau rouge si une erreur survient) : cree un petit rapport a envoyer par Gmail ou WhatsApp.
 Sans internet : un bandeau rouge apparait en haut. La recherche des livres, l'IA, les citations IA, les mises a jour et l'envoi du rapport sont alors impossibles ; modifier, l'apercu et la generation fonctionnent toujours.
+
+Connexion instable (v0.11.0) : si internet est coupe pendant la recherche ou l'ecriture des descriptions, le programme reessaie, se met en pause puis reprend tout seul au retour du reseau. Aucun livre n'est marque "introuvable" a cause d'une coupure et rien n'est ecrase. A la fin, un resume liste les livres qui restent a traiter.
+Consommation de l'IA (v0.11.0) : dans Reglages, une ligne indique le nombre d'appels du mois et le cout estime en dollars (Haiku : environ 0,10 $ par million de jetons en entree et 0,50 $ en sortie). C'est une estimation faite sur ce PC : la console Anthropic fait foi. Le champ facultatif "Credit achete" affiche le reste estime. Aucune limite n'est imposee ; une estimation s'affiche avant d'ecrire un lot de 5 descriptions ou plus.

@@ -6,6 +6,8 @@ import io
 import json
 import os
 import re
+import socket
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -22,10 +24,34 @@ class SourceError(Exception):
     pass
 
 
+class NetworkError(SourceError):
+    """Connexion absente, coupée ou trop lente (différent d'un livre réellement introuvable)."""
+
+
 def http_get(url, timeout=25):
     req = urllib.request.Request(url, headers=UA)
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read()
+
+
+RETRY_DELAYS = (1.5, 4.0)          # nouvelles tentatives après une coupure ou un serveur occupé (secondes)
+
+
+def get_retry(url, timeout=25):
+    """http_get avec nouvelles tentatives. Une coupure persistante lève NetworkError (jamais interprétée comme « introuvable »)."""
+    for i in range(len(RETRY_DELAYS) + 1):
+        try:
+            return http_get(url, timeout)
+        except urllib.error.HTTPError as e:
+            if e.code in (502, 503, 504) and i < len(RETRY_DELAYS):
+                time.sleep(RETRY_DELAYS[i])
+                continue
+            raise
+        except (urllib.error.URLError, socket.timeout, TimeoutError, ConnectionError) as e:
+            if i < len(RETRY_DELAYS):
+                time.sleep(RETRY_DELAYS[i])
+                continue
+            raise NetworkError("connexion impossible ou trop lente") from e
 
 
 # ---------------------------------------------------------------- accès brut
@@ -35,7 +61,7 @@ def google_raw(isbn, key):
     url = ("https://www.googleapis.com/books/v1/volumes?q=isbn:%s&maxResults=1&key=%s"
            % (isbn, urllib.parse.quote(key)))
     try:
-        j = json.loads(http_get(url).decode("utf-8", "replace"))
+        j = json.loads(get_retry(url).decode("utf-8", "replace"))
     except urllib.error.HTTPError as e:
         if e.code == 429:
             raise SourceError("Google Books : quota du jour atteint, réessaie plus tard")
@@ -60,7 +86,7 @@ def bnf_raw(isbn):
     url = ("https://catalogue.bnf.fr/api/SRU?version=1.2&operation=searchRetrieve&query=%s"
            "&recordSchema=dublincore&maximumRecords=1" % q)
     try:
-        root = ET.fromstring(http_get(url))
+        root = ET.fromstring(get_retry(url))
     except urllib.error.HTTPError as e:
         raise SourceError(f"BnF : erreur HTTP {e.code}")
     recs = [e for e in root.iter() if e.tag.endswith("}dc") or e.tag == "dc"]
@@ -86,9 +112,12 @@ def fetch_raw(isbn, key, use_cache=True):
     for name, fn in (("google", lambda: google_raw(isbn, key)), ("bnf", lambda: bnf_raw(isbn))):
         try:
             raw[name] = fn()
+        except NetworkError:
+            raw["net_error"] = True                 # connexion perdue : le livre sera retenté, jamais marqué « introuvable »
+            raw["errors"].append(f"{'Google Books' if name == 'google' else 'BnF'} : connexion perdue")
         except SourceError as e:
             raw["errors"].append(str(e))
-        except Exception as e:                      # réseau coupé, XML illisible…
+        except Exception as e:                      # XML illisible…
             errlog.record(f"source {name} {isbn}", e)
             raw["errors"].append(f"{'Google Books' if name == 'google' else 'BnF'} : {type(e).__name__}")
     if not raw["errors"]:                           # on ne garde en cache que les réponses sans erreur

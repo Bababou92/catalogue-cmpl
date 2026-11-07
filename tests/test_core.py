@@ -251,3 +251,88 @@ assert _n == _ci.AI_PER_DAY - 1 and len(_calls) == _ci.AI_PER_DAY, (_n, len(_cal
 try: _ci.fetch_ai({"citation_tour": "1"}, ""); assert False
 except _ai.AIError: pass
 print("OK tableaux tournes / citations")
+
+# connexion : nouvelles tentatives, pause / reprise, jamais de faux « introuvable »
+import threading as _th, time as _time, types as _types, urllib.error as _ue
+from catalogue import net as _net, usage as _us
+_real_get, _real_online = sources.http_get, _net.online
+sources.RETRY_DELAYS = (0, 0)
+catalog.NET_POLL = 0.02
+_state = {"down": True, "calls": 0}
+def _flaky(url, timeout=25):
+    _state["calls"] += 1
+    if _state["down"]:
+        raise _ue.URLError("pas de réseau")
+    return fakenet.http_get(url, timeout)
+sources.http_get = _flaky
+_net.online = lambda force=False: not _state["down"]
+# 1) coupure persistante : net_error, rien en cache, 3 essais par source
+_raw = sources.fetch_raw("9782100870165", "K", use_cache=False)
+assert _raw.get("net_error") and _raw["google"] is None and _raw["bnf"] is None and store.cache_get("9782100870165") is None
+assert _state["calls"] == 6, _state["calls"]                           # (1 essai + 2 nouvelles tentatives) x 2 sources
+# 2) coupure puis retour : le travail se met en pause puis reprend seul, tous les livres sont traités
+def _mk(i, **kw):
+    x = catalog.new_book(i); x.update(kw); return x
+_bk = {i: _mk(i) for i in ("9782100870165", "9782200611545", "9782100865420")}
+def _get(i): return dict(_bk[i], edited=list(_bk[i]["edited"]))
+def _set(nb, ia=False): _bk[nb["isbn"]].update(nb)
+_job = catalog.FetchJob(list(_bk), dict(ST, google_key="K", covers_dir=COV))
+_seen_wait = []
+def _watch():
+    while _job.running:
+        if _job.waiting: _seen_wait.append(_job.message); _time.sleep(0.15); _state["down"] = False
+        _time.sleep(0.01)
+_th.Thread(target=_watch, daemon=True).start()
+catalog.run_fetch(_job, _get, _set)
+assert _seen_wait and "Connexion perdue" in _seen_wait[0] and not _job.pending and _job.done == 3
+assert all(x["fetched"] and x["titre"] for x in _bk.values()), [x["titre"] for x in _bk.values()]
+# 3) coupure trop longue : on abandonne proprement, les livres restent « pas encore récupérés » et les données existantes sont intactes
+_state["down"] = True; catalog.NET_WAIT_MAX = 0.1
+_bk2 = {"9782100870165": _mk("9782100870165", titre="Titre saisi", auteurs=["Moi, Même"], fetched=True), "9782200611545": _mk("9782200611545")}
+_job2 = catalog.FetchJob(list(_bk2), dict(ST, google_key="K", covers_dir=COV))
+def _get2(i): return dict(_bk2[i], edited=list(_bk2[i]["edited"]))
+def _set2(nb, ia=False): _bk2[nb["isbn"]].update(nb)
+catalog.run_fetch(_job2, _get2, _set2, force=True)
+assert _job2.pending == list(_bk2) and not _job2.running and not _job2.waiting
+assert _bk2["9782100870165"]["titre"] == "Titre saisi" and _bk2["9782200611545"]["fetched"] is False
+assert catalog.status(_bk2["9782200611545"])[0] == "gris"            # pas « introuvable »
+# 4) internet revenu mais service injoignable : après 3 pauses le livre est laissé en attente, les suivants continuent
+catalog.NET_WAIT_MAX = 5.0; _net.online = lambda force=False: True
+_state["down"] = True
+_job3 = catalog.FetchJob(["9782100870165"], dict(ST, google_key="K", covers_dir=COV)); _bk3 = {"9782100870165": _mk("9782100870165")}
+catalog.run_fetch(_job3, lambda i: dict(_bk3[i], edited=[]), lambda nb, ia=False: _bk3[nb["isbn"]].update(nb), force=True)
+assert _job3.pending == ["9782100870165"] and _job3.done == 1 and _bk3["9782100870165"]["fetched"] is False, (_job3.pending, _job3.done, _bk3["9782100870165"]["fetched"], _job3.errors)
+# 5) IA : coupure puis retour
+from catalogue import ai as _ai
+_ai.time = _types.SimpleNamespace(sleep=lambda s: None)
+_ai_state = {"down": True, "n": 0}
+def _fake_ai(key, model, prompt, max_tokens=1500):
+    _ai_state["n"] += 1
+    if _ai_state["down"]: raise _ue.URLError("hors ligne")
+    return {"content": [{"type": "text", "text": "Présentation claire de l'ouvrage, de son contenu et de son public, avec des exemples et des exercices."}], "usage": {"input_tokens": 1000, "output_tokens": 500}}
+_ai._post = _fake_ai
+try: _ai.describe({"titre": "X"}, "K"); assert False
+except _ai.AINetworkError: pass
+assert _ai_state["n"] == 3                                             # trois essais, l'autre modèle n'est pas tenté
+_net.online = lambda force=False: not _ai_state["down"]; catalog.NET_WAIT_MAX = 5.0
+_bk4 = {"9782100870165": _mk("9782100870165", titre="Un livre", fetched=True)}
+_job4 = catalog.FetchJob(list(_bk4), dict(ST, claude_key="K")); _job4.kind = "ai"
+def _w4():
+    while _job4.running:
+        if _job4.waiting: _time.sleep(0.1); _ai_state["down"] = False
+        _time.sleep(0.01)
+_th.Thread(target=_w4, daemon=True).start()
+catalog.run_ai(_job4, lambda i: dict(_bk4[i], edited=list(_bk4[i]["edited"])), lambda nb, ia=False: _bk4[nb["isbn"]].update(resume=nb["resume"], resume_ia=True))
+assert _bk4["9782100870165"]["resume"].startswith("Présentation") and not _job4.pending
+sources.http_get, _net.online = _real_get, _real_online
+sources.http_get = fakenet.http_get
+# consommation IA
+_us_before = _us.summary()["total"]["calls"]
+_us.record("descriptions", "claude-haiku-5-5", {"input_tokens": 1000, "output_tokens": 500})
+_us.record("citations", "claude-sonnet-5-5", {"input_tokens": 1000, "output_tokens": 500})
+_us.record("descriptions", "claude-haiku-5-5", None); _us.record("descriptions", "claude-haiku-5-5", {})
+_sm = _us.summary(); assert _sm["total"]["calls"] - _us_before == 2 and _sm["mois"]["calls"] >= 2
+assert abs(_us.cost_of("claude-haiku-5-5", 1000, 500) - 0.00035) < 1e-9 and abs(_us.cost_of("claude-sonnet-5-5", 1000, 500) - 0.007) < 1e-9
+assert _us.estimate("descriptions", 35) > 0 and _us.estimate("descriptions", 0) == 0
+assert _sm["total"]["cost"] >= 0.00735 - 1e-9
+print("OK connexion / consommation IA")

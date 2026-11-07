@@ -7,7 +7,7 @@ import time
 import urllib.error
 import urllib.request
 
-from . import sources
+from . import sources, usage
 
 API = "https://api.anthropic.com/v1/messages"
 MODELS = ("claude-haiku-5-5", "claude-sonnet-5-5")          # Haiku suffit largement ; Sonnet sert de secours si le 1er est refusé
@@ -37,6 +37,10 @@ SYSTEM = (
 
 class AIError(Exception):
     pass
+
+
+class AINetworkError(AIError):
+    """Connexion absente ou coupée pendant l'appel à Claude."""
 
 
 def build_prompt(book, max_chars):
@@ -82,10 +86,13 @@ def describe(book, key, max_chars=420, model=None):
     prompt = build_prompt(book, max_chars)
     models = [model] + [m for m in MODELS if m != model] if model else list(MODELS)
     last = ""
+    netfail = 0
     for m in models:
         for attempt in range(3):
             try:
                 j = _post(key, m, prompt)
+                netfail = 0
+                usage.record("descriptions", m, j.get("usage"))
                 txt = "".join(c.get("text", "") for c in j.get("content", []) if c.get("type") == "text").strip()
                 txt = re.sub(r"^[\"«»\s]+|[\"«»\s]+$", "", txt)
                 if j.get("stop_reason") == "max_tokens":          # réponse coupée : on ne l'enregistre jamais
@@ -97,6 +104,7 @@ def describe(book, key, max_chars=420, model=None):
                     continue
                 return txt
             except urllib.error.HTTPError as e:
+                netfail = 0
                 msg = _error_text(e)
                 if e.code == 401:
                     raise AIError("clé Claude refusée (vérifie-la dans les Réglages)")
@@ -112,9 +120,13 @@ def describe(book, key, max_chars=420, model=None):
                 raise AIError(f"Claude : {msg or 'erreur ' + str(e.code)}")
             except AIError:
                 raise
-            except Exception as e:
+            except OSError as e:                                     # coupure, délai dépassé, DNS…
                 last = "connexion impossible : " + str(e)
+                netfail += 1
                 time.sleep(1.5)
-        else:
-            continue
+            except Exception as e:                                   # réponse illisible
+                last = "réponse illisible : " + str(e)
+                time.sleep(1.5)
+        if netfail >= 3:                                      # trois coupures de suite : inutile d'essayer l'autre modèle
+            raise AINetworkError(last)
     raise AIError(last or "échec de la génération")

@@ -17,7 +17,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from PIL import Image
 
-from . import ai as ailib, citations, fixed as fixedlib, catalog, prix as prixlib, errlog, importer, isbn as isbnlib, pages as pagelib, libs, net, render_pdf, report, render_pptx, render_png, sources, store, updater, version
+from . import ai as ailib, citations, fixed as fixedlib, catalog, prix as prixlib, errlog, importer, isbn as isbnlib, pages as pagelib, libs, net, render_pdf, report, usage, render_pptx, render_png, sources, store, updater, version
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 APP_ID = "cmpl-catalogue"
@@ -796,7 +796,8 @@ class Handler(BaseHTTPRequestHandler):
                 with LOCK:
                     upd = [catalog.public(find(i)) for i in j.updated[since:] if find(i)]
                 return self._send(200, {"running": j.running, "done": j.done, "total": len(j.isbns), "updated": upd,
-                                        "next": len(j.updated), "kind": j.kind, "errors": list(j.errors)})
+                                        "next": len(j.updated), "kind": j.kind, "errors": list(j.errors),
+                                        "waiting": bool(j.waiting), "message": j.message, "pending": len(j.pending)})
             if path == "/api/fetch/cancel":
                 if JOB["job"]:
                     JOB["job"].cancel = True
@@ -863,6 +864,15 @@ class Handler(BaseHTTPRequestHandler):
                     CAT["meta"].update({k: str(v) for k, v in b.items() if k in ("titre", "date", "indicatif", "selection", "garde_titre", "garde_date", "garde_acc", "garde_couleur")})
                     save()
                 return self._send(200, {})
+            if path == "/api/usage":
+                out = usage.summary()
+                try:
+                    n = max(0, int(b.get("n") or 0))
+                except (TypeError, ValueError):
+                    n = 0
+                out["estimation"] = usage.estimate("descriptions", n) if n else 0.0
+                out["credit"] = store.load_settings().get("ia_credit") or ""
+                return self._send(200, out)
             if path == "/api/net":
                 return self._send(200, {"online": net.online(bool(b.get("force")))})
             if path == "/api/report/text":
@@ -978,6 +988,14 @@ class Handler(BaseHTTPRequestHandler):
                 for k in ("inclure_prix", "p_garde", "p_cond", "p_proforma", "p_dos", "p_multi4"):
                     if k in patch:
                         patch[k] = bool(patch[k])
+                if "ia_credit" in patch:
+                    txt = str(patch["ia_credit"] or "").strip().replace(",", ".").replace("$", "").replace("€", "").strip()
+                    try:
+                        patch["ia_credit"] = round(float(txt), 2) if txt else ""
+                        if patch["ia_credit"] != "" and not 0 <= patch["ia_credit"] < 100000:
+                            raise ValueError
+                    except ValueError:
+                        return self._send(400, {"error": "Le crédit doit être un nombre positif (ex. 5)."})
                 if "conditions_texte" in patch:
                     patch["conditions_texte"] = str(patch["conditions_texte"] or "").strip()
                     if patch["conditions_texte"] == fixedlib.CONDITIONS.strip():
