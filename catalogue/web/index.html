@@ -460,6 +460,10 @@
         <li><b>Settings → Billing</b> : achète du crédit (5 $ suffisent pour des années).</li>
         <li><b>Settings → API Keys → Create Key</b> : copie la clé tout de suite (elle ne s'affiche qu'une fois) et colle-la ici.</li></ol></details>
     </div>
+    <div class="fgroup"><h4>Réflexion du modèle</h4>
+    <label style="margin-top:12px">Avant d'écrire, le modèle peut « réfléchir »</label>
+    <select id="s-refl"><option value="on">Activée — qualité maximale (recommandé)</option><option value="off">Désactivée — environ 3 fois moins cher</option></select>
+    <div class="hint">Une description coûte environ 0,0006 $ avec la réflexion, 0,0002 $ sans (35 livres : environ 2 centimes contre 0,7 centime). Pour comparer, écris quelques résumés dans chaque mode.</div></div>
     <div class="fgroup"><h4>Consommation</h4>
     <label style="margin-top:12px">Estimation faite sur cet ordinateur <small>— la console Anthropic fait foi</small></label>
     <div class="note" id="s-usage" style="margin:0">…</div>
@@ -1275,6 +1279,7 @@ function openSettings(){
   $("s-pg").checked = s.p_garde !== false; $("s-pc").checked = s.p_cond !== false; $("s-pp").checked = s.p_proforma !== false; $("s-pd").checked = s.p_dos !== false; $("s-m4").checked = s.p_multi4 !== false;
   $("s-cond").value = s.conditions_texte || s.conditions_defaut || "";
   $("s-out").value = s.out_dir || ""; $("s-cov").value = s.covers_dir || ""; $("s-max").value = s.resume_max || 420;
+  $("s-refl").value = s.ia_reflexion === "off" ? "off" : "on";
   $("s-credit").value = s.ia_credit === "" || s.ia_credit == null ? "" : String(s.ia_credit).replace(".", ",");
   refreshUsage();
   setTab("src");
@@ -1314,7 +1319,7 @@ async function confirmAllCovers(){
 }
 $("ms-ok").onclick = async () => {
   try {
-    const r = await api("/api/settings", {google_key: $("s-key").value, claude_key: $("s-ckey").value, taux: $("s-taux").value, arrondi: +$("s-arr").value, inclure_prix: $("s-incl").checked, p_garde: $("s-pg").checked, p_cond: $("s-pc").checked, p_proforma: $("s-pp").checked, p_dos: $("s-pd").checked, p_multi4: $("s-m4").checked, conditions_texte: $("s-cond").value, out_dir: $("s-out").value, covers_dir: $("s-cov").value, resume_max: +$("s-max").value || 420, ia_credit: $("s-credit").value});
+    const r = await api("/api/settings", {google_key: $("s-key").value, claude_key: $("s-ckey").value, taux: $("s-taux").value, arrondi: +$("s-arr").value, inclure_prix: $("s-incl").checked, p_garde: $("s-pg").checked, p_cond: $("s-pc").checked, p_proforma: $("s-pp").checked, p_dos: $("s-pd").checked, p_multi4: $("s-m4").checked, conditions_texte: $("s-cond").value, out_dir: $("s-out").value, covers_dir: $("s-cov").value, resume_max: +$("s-max").value || 420, ia_credit: $("s-credit").value, ia_reflexion: $("s-refl").value});
     S.settings = r.settings; hide("m-set"); renderNotes(); renderNext(); schedulePreview(); toast("✓ Réglages enregistrés");
   } catch (e) { toast(e.message); }
 };

@@ -13,7 +13,8 @@ from . import store
 RATES = {"claude-haiku-5-5": (0.10, 0.50), "claude-sonnet-5-5": (2.00, 10.00)}
 DEFAULT_RATE = (2.00, 10.00)                       # modèle inconnu : on prend le tarif le plus haut (estimation prudente)
 # consommation moyenne d'un appel tant qu'on n'a pas d'historique : (jetons en entrée, jetons en sortie)
-TYPICAL = {"descriptions": (1100, 190), "citations": (650, 700)}      # réflexion désactivée
+# avec réflexion (réglage par défaut) : environ 900 jetons de sortie observés par description ; « _nr » = sans réflexion
+TYPICAL = {"descriptions": (1100, 900), "descriptions_nr": (1100, 190), "citations": (650, 1200), "citations_nr": (650, 700)}
 _lock = threading.Lock()
 
 

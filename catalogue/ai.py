@@ -7,7 +7,7 @@ import time
 import urllib.error
 import urllib.request
 
-from . import sources, usage
+from . import sources, store, usage
 
 API = "https://api.anthropic.com/v1/messages"
 MODELS = ("claude-haiku-5-5", "claude-sonnet-5-5")          # Haiku suffit largement ; Sonnet sert de secours si le 1er est refusé
@@ -64,9 +64,17 @@ def build_prompt(book, max_chars):
 _NO_THINKING_OK = set()                  # modèles qui ont refusé le réglage « réflexion désactivée » : on ne le leur envoie plus
 
 
+def thinking_off():
+    """Réglage « Réflexion du modèle » (Réglages > IA). Par défaut elle reste activée : meilleure fiabilité du texte,
+    mais ses jetons sont facturés comme du texte de sortie (environ trois fois le coût d'une description)."""
+    try:
+        return store.load_settings().get("ia_reflexion") == "off"
+    except Exception:
+        return False
+
+
 def post_json(key, model, system, prompt, max_tokens=1500):
-    """Appel à l'API Claude. La réflexion adaptative (activée par défaut sur Haiku 5.5) est coupée :
-    inutile pour un court texte, et ses jetons sont facturés comme du texte de sortie."""
+    """Appel à l'API Claude ; la réflexion adaptative (activée par défaut sur Haiku 5.5) n'est coupée que si le réglage le demande."""
     def call(with_thinking_off):
         d = {"model": model, "max_tokens": max_tokens, "system": system, "messages": [{"role": "user", "content": prompt}]}
         if with_thinking_off:
@@ -76,7 +84,7 @@ def post_json(key, model, system, prompt, max_tokens=1500):
             "User-Agent": sources.UA["User-Agent"]})
         with urllib.request.urlopen(req, timeout=60) as r:
             return json.loads(r.read().decode("utf-8", "replace"))
-    if model in _NO_THINKING_OK:
+    if model in _NO_THINKING_OK or not thinking_off():
         return call(False)
     try:
         return call(True)
@@ -120,7 +128,7 @@ def describe(book, key, max_chars=420, model=None):
             try:
                 j = _post(key, m, prompt)
                 netfail = 0
-                usage.record("descriptions", m, j.get("usage"))
+                usage.record("descriptions_nr" if thinking_off() else "descriptions", m, j.get("usage"))
                 txt = "".join(c.get("text", "") for c in j.get("content", []) if c.get("type") == "text").strip()
                 txt = re.sub(r"^[\"«»\s]+|[\"«»\s]+$", "", txt)
                 if j.get("stop_reason") == "max_tokens":          # réponse coupée : on ne l'enregistre jamais

@@ -870,7 +870,7 @@ class Handler(BaseHTTPRequestHandler):
                     n = max(0, int(b.get("n") or 0))
                 except (TypeError, ValueError):
                     n = 0
-                out["estimation"] = usage.estimate("descriptions", n) if n else 0.0
+                out["estimation"] = usage.estimate("descriptions_nr" if ailib.thinking_off() else "descriptions", n) if n else 0.0
                 out["credit"] = store.load_settings().get("ia_credit") or ""
                 return self._send(200, out)
             if path == "/api/net":
@@ -988,6 +988,8 @@ class Handler(BaseHTTPRequestHandler):
                 for k in ("inclure_prix", "p_garde", "p_cond", "p_proforma", "p_dos", "p_multi4"):
                     if k in patch:
                         patch[k] = bool(patch[k])
+                if "ia_reflexion" in patch and patch["ia_reflexion"] not in ("on", "off"):
+                    return self._send(400, {"error": "Réglage de la réflexion invalide."})
                 if "ia_credit" in patch:
                     txt = str(patch["ia_credit"] or "").strip().replace(",", ".").replace("$", "").replace("€", "").strip()
                     try:

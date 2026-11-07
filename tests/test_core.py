@@ -349,12 +349,18 @@ def _fake_open(req, timeout=0):
         raise urllib.error.HTTPError(req.full_url, 400, "bad", {}, _io.BytesIO(b'{"error":{"message":"thinking: disabled is not supported"}}'))
     return _Resp({"content": [{"type": "text", "text": "ok"}], "usage": {"input_tokens": 10, "output_tokens": 5}})
 _real_open = _ur.urlopen; _ur.urlopen = _fake_open
+_st.update_settings({"ia_reflexion": "on"})
 try:
+    assert _ai.post_json("K", "claude-haiku-5-5", "S", "P")["content"][0]["text"] == "ok" and "thinking" not in _sent[-1]     # réglage par défaut : réflexion du modèle conservée
+    _st.update_settings({"ia_reflexion": "off"}); assert _ai.thinking_off()
     assert _ai.post_json("K", "claude-haiku-5-5", "S", "P")["content"][0]["text"] == "ok" and _sent[-1]["thinking"] == {"type": "disabled"}
     n0 = len(_sent); _ai.post_json("K", "claude-sonnet-5-5", "S", "P")
     assert len(_sent) - n0 == 2 and "thinking" in _sent[-2] and "thinking" not in _sent[-1]
     n1 = len(_sent); _ai.post_json("K", "claude-sonnet-5-5", "S", "P")
     assert len(_sent) - n1 == 1 and "thinking" not in _sent[-1]
+    _st.update_settings({"ia_reflexion": "on"})
+    n2 = len(_sent); _ai.post_json("K", "claude-sonnet-5-5", "S", "P"); assert len(_sent) - n2 == 1 and "thinking" not in _sent[-1]
+    assert _us.estimate("descriptions", 35) > _us.estimate("descriptions_nr", 35) * 2
 finally:
-    _ur.urlopen = _real_open
+    _st.update_settings({"ia_reflexion": "on"}); _ur.urlopen = _real_open
 print("OK connexion / consommation IA")

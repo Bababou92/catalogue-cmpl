@@ -283,7 +283,7 @@ def fetch_ai(meta, key, call=None):
         for model in ai.MODELS:
             try:
                 j = (call or ai_post)(key, model, prompt)
-                usage.record("citations", model, j.get("usage"))
+                usage.record("citations_nr" if ai.thinking_off() else "citations", model, j.get("usage"))
                 txt = "".join(c.get("text", "") for c in j.get("content", []) if c.get("type") == "text")
                 break
             except urllib.error.HTTPError as e:
