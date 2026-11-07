@@ -1,3 +1,5 @@
+0.12.2 - Carte de livre ouverte : la miniature de couverture n est plus repetee dans l en-tete (elle reste visible dans l encadre "couverture trouvee" et revient a la fermeture de la carte).
+
 0.12.1 - Reglages > IA : nouvelle option "Reflexion du modele" (activee par defaut ; desactivee, une description coute environ trois fois moins). Estimation du cout recalibree et affichee avec trois decimales. Fenetre Generer : le controle est resume et repliable, les titres s'affichent en entier. Interface plus aeree : Reglages par groupes, cartes allegees, pages a cocher sur deux colonnes, Echap ferme aussi la fenetre Signaler.
 
 0.12.0 - Interface plus claire : en-tete allege sur une seule ligne (menu regroupant Catalogues, Reglages, Ajouter des ISBN, Nouveau et Signaler un probleme), Reglages en quatre onglets (Sources, IA, Catalogue, Dossiers), cartes des livres plus aerees avec un etat lisible, encadre "prochaine etape" qui guide l'utilisation, ecran d'accueil en trois etapes et rappel des raccourcis clavier.
