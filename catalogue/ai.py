@@ -61,22 +61,50 @@ def build_prompt(book, max_chars):
     return "\n".join(L)
 
 
+_NO_THINKING_OK = set()                  # modèles qui ont refusé le réglage « réflexion désactivée » : on ne le leur envoie plus
+
+
+def post_json(key, model, system, prompt, max_tokens=1500):
+    """Appel à l'API Claude. La réflexion adaptative (activée par défaut sur Haiku 5.5) est coupée :
+    inutile pour un court texte, et ses jetons sont facturés comme du texte de sortie."""
+    def call(with_thinking_off):
+        d = {"model": model, "max_tokens": max_tokens, "system": system, "messages": [{"role": "user", "content": prompt}]}
+        if with_thinking_off:
+            d["thinking"] = {"type": "disabled"}
+        req = urllib.request.Request(API, data=json.dumps(d).encode("utf-8"), method="POST", headers={
+            "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json",
+            "User-Agent": sources.UA["User-Agent"]})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return json.loads(r.read().decode("utf-8", "replace"))
+    if model in _NO_THINKING_OK:
+        return call(False)
+    try:
+        return call(True)
+    except urllib.error.HTTPError as e:
+        if e.code == 400 and "thinking" in _error_text(e).lower():
+            _NO_THINKING_OK.add(model)
+            return call(False)
+        raise
+
+
 def _post(key, model, prompt, max_tokens=1500):
-    body = json.dumps({"model": model, "max_tokens": max_tokens, "system": SYSTEM,
-                       "messages": [{"role": "user", "content": prompt}]}).encode("utf-8")
-    req = urllib.request.Request(API, data=body, method="POST", headers={
-        "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json",
-        "User-Agent": sources.UA["User-Agent"]})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.loads(r.read().decode("utf-8", "replace"))
+    return post_json(key, model, SYSTEM, prompt, max_tokens)
 
 
 def _error_text(e):
+    """Message d'erreur de l'API ; mis en mémoire sur l'exception car le corps ne se lit qu'une fois."""
+    if hasattr(e, "_cmpl_msg"):
+        return e._cmpl_msg
     try:
         j = json.loads(e.read().decode("utf-8", "replace"))
-        return (j.get("error") or {}).get("message", "")
+        msg = (j.get("error") or {}).get("message", "")
     except Exception:
-        return ""
+        msg = ""
+    try:
+        e._cmpl_msg = msg
+    except Exception:
+        pass
+    return msg
 
 
 def describe(book, key, max_chars=420, model=None):

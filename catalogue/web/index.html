@@ -140,9 +140,23 @@
   .chk{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink);font-weight:400;margin:6px 0}
   .chk input{width:auto}
   .problems{margin:8px 0 0;padding-left:18px;color:var(--bad);font-size:13px}
-  .chkbox{background:#f6f8fb;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:13px}
-  .chkbox .cg{margin:5px 0}.chkbox .cg.bad b{color:var(--bad)}.chkbox .cg.warn b{color:var(--warn)}.chkbox .cg.info b{color:var(--muted)}
-  .chkbox a{cursor:pointer;color:var(--accent-2);text-decoration:underline;margin-right:9px;white-space:nowrap}
+  .chkbox{background:#f6f8fb;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px}
+  .chkbox .ck-sum{font-size:13.5px}.chkbox .ck-last{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+  .chkbox .ck-ok{margin-top:6px}
+  .chkbox .ck-intro{color:var(--muted);font-size:12.5px;margin:8px 0 6px}
+  .chkbox .ck-list{max-height:220px;overflow:auto;border-top:1px solid var(--line)}
+  .chkbox details.cg{border-bottom:1px solid var(--line)}
+  .chkbox details.cg:last-child{border-bottom:0}
+  .chkbox summary{display:flex;align-items:center;gap:8px;cursor:pointer;padding:7px 2px;list-style:none}
+  .chkbox summary::-webkit-details-marker{display:none}
+  .chkbox summary::before{content:"▸";color:var(--muted);font-size:11px;width:10px;transition:transform .12s}
+  .chkbox details[open]>summary::before{transform:rotate(90deg)}
+  .chkbox .cgl{flex:1;font-weight:600}
+  .chkbox .cgn{font-size:11.5px;font-weight:600;border-radius:999px;padding:0 8px;background:rgba(0,0,0,.07);color:var(--ink)}
+  .chkbox .cg.bad .cgl{color:var(--bad)}.chkbox .cg.warn .cgl{color:var(--warn)}.chkbox .cg.info .cgl{color:var(--muted)}
+  .chkbox ul{margin:0 0 8px;padding:0 0 0 22px;list-style:none}
+  .chkbox li{padding:2px 0;line-height:1.35}
+  .chkbox a{cursor:pointer;color:var(--accent-2);text-decoration:none}.chkbox a:hover{text-decoration:underline}
   .chkbox .ok{color:var(--ok);font-weight:600}
   .librow{display:flex;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--line);flex-wrap:wrap}
   .librow .nm{flex:1;min-width:150px}.librow .nm small{display:block;color:var(--muted);font-weight:400}
@@ -211,6 +225,7 @@
   html.dark header button.hgen{background:#e6edf9;color:#1d2f4a}
   html.dark .chead:hover{background:#212938}
   html.dark .cbody,html.dark .chkbox{background:#161c26}
+  html.dark .chkbox .cgn{background:rgba(255,255,255,.12)}
   html.dark .thumb{background-color:#2d3545;border-color:#3b4558;color:#98a3b6}
   html.dark .covbox{border-color:#3b4558}
   html.dark .covbox.drag,html.dark .empty.drag{background:#22304a}
@@ -285,6 +300,23 @@
   @media(max-width:620px){.howto{grid-template-columns:1fr}}
   .kbd{font:12px Consolas,monospace;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 6px;background:var(--card);color:var(--ink)}
   .kbdhelp{margin-top:6px;font-size:12.5px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+  /* v0.12.1 : aération et lisibilité */
+  .qbox .btn.small{padding:5px 10px}
+  .sbox>b{display:block;margin-bottom:2px}
+  label{font-size:13px;margin:15px 0 5px}
+  label small{font-size:12px}
+  .hint{font-size:12.5px;margin-top:5px}
+  .mhead{padding:16px 22px}.mbody{padding:18px 22px 20px}.mfoot{padding:14px 22px}
+  .btn.small{padding:5px 12px}
+  .plist{gap:8px 16px}
+  .plist .t{padding:2px 0}
+  .stab .chk{margin:9px 0}
+  .stab .row2{gap:10px}
+  .fgroup{border-top:1px solid var(--line);margin-top:20px;padding-top:4px}
+  .fgroup:first-child{border-top:0;margin-top:0;padding-top:0}
+  .fgroup>h4{margin:12px 0 0;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .pages-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 16px}
+  @media(max-width:520px){.pages-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -335,12 +367,12 @@
     </div>
     <div id="structure" class="hide">
       <div class="sbox"><b>Pages du catalogue</b>
-        <label class="chk"><input type="checkbox" id="st-pg"> Page de garde</label>
+        <div class="pages-grid"><label class="chk"><input type="checkbox" id="st-pg"> Page de garde</label>
         <label class="chk"><input type="checkbox" id="st-pt"> Tableau des prix</label>
         <label class="chk"><input type="checkbox" id="st-pc"> Conditions de vente</label>
         <label class="chk"><input type="checkbox" id="st-pp"> Demande de proforma</label>
-        <label class="chk"><input type="checkbox" id="st-pd"> 4e de couverture</label>
-        <label class="chk"><input type="checkbox" id="st-m4"> Pages blanches pour un multiple de 4 (folio)</label>
+        <label class="chk"><input type="checkbox" id="st-pd"> 4e de couverture</label></div>
+        <label class="chk"><input type="checkbox" id="st-m4"> Pages blanches (multiple de 4, folio)</label>
         <label>Couleur du catalogue <small>— page de garde, rubriques et 4e de couverture</small></label><div class="swatches" id="st-col"></div>
       </div>
       <div class="sbox" id="st-quote"></div>
@@ -348,7 +380,6 @@
     </div>
     <div id="listwrap" class="hide">
       <div class="listhead"><b id="list-title">Livres</b>
-        <span class="legend"><span class="dot vert"></span> complet &nbsp;<span class="dot orange"></span> à compléter &nbsp;<span class="dot rouge"></span> introuvable &nbsp;<span class="dot gris"></span> pas encore cherché</span>
       </div>
       <div class="listtools"><select id="l-sort" title="Réordonne tous les livres (annulable avec ↶)"><option value="">Trier par…</option><option value="titre">Titre</option><option value="auteur">Auteur</option><option value="editeur">Éditeur</option><option value="rubrique">Rubrique</option><option value="date">Date (récent d'abord)</option><option value="prix">Prix</option></select>
         <button class="btn small" id="l-all" title="Cocher tous les livres">Tout cocher</button>
@@ -402,41 +433,52 @@
   <div class="tabs" id="set-tabs" role="tablist"><button type="button" role="tab" data-tab="src" class="on">Sources</button><button type="button" role="tab" data-tab="ia">IA</button><button type="button" role="tab" data-tab="cat">Catalogue</button><button type="button" role="tab" data-tab="dos">Dossiers</button></div>
   <div class="mbody">
   <div class="stab" data-tab="src">
-    <label style="margin-top:0">Clé Google Books <small>— pour les résumés, les dates exactes et les couvertures</small></label>
+    <div class="fgroup"><h4>Google Books</h4>
+    <label style="margin-top:12px">Clé Google Books <small>— pour les résumés, les dates exactes et les couvertures</small></label>
     <input type="password" id="s-key" placeholder="Colle ta clé ici" autocomplete="off">
     <div class="hint" id="s-keyhint"></div>
     <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--muted);font-size:13px">Comment obtenir la clé (gratuit, 5 minutes)</summary>
       <ol class="steps"><li>Va sur <b>console.cloud.google.com</b> avec un compte Google et crée un projet.</li>
         <li>« API et services » → « Bibliothèque » → cherche <b>Books API</b> → Activer.</li>
         <li>« Identifiants » → « Créer des identifiants » → « Clé API », puis copie-la ici.</li></ol></details>
-    <label>Longueur maximale des résumés <small>(caractères)</small></label>
+    </div>
+    <div class="fgroup"><h4>Résumés</h4>
+    <label style="margin-top:12px">Longueur maximale des résumés <small>(caractères)</small></label>
     <input type="number" id="s-max" min="150" max="1500" step="10" style="max-width:140px">
-    <label>Maintenance</label>
+    </div>
+    <div class="fgroup"><h4>Maintenance</h4>
     <div class="maint"><button class="btn small" id="s-upd">Vérifier les mises à jour</button><button class="btn small" id="s-refetch">Tout rechercher à nouveau</button><button class="btn small" id="s-okcov">Valider toutes les couvertures</button></div>
   </div>
+  </div>
   <div class="stab hide" data-tab="ia">
-    <label>Clé Claude <small>— pour écrire les descriptions des livres sans résumé (facultatif)</small></label>
+    <div class="fgroup"><h4>Clé Claude</h4>
+    <label style="margin-top:12px">Clé Claude <small>— pour écrire les descriptions des livres sans résumé (facultatif)</small></label>
     <input type="password" id="s-ckey" placeholder="Colle ta clé ici (commence par sk-ant-…)" autocomplete="off">
     <div class="hint" id="s-ckeyhint"></div>
     <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--muted);font-size:13px">Comment obtenir la clé (quelques centimes par catalogue)</summary>
       <ol class="steps"><li>Va sur <b>console.anthropic.com</b> et connecte-toi (compte distinct de claude.ai).</li>
         <li><b>Settings → Billing</b> : achète du crédit (5 $ suffisent pour des années).</li>
         <li><b>Settings → API Keys → Create Key</b> : copie la clé tout de suite (elle ne s'affiche qu'une fois) et colle-la ici.</li></ol></details>
-    <label>Consommation de l'IA <small>— estimation calculée sur cet ordinateur, la console Anthropic fait foi</small></label>
+    </div>
+    <div class="fgroup"><h4>Consommation</h4>
+    <label style="margin-top:12px">Estimation faite sur cet ordinateur <small>— la console Anthropic fait foi</small></label>
     <div class="note" id="s-usage" style="margin:0">…</div>
     <label>Crédit acheté ($) <small>— facultatif : permet d'afficher le reste estimé. Montants en dollars, comme sur la console Anthropic.</small></label>
     <input type="text" id="s-credit" placeholder="ex. 5" inputmode="decimal">
   </div>
+  </div>
   <div class="stab hide" data-tab="cat">
-    <label>Taux Ariary <small>— 1 € = … Ar, pour le tableau des prix</small></label>
+    <div class="fgroup"><h4>Tableau des prix</h4>
+    <label>Taux Ariary <small>— 1 € = … Ar</small></label>
     <div class="row2"><input type="text" id="s-taux" style="max-width:140px"><select id="s-arr" style="max-width:220px"><option value="1">arrondi : à l'Ariary</option><option value="10">arrondi : à 10 Ar</option><option value="100">arrondi : à 100 Ar</option><option value="500">arrondi : à 500 Ar</option></select></div>
-    <label class="chk"><input type="checkbox" id="s-incl"> Ajouter le tableau des prix à la fin du catalogue</label>
-    <label>Pages du catalogue <small>— à cocher selon ce que tu veux dans le fichier</small></label>
-    <div class="row2" style="flex-wrap:wrap"><label class="chk" style="margin:0 14px 0 0"><input type="checkbox" id="s-pg"> Page de garde</label><label class="chk" style="margin:0 14px 0 0"><input type="checkbox" id="s-pc"> Conditions de vente</label><label class="chk" style="margin:0 14px 0 0"><input type="checkbox" id="s-pp"> Demande de proforma</label><label class="chk" style="margin:0"><input type="checkbox" id="s-pd"> 4e de couverture</label></div>
-    <label class="chk"><input type="checkbox" id="s-m4"> Compléter avec des pages blanches pour un nombre de pages multiple de 4 (impression en folio)</label>
-    <label>Texte des conditions de vente</label>
+    <label class="chk"><input type="checkbox" id="s-incl"> Ajouter le tableau des prix à la fin du catalogue</label></div>
+    <div class="fgroup"><h4>Pages à inclure</h4>
+    <div class="pages-grid"><label class="chk"><input type="checkbox" id="s-pg"> Page de garde</label><label class="chk"><input type="checkbox" id="s-pc"> Conditions de vente</label><label class="chk"><input type="checkbox" id="s-pp"> Demande de proforma</label><label class="chk"><input type="checkbox" id="s-pd"> 4e de couverture</label></div>
+    <label class="chk"><input type="checkbox" id="s-m4"> Compléter avec des pages blanches (multiple de 4, impression en folio)</label></div>
+    <div class="fgroup"><h4>Conditions de vente</h4>
+    <label>Texte affiché sur la page des conditions</label>
     <textarea id="s-cond" rows="7"></textarea>
-    <div class="maint"><button class="btn small" id="s-condreset">Remettre le texte d'origine</button></div>
+    <div class="maint"><button class="btn small" id="s-condreset">Remettre le texte d'origine</button></div></div>
   </div>
   <div class="stab hide" data-tab="dos">
     <label>Dossier où créer les catalogues</label>
@@ -636,7 +678,7 @@ function headHTML(b){
     <div class="thumb" ${coverStyle(b)}>${b.has_cover ? "" : "sans couv."}</div>
     <div class="cinfo"><div class="ctitle">${esc(b.titre || "(titre à saisir)")}</div>
       <div class="csub">${esc(b.isbn)}${authors ? " · " + esc(authors) : ""}</div>
-      <div class="cstat ${b.statut}"><span class="pill"><span class="dot ${b.statut}"></span>${esc(STAT_LAB[b.statut] || b.statut)}</span>${b.statut_txt && b.statut !== "vert" ? `<span class="why" title="${esc(b.statut_txt)}">${esc(shortWhy(b.statut_txt))}</span>` : ""}</div>
+      <div class="cstat ${b.statut}"><span class="pill"><span class="dot ${b.statut}"></span>${esc(STAT_LAB[b.statut] || b.statut)}</span>${b.statut === "orange" && b.statut_txt ? `<span class="why" title="${esc(b.statut_txt)}">${esc(shortWhy(b.statut_txt))}</span>` : b.statut === "rouge" ? `<span class="why">à saisir à la main</span>` : ""}</div>
       ${b.alerte ? `<span class="cflag" title="Information Dilicom">⚠ ${esc(b.alerte)}</span>` : ""}</div>
     <div class="cbtns"><span class="grip" draggable="true" title="Glisser pour déplacer le livre">⠿</span><button data-act="up" title="Monter">▲</button><button data-act="down" title="Descendre">▼</button><button data-act="del" title="Retirer du catalogue">✕</button></div>`;
 }
@@ -720,6 +762,7 @@ function renderNext(){
   else if (todo) { t = `${todo} livre${todo > 1 ? "s" : ""} à rechercher`; d = "Titres, auteurs, résumés et couvertures sont trouvés automatiquement."; label = "Récupérer les infos"; act = () => $("b-fetch").click(); }
   else if (np) { t = `${np} livre${np > 1 ? "s" : ""} sans prix`; d = "Le prix public est nécessaire pour le tableau des prix."; label = "Saisir les prix"; act = openPrix; }
   else if (nr && canAI) { t = `${nr} livre${nr > 1 ? "s" : ""} sans résumé`; d = "L'IA peut les rédiger ; tu les relis ensuite."; label = "Écrire les descriptions"; act = () => $("b-ai").click(); }
+  else if (S.books.some(b => b.statut === "rouge")) { const nb = S.books.filter(b => b.statut === "rouge").length; done = true; t = `${nb} livre${nb > 1 ? "s" : ""} introuvable${nb > 1 ? "s" : ""}`; d = "Ouvre-les pour saisir le titre et les auteurs à la main, ou continue sans eux."; label = "Mise en page →"; act = () => setStep(2); }
   else { done = true; t = "Les livres sont prêts"; d = "Passe à la mise en page : pages du catalogue, couleur, citation, aperçu."; label = "Mise en page →"; act = () => setStep(2); }
   box.className = "next" + (done ? " done" : "");
   box.innerHTML = `<div class="nt"><b>${esc(t)}</b><span>${esc(d)}</span></div><button class="btn primary" id="nx-go">${esc(label)}</button>`;
@@ -910,7 +953,7 @@ async function startFetch(isbns, force){
   } catch (e) { toast(e.message); }
 }
 async function aiCostLine(n){
-  try { const u = await api("/api/usage", {n}); return `Coût estimé : ≈ <b>${usd(u.estimation)}</b> (modèle Haiku). Ce mois-ci : ${usd(u.mois.cost)}.`; } catch (e) { return ""; }
+  try { const u = await api("/api/usage", {n}); return `Coût estimé : <b>${usdA(u.estimation)}</b> (modèle Haiku). Ce mois-ci : ${usd(u.mois.cost)}.`; } catch (e) { return ""; }
 }
 async function startAI(isbns, skipConfirm){
   if (!(await needNet("L'écriture des descriptions"))) return;
@@ -1237,13 +1280,14 @@ function openSettings(){
   setTab("src");
   show("m-set");
 }
-const usd = c => c < 0.005 ? "moins de 0,01 $" : c.toFixed(2).replace(".", ",") + " $";
+const usdA = c => (c >= 0.001 ? "≈ " : "") + usd(c);
+const usd = c => c <= 0 ? "0 $" : c < 0.001 ? "moins de 0,001 $" : (c < 0.1 ? c.toFixed(3) : c.toFixed(2)).replace(".", ",") + " $";
 async function refreshUsage(){
   try {
     const u = await api("/api/usage", {}), box = $("s-usage");
     const cr = parseFloat(String(u.credit).replace(",", "."));
-    box.innerHTML = `Ce mois-ci : <b>${u.mois.calls}</b> appel${u.mois.calls > 1 ? "s" : ""}, ≈ <b>${usd(u.mois.cost)}</b><br>Depuis le début : ${u.total.calls} appel${u.total.calls > 1 ? "s" : ""}, ≈ ${usd(u.total.cost)}` +
-      (cr > 0 ? `<br>Reste estimé : ≈ <b>${usd(Math.max(0, cr - u.total.cost))}</b> sur ${usd(cr)}` : "");
+    box.innerHTML = `Ce mois-ci : <b>${u.mois.calls}</b> appel${u.mois.calls > 1 ? "s" : ""}, <b>${usdA(u.mois.cost)}</b><br>Depuis le début : ${u.total.calls} appel${u.total.calls > 1 ? "s" : ""}, ${usdA(u.total.cost)}` +
+      (cr > 0 ? `<br>Reste estimé : <b>${usdA(Math.max(0, cr - u.total.cost))}</b> sur ${usd(cr)}` : "");
   } catch (e) { $("s-usage").textContent = "Indisponible pour le moment."; }
 }
 $("b-set").onclick = openSettings;
@@ -1283,19 +1327,21 @@ $("b-gen").onclick = async () => {
   if (notit || nocov || nores || S.books.some(b => !b.fetched))
     warn = `<div class="note warn">À savoir : ${[notit && notit + " sans titre", nocov && nocov + " sans couverture", nores && nores + " sans résumé", S.books.some(b => !b.fetched) && "des livres pas encore cherchés"].filter(Boolean).join(", ")}. Ils apparaîtront incomplets dans le fichier.</div>`;
   $("g-title").textContent = "Générer le catalogue";
-  $("g-body").innerHTML = `<div id="g-check" class="chkbox">Contrôle en cours…</div><label style="margin-top:0">Nom du catalogue</label><input type="text" id="g-name" value="${esc(S.meta.titre || "Catalogue CMPL")}">
-    <label>Tableau des prix</label>
-    <label class="chk"><input type="checkbox" id="g-incl" ${S.settings.inclure_prix !== false ? "checked" : ""}> Ajouter le tableau des prix à la fin</label>
+  $("g-body").innerHTML = `<div id="g-check" class="chkbox">Contrôle en cours…</div>
+    <div class="fgroup"><label style="margin-top:0">Nom du catalogue</label><input type="text" id="g-name" value="${esc(S.meta.titre || "Catalogue CMPL")}"></div>
+    <div class="fgroup"><h4>Tableau des prix</h4>
+    <label class="chk" style="margin-top:12px"><input type="checkbox" id="g-incl" ${S.settings.inclure_prix !== false ? "checked" : ""}> Ajouter le tableau des prix à la fin</label>
     <div class="grid3"><div><label>Taux <small>(1 € = … Ar)</small></label><input type="text" id="g-taux" value="${esc(S.settings.taux || 3366)}"></div>
       <div><label>Prix indicatifs</label><input type="text" id="g-ind" value="${esc(S.meta.indicatif || monthYear())}"></div>
-      <div><label>Titre du tableau</label><input type="text" id="g-sel" value="${esc(S.meta.selection || S.meta.titre || "Catalogue CMPL")}"></div></div>
-    <label>Pages à inclure</label>
-    <div class="row2" style="flex-wrap:wrap"><label class="chk" style="margin:0 14px 0 0"><input type="checkbox" id="g-pg" ${S.settings.p_garde !== false ? "checked" : ""}> Page de garde</label><label class="chk" style="margin:0 14px 0 0"><input type="checkbox" id="g-pc" ${S.settings.p_cond !== false ? "checked" : ""}> Conditions de vente</label><label class="chk" style="margin:0 14px 0 0"><input type="checkbox" id="g-pp" ${S.settings.p_proforma !== false ? "checked" : ""}> Demande de proforma</label><label class="chk" style="margin:0"><input type="checkbox" id="g-pd" ${S.settings.p_dos !== false ? "checked" : ""}> 4e de couverture</label></div>
-    <label class="chk"><input type="checkbox" id="g-m4" ${S.settings.p_multi4 !== false ? "checked" : ""}> Pages blanches pour avoir un multiple de 4 pages (folio)</label>
-    <label>Formats</label><label class="chk"><input type="checkbox" id="g-pdf" checked> PDF (à envoyer ou imprimer)</label>
+      <div><label>Titre du tableau</label><input type="text" id="g-sel" value="${esc(S.meta.selection || S.meta.titre || "Catalogue CMPL")}"></div></div></div>
+    <div class="fgroup"><h4>Pages à inclure</h4>
+    <div class="pages-grid" style="margin-top:6px"><label class="chk"><input type="checkbox" id="g-pg" ${S.settings.p_garde !== false ? "checked" : ""}> Page de garde</label><label class="chk"><input type="checkbox" id="g-pc" ${S.settings.p_cond !== false ? "checked" : ""}> Conditions de vente</label><label class="chk"><input type="checkbox" id="g-pp" ${S.settings.p_proforma !== false ? "checked" : ""}> Demande de proforma</label><label class="chk"><input type="checkbox" id="g-pd" ${S.settings.p_dos !== false ? "checked" : ""}> 4e de couverture</label></div>
+    <label class="chk"><input type="checkbox" id="g-m4" ${S.settings.p_multi4 !== false ? "checked" : ""}> Pages blanches pour obtenir un multiple de 4 (folio)</label></div>
+    <div class="fgroup"><h4>Formats</h4>
+    <label class="chk" style="margin-top:10px"><input type="checkbox" id="g-pdf" checked> PDF (à envoyer ou imprimer)</label>
     <label class="chk"><input type="checkbox" id="g-pptx"> PowerPoint modifiable (.pptx)</label>
     <label class="chk"><input type="checkbox" id="g-xlsx"> Tableau des prix en Excel (.xlsx)</label>
-    <div class="hint">Dossier : <code class="path">${esc(S.settings.out_dir || "")}</code></div>`;
+    <div class="hint">Dossier : <code class="path">${esc(S.settings.out_dir || "")}</code></div></div>`;
   $("g-foot").innerHTML = `<button class="btn" id="g-cancel">Annuler</button><button class="btn primary" id="g-go">Générer</button>`;
   show("m-gen");
   api("/api/check").then(renderCheck).catch(() => { $("g-check") && ($("g-check").textContent = ""); });
@@ -1320,11 +1366,16 @@ $("b-gen").onclick = async () => {
 
 function renderCheck(c){
   const el = $("g-check"); if (!el) return;
-  let h = `<b>Contrôle avant génération</b><div style="margin-top:3px">${c.total} livre${c.total > 1 ? "s" : ""} · ${c.pages} pages` + (c.blanches ? ` (dont ${c.blanches} page${c.blanches > 1 ? "s" : ""} blanche${c.blanches > 1 ? "s" : ""} ajoutée${c.blanches > 1 ? "s" : ""} pour le folio)` : "") + (c.pages_livres ? ` · dernière page de livres : ${c.dernier_nb} livre${c.dernier_nb > 1 ? "s" : ""}` : "") + `</div>`;
-  if (!c.groups.length) h += `<div class="ok" style="margin-top:4px">✓ Tout est complet.</div>`;
-  c.groups.forEach(g => {
-    h += `<div class="cg ${g.level}"><b>${esc(g.label)}</b> (${g.items.length}) : ` + g.items.slice(0, 5).map(i => `<a data-isbn="${esc(i.isbn)}">${esc((i.titre || "").slice(0, 38))}</a>`).join("") + (g.items.length > 5 ? `… +${g.items.length - 5}` : "") + `</div>`;
-  });
+  const pl = (n, w) => `${n} ${w}${n > 1 ? "s" : ""}`;
+  const blanc = c.blanches ? ` (dont ${pl(c.blanches, "page")} blanche${c.blanches > 1 ? "s" : ""} pour le folio)` : "";
+  let h = `<div class="ck-sum"><b>${pl(c.total, "livre")}</b> · ${c.pages} pages${blanc}` + (c.pages_livres ? `<span class="ck-last">Dernière page de livres : ${pl(c.dernier_nb, "livre")}</span>` : "") + `</div>`;
+  if (!c.groups.length) h += `<div class="ok ck-ok">✓ Tout est complet.</div>`;
+  else {
+    const open = c.groups.length === 1 ? " open" : "";
+    h += `<div class="ck-intro">${pl(c.groups.length, "point")} à vérifier. Cela n'empêche pas la génération.</div><div class="ck-list">` + c.groups.map(g =>
+      `<details class="cg ${g.level}"${open}><summary><span class="cgl">${esc(g.label)}</span><span class="cgn">${g.items.length}</span></summary><ul>` +
+      g.items.map(i => `<li><a data-isbn="${esc(i.isbn)}">${esc(i.titre || i.isbn)}</a></li>`).join("") + `</ul></details>`).join("") + `</div>`;
+  }
   el.innerHTML = h;
   el.querySelectorAll("a[data-isbn]").forEach(a => a.onclick = () => { hide("m-gen"); selectBook(a.dataset.isbn, true); });
 }
@@ -1377,7 +1428,7 @@ $("ml-body").addEventListener("click", async e => {
 
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
-  for (const id of ["m-upd", "m-confirm", "m-gen", "m-set", "m-add", "m-prix", "m-lib"]) if (!$(id).classList.contains("hide")) { id === "m-confirm" ? $("c-cancel").click() : id === "m-upd" ? $("mu-later").click() : hide(id); return; }
+  for (const id of ["m-upd", "m-confirm", "m-gen", "m-set", "m-add", "m-prix", "m-lib", "m-report"]) if (!$(id).classList.contains("hide")) { id === "m-confirm" ? $("c-cancel").click() : id === "m-upd" ? $("mu-later").click() : hide(id); return; }
 });
 window.addEventListener("pagehide", () => navigator.sendBeacon("/api/bye?t=" + TOKEN, "{}"));
 

@@ -335,4 +335,26 @@ _sm = _us.summary(); assert _sm["total"]["calls"] - _us_before == 2 and _sm["moi
 assert abs(_us.cost_of("claude-haiku-5-5", 1000, 500) - 0.00035) < 1e-9 and abs(_us.cost_of("claude-sonnet-5-5", 1000, 500) - 0.007) < 1e-9
 assert _us.estimate("descriptions", 35) > 0 and _us.estimate("descriptions", 0) == 0
 assert _sm["total"]["cost"] >= 0.00735 - 1e-9
+# réflexion désactivée : envoyée par défaut, abandonnée si le modèle la refuse
+import json as _js, urllib.request as _ur
+_sent = []
+class _Resp:
+    def __init__(self, d): self.d = d
+    def __enter__(self): return self
+    def __exit__(self, *a): return False
+    def read(self): return _js.dumps(self.d).encode()
+def _fake_open(req, timeout=0):
+    d = _js.loads(req.data.decode()); _sent.append(d)
+    if "thinking" in d and d["model"] == "claude-sonnet-5-5":
+        raise urllib.error.HTTPError(req.full_url, 400, "bad", {}, _io.BytesIO(b'{"error":{"message":"thinking: disabled is not supported"}}'))
+    return _Resp({"content": [{"type": "text", "text": "ok"}], "usage": {"input_tokens": 10, "output_tokens": 5}})
+_real_open = _ur.urlopen; _ur.urlopen = _fake_open
+try:
+    assert _ai.post_json("K", "claude-haiku-5-5", "S", "P")["content"][0]["text"] == "ok" and _sent[-1]["thinking"] == {"type": "disabled"}
+    n0 = len(_sent); _ai.post_json("K", "claude-sonnet-5-5", "S", "P")
+    assert len(_sent) - n0 == 2 and "thinking" in _sent[-2] and "thinking" not in _sent[-1]
+    n1 = len(_sent); _ai.post_json("K", "claude-sonnet-5-5", "S", "P")
+    assert len(_sent) - n1 == 1 and "thinking" not in _sent[-1]
+finally:
+    _ur.urlopen = _real_open
 print("OK connexion / consommation IA")

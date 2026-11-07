@@ -13,7 +13,7 @@ from . import store
 RATES = {"claude-haiku-5-5": (0.10, 0.50), "claude-sonnet-5-5": (2.00, 10.00)}
 DEFAULT_RATE = (2.00, 10.00)                       # modèle inconnu : on prend le tarif le plus haut (estimation prudente)
 # consommation moyenne d'un appel tant qu'on n'a pas d'historique : (jetons en entrée, jetons en sortie)
-TYPICAL = {"descriptions": (1100, 170), "citations": (650, 700)}
+TYPICAL = {"descriptions": (1100, 190), "citations": (650, 700)}      # réflexion désactivée
 _lock = threading.Lock()
 
 
@@ -47,7 +47,7 @@ def _add(box, kind, tin, tout, cost):
     box["in"] = box.get("in", 0) + tin
     box["out"] = box.get("out", 0) + tout
     box["cost"] = round(box.get("cost", 0.0) + cost, 8)
-    k = box.setdefault("kinds", {}).setdefault(kind, {"calls": 0, "in": 0, "out": 0})
+    k = box.setdefault("kinds2", {}).setdefault(kind, {"calls": 0, "in": 0, "out": 0})
     k["calls"] += 1
     k["in"] += tin
     k["out"] += tout
@@ -86,7 +86,7 @@ def summary():
 def estimate(kind, n, model="claude-haiku-5-5"):
     """Coût estimé de n appels : moyenne observée sur ce PC pour ce type d'appel, sinon valeurs typiques."""
     with _lock:
-        k = _load().get("total", {}).get("kinds", {}).get(kind) or {}
+        k = _load().get("total", {}).get("kinds2", {}).get(kind) or {}
     if k.get("calls", 0) >= 5:
         tin, tout = k["in"] / k["calls"], k["out"] / k["calls"]
     else:

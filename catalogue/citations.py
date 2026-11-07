@@ -320,12 +320,4 @@ def fetch_ai(meta, key, call=None):
 
 
 def ai_post(key, model, prompt):
-    body = json.dumps({"model": model, "max_tokens": 1500, "system": SYSTEM,
-                       "messages": [{"role": "user", "content": prompt}]}).encode("utf-8")
-    import urllib.request
-    from . import sources
-    req = urllib.request.Request(ai.API, data=body, method="POST", headers={
-        "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json",
-        "User-Agent": sources.UA["User-Agent"]})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.loads(r.read().decode("utf-8", "replace"))
+    return ai.post_json(key, model, SYSTEM, prompt, 1500)
