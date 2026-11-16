@@ -23,6 +23,12 @@ les dates exactes et parfois les couvertures. Reglages > "Comment obtenir la cle
 Le bouton "Tester la cle" (Reglages > Sources) dit si la cle fonctionne et, sinon, pourquoi (restriction d'adresse IP, API Books
 non activee, quota...). Meme bouton pour la cle Claude (Reglages > IA) : il verifie aussi que le compte a du credit.
 
+Prix en Ariary
+--------------
+Dans l'apercu, sur la page "Tableau des prix", une barre permet de regler le taux (1 EUR = ... Ar) et l'arrondi ; le tableau se
+recalcule tout de suite. Par defaut les prix sont arrondis au millier superieur (ex. 66 983 Ar -> 67 000 Ar). Un prix en Ariary
+saisi a la main dans une case du tableau reste tel quel, et le "taux special" d'un livre prime sur le taux general.
+
 Descriptions ecrites par l'IA (facultatif)
 ------------------------------------------
 Bouton "Ecrire les descriptions" : l'IA Claude redige un resume pour les livres qui n'en ont pas. Ils sont marques

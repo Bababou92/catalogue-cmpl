@@ -276,6 +276,22 @@ def check():
 
 
 # ------------------------------------------------------------------ récupération en tâche de fond
+USER_OWNED = ("rubrique", "prix", "taux", "prix_ar")      # saisis par l'utilisateur : jamais écrasés par une recherche en cours
+
+
+def merge_fetched(nb):
+    """Reporte le résultat d'une recherche sur le livre en cours, sans toucher à ce que l'utilisateur a saisi
+    (y compris pendant la recherche : rubrique, prix, taux…)."""
+    with LOCK:
+        b = find(nb["isbn"])
+        if b is not None:
+            for k, v in nb.items():
+                if k == "edited" or k in USER_OWNED or (k in b["edited"] and k in EDITABLE):
+                    continue
+                b[k] = v
+            save()
+
+
 def start_fetch(isbns, force=False):
     with LOCK:
         j = JOB["job"]
@@ -291,14 +307,7 @@ def start_fetch(isbns, force=False):
             return dict(b, edited=list(b["edited"])) if b else None
 
     def set_book(nb, ia=False):
-        with LOCK:
-            b = find(nb["isbn"])
-            if b is not None:
-                for k, v in nb.items():
-                    if k == "edited" or (k in b["edited"] and k in EDITABLE):   # on ne touche pas à ce que l'utilisateur a saisi
-                        continue
-                    b[k] = v
-                save()
+        merge_fetched(nb)
 
     threading.Thread(target=catalog.run_fetch, args=(job, get_book, set_book, force), daemon=True, name="recuperation").start()
     return job
@@ -1025,7 +1034,8 @@ class Handler(BaseHTTPRequestHandler):
                         return self._send(400, {"error": "Le taux doit être un nombre positif (ex. 3366)."})
                     patch["taux"] = int(t) if t == int(t) else t
                 if "arrondi" in patch:
-                    patch["arrondi"] = int(patch["arrondi"]) if str(patch["arrondi"]).isdigit() and int(patch["arrondi"]) in (1, 5, 10, 50, 100, 500, 1000) else 1
+                    a = str(patch["arrondi"])
+                    patch["arrondi"] = "sup1000" if a == "sup1000" else (int(a) if a.isdigit() and int(a) in (1, 5, 10, 50, 100, 500, 1000) else "sup1000")
                 for k in ("inclure_prix", "p_garde", "p_cond", "p_proforma", "p_dos", "p_multi4"):
                     if k in patch:
                         patch[k] = bool(patch[k])

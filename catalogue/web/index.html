@@ -339,6 +339,18 @@
   #bulk input{flex:1;min-width:120px;width:auto}
   #bulk .btn{white-space:nowrap}
   html.dark #bulk{background:#3a2d12;border-color:#6b5420}
+  /* v0.12.3 : taux et arrondi vérifiables dans le tableau */
+  .tauxbar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:0 0 10px;padding:9px 12px;background:#eef4fb;border:1px solid #c9d9ee;border-radius:10px;font-size:13px}
+  .tauxbar label{display:flex;align-items:center;gap:6px;margin:0;font-weight:600}
+  .tauxbar input{width:92px;padding:5px 8px;font-weight:700}
+  .tauxbar select{width:auto;padding:5px 8px}
+  .tb-note{flex:1 1 100%;font-size:12px;color:var(--muted)}.tb-note.ko{color:var(--bad);font-weight:600}
+  .taux-recap{margin-top:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#f6f8fb;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+  .taux-recap .tr-k{color:var(--muted)}
+  .tr-ex{width:100%;font-size:12.5px;color:var(--muted)}.tr-ex>div{display:flex;justify-content:space-between;gap:12px;padding:2px 0;border-top:1px dashed var(--line)}.tr-ex>div:first-child{border-top:0}
+  .tr-ex span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.tr-ex span:last-child{flex:none;color:var(--ink)}
+  html.dark .tauxbar{background:#1c2a40;border-color:#2f4466}
+  html.dark .taux-recap{background:#1b2230}
 </style>
 </head>
 <body>
@@ -413,6 +425,10 @@
   <div class="prev" id="prev">
     <div class="prevbox" id="prevbox">
       <div class="pnav"><button class="btn small" id="p-first" title="Première page (Début)">⏮</button><button class="btn small" id="p-prev" title="Page précédente (←)">◀</button><div class="mid"><span id="p-lab">—</span><input id="p-num" type="text" inputmode="numeric" aria-label="Numéro de page"><small id="p-cnt"></small></div><button class="btn small" id="p-next" title="Page suivante (→)">▶</button><button class="btn small" id="p-last" title="Dernière page (Fin)">⏭</button><button class="btn small hide" id="p-tab" title="Aller au tableau des prix">Tableau des prix</button><button class="btn small" id="p-spread" title="Voir les pages côte à côte, comme dans le livret imprimé">Planches</button></div>
+      <div id="tauxbar" class="tauxbar hide"><b>Prix en Ariary</b>
+        <label>Taux : 1 € = <input type="text" id="tb-taux" inputmode="decimal" aria-label="Taux en Ariary pour 1 euro"> Ar</label>
+        <select id="tb-arr" aria-label="Arrondi"><option value="sup1000">Arrondi au millier supérieur</option><option value="1">Arrondi à l'Ariary</option><option value="10">Arrondi à 10 Ar</option><option value="100">Arrondi à 100 Ar</option><option value="500">Arrondi à 500 Ar</option></select>
+        <span class="tb-note" id="tb-note">Le tableau se met à jour tout de suite ; rien n'est généré avant « Générer le catalogue ».</span></div>
       <div id="cellpop" class="hide"></div>
       <div id="spreads"></div>
       <div class="kbdhelp" id="kbdhelp"><span><span class="kbd">←</span> <span class="kbd">→</span> changer de page</span><span><span class="kbd">Début</span> <span class="kbd">Fin</span> première / dernière</span><span><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> annuler</span></div>
@@ -497,7 +513,7 @@
   <div class="stab hide" data-tab="cat">
     <div class="fgroup"><h4>Tableau des prix</h4>
     <label>Taux Ariary <small>— 1 € = … Ar</small></label>
-    <div class="row2"><input type="text" id="s-taux" style="max-width:140px"><select id="s-arr" style="max-width:220px"><option value="1">arrondi : à l'Ariary</option><option value="10">arrondi : à 10 Ar</option><option value="100">arrondi : à 100 Ar</option><option value="500">arrondi : à 500 Ar</option></select></div>
+    <div class="row2"><input type="text" id="s-taux" style="max-width:140px"><select id="s-arr" style="max-width:240px"><option value="sup1000">arrondi : au millier supérieur</option><option value="1">arrondi : à l'Ariary</option><option value="10">arrondi : à 10 Ar</option><option value="100">arrondi : à 100 Ar</option><option value="500">arrondi : à 500 Ar</option></select></div>
     <label class="chk"><input type="checkbox" id="s-incl"> Ajouter le tableau des prix à la fin du catalogue</label></div>
     <div class="fgroup"><h4>Pages à inclure</h4>
     <div class="pages-grid"><label class="chk"><input type="checkbox" id="s-pg"> Page de garde</label><label class="chk"><input type="checkbox" id="s-pc"> Conditions de vente</label><label class="chk"><input type="checkbox" id="s-pp"> Demande de proforma</label><label class="chk"><input type="checkbox" id="s-pd"> 4e de couverture</label></div>
@@ -695,6 +711,7 @@ function setState(st){
 
 // ------------------------------------------------------------ liste
 const SRC = {google: "Google", bnf: "BnF", abebooks: "AbeBooks", amazon: "Amazon", openlibrary: "Open Library", web: "Internet"};
+const ARR_LAB = {sup1000: "arrondi au millier supérieur", 1: "arrondi à l'Ariary", 10: "arrondi à 10 Ar", 100: "arrondi à 100 Ar", 500: "arrondi à 500 Ar"};
 const ILLS = [["", "(aucune)"], ["illustrations en noir et blanc", "en noir et blanc"], ["illustrations en couleur", "en couleur"], ["illustrations en noir et en couleur", "noir et couleur"]];
 function coverStyle(b){ return b.has_cover ? `style="background-image:url('/api/cover?isbn=${b.isbn}&t=${TOKEN}&v=${covRev[b.isbn] || 0}')"` : ""; }
 const STAT_LAB = {vert: "Complet", orange: "À compléter", rouge: "Introuvable", gris: "Pas encore cherché"};
@@ -1098,12 +1115,45 @@ async function loadPreview(){
       else d.title = (byIsbn(h.isbn) || {}).titre || h.isbn;
       box.appendChild(d);
     });
-    placeHot(r.w); markHot();
+    placeHot(r.w); markHot(); syncTauxBar();
     if (spread) renderSpreads();
     if (step === 2) renderStruct();
     [r.page + 1, r.page - 1].forEach(n => { if (n >= 0 && n < r.count) { const im = new Image(); im.src = pageUrl(n, r.rev); } });      // pages voisines préchargées
   } catch (e) { toast("Aperçu : " + e.message); }
 }
+// ---- prix en Ariary : mêmes règles que le serveur (aperçu, boîte Générer)
+function ariaryJS(prix, taux, arr){
+  const v = parseFloat(prix) * parseFloat(String(taux).replace(",", ".")); if (!isFinite(v)) return null;
+  if (arr === "sup1000") return Math.ceil(Math.round(v * 1e6) / 1e6 / 1000 - 1e-9) * 1000;
+  const a = Math.max(1, parseInt(arr, 10) || 1); return Math.floor(v / a + 0.5) * a;
+}
+function bookAr(b){
+  const f = String(b.prix_ar == null ? "" : b.prix_ar).replace(/\s/g, "").replace(",", ".");
+  if (f !== "" && isFinite(+f)) return Math.trunc(+f);
+  return ariaryJS(b.prix, (String(b.taux || "").trim() || S.settings.taux || 3366), S.settings.arrondi || "sup1000");
+}
+const fmtAr = n => n == null ? "—" : String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " Ar";
+function syncTauxBar(){
+  const onTab = pvPages[page] && pvPages[page].kind === "tableau";
+  $("tauxbar").classList.toggle("hide", !onTab);
+  if (onTab && document.activeElement !== $("tb-taux")) { $("tb-taux").value = S.settings.taux || 3366; $("tb-arr").value = String(S.settings.arrondi || "sup1000"); }
+}
+let tbT = null;
+function tauxChanged(){
+  clearTimeout(tbT);
+  const note = $("tb-note"); note.className = "tb-note"; note.textContent = "Mise à jour…";
+  tbT = setTimeout(async () => {
+    const raw = $("tb-taux").value.trim().replace(",", ".").replace(/\s/g, "");
+    if (!(parseFloat(raw) > 0)) { note.className = "tb-note ko"; note.textContent = "Taux invalide : tape un nombre, par exemple 3366."; return; }
+    try {
+      const r = await api("/api/settings", {taux: raw, arrondi: $("tb-arr").value}); S.settings = r.settings || S.settings;
+      note.textContent = "✓ Prix recalculés avec ce taux. Rien n'est généré avant « Générer le catalogue »."; loadPreview();
+    } catch (e) { note.className = "tb-note ko"; note.textContent = e.message; }
+  }, 500);
+}
+$("tb-taux").addEventListener("input", tauxChanged); $("tb-arr").addEventListener("change", tauxChanged);
+$("tb-taux").addEventListener("keydown", e => { if (e.key === "Enter") { clearTimeout(tbT); tauxChanged(); } });
+
 function placeHot(naturalW){
   const img = $("pimg"), k = img.clientWidth / naturalW;
   document.querySelectorAll("#phot .hs").forEach(d => { d.style.left = d.dataset.x * k + "px"; d.style.top = d.dataset.y * k + "px"; d.style.width = d.dataset.w * k + "px"; d.style.height = d.dataset.h * k + "px"; });
@@ -1353,7 +1403,7 @@ function openSettings(){
   const s = S.settings;
   $("s-key").value = s.google_key_set ? s.google_key_hint : ""; $("s-keyhint").textContent = s.google_key_set ? "Clé enregistrée. Laisse tel quel pour la garder." : "Pas encore de clé.";
   $("s-ckey").value = s.claude_key_set ? s.claude_key_hint : ""; $("s-ckeyhint").textContent = s.claude_key_set ? "Clé enregistrée. Laisse tel quel pour la garder." : "Pas encore de clé : sans elle, les descriptions manquantes sont à écrire à la main.";
-  $("s-taux").value = s.taux || 3366; $("s-arr").value = String(s.arrondi || 1); $("s-incl").checked = s.inclure_prix !== false;
+  $("s-taux").value = s.taux || 3366; $("s-arr").value = String(s.arrondi || "sup1000"); $("s-incl").checked = s.inclure_prix !== false;
   $("s-pg").checked = s.p_garde !== false; $("s-pc").checked = s.p_cond !== false; $("s-pp").checked = s.p_proforma !== false; $("s-pd").checked = s.p_dos !== false; $("s-m4").checked = s.p_multi4 !== false;
   $("s-cond").value = s.conditions_texte || s.conditions_defaut || "";
   $("s-out").value = s.out_dir || ""; $("s-cov").value = s.covers_dir || ""; $("s-max").value = s.resume_max || 420;
@@ -1408,7 +1458,7 @@ function keyTest(btnId, inId, resId, kind){
 keyTest("s-key-test", "s-key", "s-key-res", "google"); keyTest("s-ckey-test", "s-ckey", "s-ckey-res", "claude");
 $("ms-ok").onclick = async () => {
   try {
-    const r = await api("/api/settings", {google_key: $("s-key").value, claude_key: $("s-ckey").value, taux: $("s-taux").value, arrondi: +$("s-arr").value, inclure_prix: $("s-incl").checked, p_garde: $("s-pg").checked, p_cond: $("s-pc").checked, p_proforma: $("s-pp").checked, p_dos: $("s-pd").checked, p_multi4: $("s-m4").checked, conditions_texte: $("s-cond").value, out_dir: $("s-out").value, covers_dir: $("s-cov").value, resume_max: +$("s-max").value || 420, ia_credit: $("s-credit").value, ia_reflexion: $("s-refl").value});
+    const r = await api("/api/settings", {google_key: $("s-key").value, claude_key: $("s-ckey").value, taux: $("s-taux").value, arrondi: $("s-arr").value, inclure_prix: $("s-incl").checked, p_garde: $("s-pg").checked, p_cond: $("s-pc").checked, p_proforma: $("s-pp").checked, p_dos: $("s-pd").checked, p_multi4: $("s-m4").checked, conditions_texte: $("s-cond").value, out_dir: $("s-out").value, covers_dir: $("s-cov").value, resume_max: +$("s-max").value || 420, ia_credit: $("s-credit").value, ia_reflexion: $("s-refl").value});
     S.settings = r.settings; hide("m-set"); renderNotes(); renderNext(); schedulePreview(); toast("✓ Réglages enregistrés");
   } catch (e) { toast(e.message); }
 };
@@ -1425,8 +1475,10 @@ $("b-gen").onclick = async () => {
     <div class="fgroup"><label style="margin-top:0">Nom du catalogue</label><input type="text" id="g-name" value="${esc(S.meta.titre || "Catalogue CMPL")}"></div>
     <div class="fgroup"><h4>Tableau des prix</h4>
     <label class="chk" style="margin-top:12px"><input type="checkbox" id="g-incl" ${S.settings.inclure_prix !== false ? "checked" : ""}> Ajouter le tableau des prix à la fin</label>
-    <div class="grid3"><div><label>Taux <small>(1 € = … Ar)</small></label><input type="text" id="g-taux" value="${esc(S.settings.taux || 3366)}"></div>
-      <div><label>Prix indicatifs</label><input type="text" id="g-ind" value="${esc(S.meta.indicatif || monthYear())}"></div>
+    <div class="taux-recap"><div><span class="tr-k">Taux</span> <b>1 € = ${esc(fmtAr(+S.settings.taux || 3366).replace(" Ar", ""))} Ar</b> · <span id="g-arr-txt">${esc(ARR_LAB[S.settings.arrondi || "sup1000"] || "")}</span></div>
+      <div class="tr-ex" id="g-ex"></div>
+      <button type="button" class="btn small" id="g-taux-check">Vérifier ou modifier dans le tableau</button></div>
+    <div class="grid3"><div><label>Prix indicatifs</label><input type="text" id="g-ind" value="${esc(S.meta.indicatif || monthYear())}"></div>
       <div><label>Titre du tableau</label><input type="text" id="g-sel" value="${esc(S.meta.selection || S.meta.titre || "Catalogue CMPL")}"></div></div></div>
     <div class="fgroup"><h4>Pages à inclure</h4>
     <div class="pages-grid" style="margin-top:6px"><label class="chk"><input type="checkbox" id="g-pg" ${S.settings.p_garde !== false ? "checked" : ""}> Page de garde</label><label class="chk"><input type="checkbox" id="g-pc" ${S.settings.p_cond !== false ? "checked" : ""}> Conditions de vente</label><label class="chk"><input type="checkbox" id="g-pp" ${S.settings.p_proforma !== false ? "checked" : ""}> Demande de proforma</label><label class="chk"><input type="checkbox" id="g-pd" ${S.settings.p_dos !== false ? "checked" : ""}> 4e de couverture</label></div>
@@ -1438,6 +1490,12 @@ $("b-gen").onclick = async () => {
     <div class="hint">Dossier : <code class="path">${esc(S.settings.out_dir || "")}</code></div></div>`;
   $("g-foot").innerHTML = `<button class="btn" id="g-cancel">Annuler</button><button class="btn primary" id="g-go">Générer</button>`;
   show("m-gen");
+  const exs = S.books.filter(b => b.prix != null && b.prix !== "").slice(0, 3);
+  $("g-ex").innerHTML = exs.length ? exs.map(b => `<div><span>${esc(b.titre || b.isbn)}</span><span>${esc(String(b.prix).replace(".", ","))} € → <b>${esc(fmtAr(bookAr(b)))}</b></span></div>`).join("") : "";
+  $("g-taux-check").onclick = () => {
+    hide("m-gen");
+    if (pvTable != null) { goPage(pvTable); setTimeout(() => { const t = $("tb-taux"); t.scrollIntoView({block: "nearest"}); t.focus(); t.select(); }, 450); }
+  };
   api("/api/check").then(renderCheck).catch(() => { $("g-check") && ($("g-check").textContent = ""); });
   $("g-cancel").onclick = $("g-x").onclick = () => hide("m-gen");
   $("g-go").onclick = async () => {
@@ -1447,7 +1505,7 @@ $("b-gen").onclick = async () => {
     try {
       const name = $("g-name").value;
       await api("/api/meta", {titre: name, indicatif: $("g-ind").value, selection: $("g-sel").value}); S.meta.titre = name; S.meta.indicatif = $("g-ind").value; S.meta.selection = $("g-sel").value;
-      const rs = await api("/api/settings", {taux: $("g-taux").value, inclure_prix: $("g-incl").checked, p_garde: $("g-pg").checked, p_cond: $("g-pc").checked, p_proforma: $("g-pp").checked, p_dos: $("g-pd").checked, p_multi4: $("g-m4").checked}); S.settings = rs.settings;
+      const rs = await api("/api/settings", {inclure_prix: $("g-incl").checked, p_garde: $("g-pg").checked, p_cond: $("g-pc").checked, p_proforma: $("g-pp").checked, p_dos: $("g-pd").checked, p_multi4: $("g-m4").checked}); S.settings = rs.settings;
       const r = await api("/api/generate", {pdf, pptx, xlsx: $("g-xlsx").checked, name});
       $("g-title").textContent = "✓ Catalogue créé";
       $("g-body").innerHTML = `<div class="hint" style="margin:0">${r.pages} page${r.pages > 1 ? "s" : ""} dans le dossier</div><code class="path">${esc(r.folder)}</code><ul class="problems" style="color:var(--muted)">${r.files.map(f => `<li>${esc(f.split(/[\\/]/).pop())}</li>`).join("")}</ul>`;

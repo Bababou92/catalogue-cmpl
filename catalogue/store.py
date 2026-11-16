@@ -7,7 +7,7 @@ import time
 
 _lock = threading.Lock()
 
-SETTING_KEYS = ("google_key", "out_dir", "covers_dir", "resume_max", "taux", "theme", "update_popup", "claude_key", "ai_model", "arrondi", "inclure_prix", "p_garde", "p_cond", "p_proforma", "p_dos", "p_multi4", "conditions_texte", "support_email", "support_whatsapp", "ia_credit", "ia_reflexion")
+SETTING_KEYS = ("google_key", "out_dir", "covers_dir", "resume_max", "taux", "theme", "update_popup", "claude_key", "ai_model", "arrondi", "inclure_prix", "p_garde", "p_cond", "p_proforma", "p_dos", "p_multi4", "conditions_texte", "support_email", "support_whatsapp", "ia_credit", "ia_reflexion", "arrondi_v2")
 
 
 def data_dir():
@@ -47,8 +47,13 @@ def _write(name, obj):
 # ---------------------------------------------------------------- réglages
 def load_settings():
     s = {"google_key": "", "claude_key": "", "ai_model": "", "out_dir": docs_dir(), "covers_dir": os.path.join(docs_dir(), "Couvertures"),
-         "resume_max": 420, "taux": 3366, "arrondi": 1, "inclure_prix": True, "p_garde": True, "p_cond": True, "p_proforma": True, "p_dos": True, "p_multi4": True, "conditions_texte": "", "theme": "light", "update_popup": True}
-    s.update({k: v for k, v in _read("reglages.json", {}).items() if k in SETTING_KEYS})
+         "resume_max": 420, "taux": 3366, "arrondi": "sup1000", "inclure_prix": True, "p_garde": True, "p_cond": True, "p_proforma": True, "p_dos": True, "p_multi4": True, "conditions_texte": "", "theme": "light", "update_popup": True}
+    stored = _read("reglages.json", {})
+    s.update({k: v for k, v in stored.items() if k in SETTING_KEYS})
+    if not stored.get("arrondi_v2"):                      # v0.12.3 : nouvel arrondi par défaut (au millier supérieur)
+        if stored.get("arrondi") in (None, 1, "1"):
+            s["arrondi"] = "sup1000"
+        s["arrondi_v2"] = True
     return s
 
 

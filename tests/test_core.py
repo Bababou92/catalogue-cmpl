@@ -397,3 +397,31 @@ finally:
     _ai2.post_json = _real2
 print("OK clés Google / Claude")
 
+# ---- Ariary : arrondi au millier supérieur
+assert prix.ariary(19.9, 3366, "sup1000") == 67000 and prix.ariary(23, 3366, "sup1000") == 78000     # 66 983 -> 67 000 ; 77 418 -> 78 000
+assert prix.ariary(10, 3000, "sup1000") == 30000 and prix.ariary(10.01, 3000, "sup1000") == 31000     # un multiple exact reste tel quel
+assert prix.ariary(12.9, 3366, "sup1000") == 44000 and prix.ariary(None, 3366, "sup1000") is None
+assert prix.ariary(23, 3366, 1) == 77418 and prix.ariary(19.9, 3366, 100) == 67000                    # les anciens arrondis ne changent pas
+assert prix.row_values({"titre": "T", "prix": 19.9, "isbn": "9782100000005"}, 3366, "sup1000")[-1].replace("\u202f", " ").replace("\xa0", " ") == "67 000"
+assert store.load_settings()["arrondi"] == "sup1000"
+print("OK arrondi au millier supérieur")
+
+# ---- rubriques : regroupement, et saisies conservées pendant une recherche en cours
+_ids = ["97821000%05d" % i for i in range(1, 8)]
+_srv.CAT["books"] = []
+for _i, _x in enumerate(_ids):
+    _bk = catalog.new_book(_x); _bk["titre"] = "L%d" % _i; _srv.CAT["books"].append(_bk)
+_ord = lambda: [b["isbn"] for b in _srv.CAT["books"]]
+assert _srv.set_rubrique([_ids[1], _ids[3], _ids[5]], "Droit") == 3
+assert _ord()[:4] == [_ids[0], _ids[1], _ids[3], _ids[5]] and [b["rubrique"] for b in _srv.CAT["books"]][:4] == ["", "Droit", "Droit", "Droit"]   # regroupés au 1er livre coché
+assert _srv.set_rubrique([_ids[6]], "droit") == 4 and _srv.CAT["books"][4]["isbn"] == _ids[6] and _srv.CAT["books"][4]["rubrique"] == "Droit"     # même rubrique, autre casse : rejoint le groupe
+assert _srv.set_rubrique([_ids[0]], "Histoire") == 1 and _srv.CAT["books"][0]["rubrique"] == "Histoire"
+assert _srv.set_rubrique([_ids[6]], "") == 0 and _srv.find(_ids[6])["rubrique"] == ""                                                           # retirer une rubrique
+_snap = _srv.find(_ids[2]); _nb = dict(_snap, edited=list(_snap["edited"]))        # instantané pris au début d'une recherche
+_srv.set_rubrique([_ids[2]], "Sciences"); _srv.set_prices({_ids[2]: "12,5"}); _srv.update_book(_ids[2], {"taux": "4000", "prix_ar": "60000"})
+_nb.update(titre="Titre trouvé", resume="Résumé trouvé", fetched=True)
+_srv.merge_fetched(_nb)
+_f = _srv.find(_ids[2]); assert _f["titre"] == "Titre trouvé" and _f["fetched"]                                                              # ce que la recherche apporte est bien enregistré
+assert _f["rubrique"] == "Sciences" and _f["prix"] == 12.5 and str(_f["taux"]) == "4000" and str(_f["prix_ar"]) == "60000", _f          # saisies de l'utilisateur intactes
+print("OK rubriques regroupées / saisies conservées")
+

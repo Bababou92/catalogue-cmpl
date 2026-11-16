@@ -4,6 +4,7 @@ Mis en page en paysage (297 x 210), puis tourné de 90° sur une page A4 vertica
 
 Titre | Auteurs | Édition | Date de parution | ISBN | Éditeur | Prix France (Euros) pour info | Prix CMPL (Ariary)
 """
+import math
 import os
 import re
 from datetime import date
@@ -43,11 +44,14 @@ def mois_annee(d=None):
 
 # ---------------------------------------------------------------- calculs
 def ariary(prix, taux, arrondi=1):
-    """Prix en Ariary : euros x taux, arrondi à l'unité (ou à 10, 100, 500 Ar…). None si pas de prix."""
+    """Prix en Ariary : euros x taux. Arrondi à l'unité, à 10, 100, 500 Ar près, ou "sup1000" : au millier supérieur.
+    None si pas de prix."""
     try:
         v = float(prix) * float(taux)
     except (TypeError, ValueError):
         return None
+    if arrondi == "sup1000":
+        return int(math.ceil(round(v, 6) / 1000 - 1e-9)) * 1000
     a = max(1, int(arrondi or 1))
     return int(v / a + 0.5) * a
 
