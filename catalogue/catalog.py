@@ -1,4 +1,5 @@
 """Le catalogue : liste de livres, fusion des infos, statut de complétude."""
+import re
 import os
 import threading
 import time
@@ -155,12 +156,39 @@ def dispo_alert(dispo):
             "PROVISOIREMENT NON DISPONIBLE": "provisoirement indisponible"}.get(t, t.lower())
 
 
+_FIN_PHRASE = re.compile(r"(?<=\w{3})[.!?…][\"»”)]?(?=\s)")
+
+
+def shorten_text(text, n):
+    """Raccourcit un résumé à n caractères au plus : coupé à la fin d'une phrase quand c'est possible
+    (jamais en plein mot) ; sinon au dernier mot entier, suivi de « … »."""
+    t = " ".join(str(text or "").split())
+    if len(t) <= n:
+        return t
+    ends = [m.end() for m in _FIN_PHRASE.finditer(t) if m.end() <= n]
+    if ends and ends[-1] >= 0.45 * n:
+        return t[:ends[-1]].strip()
+    cut = t[:n - 1].rsplit(" ", 1)[0] if " " in t[:n - 1] else t[:n - 1]
+    return cut.rstrip(" ,;:–-") + "…"
+
+
+def resume_cut(text):
+    """Vrai si le résumé semble coupé par la source (finit par « … » ou en plein milieu d'une phrase)."""
+    t = (text or "").strip()
+    if len(t) < 40:
+        return False
+    if t.endswith(("…", "...", " [...]", "[…]")):
+        return True
+    return t[-1].isalnum() or t[-1] in ",;:"
+
+
 def public(book):
     s, txt = status(book)
     d = dict(book)
     d["statut"], d["statut_txt"] = s, txt
     d["alerte"] = dispo_alert(book.get("dispo"))
     d["infos"] = infos(book)
+    d["resume_cut"] = resume_cut(book.get("resume"))
     d["has_cover"] = bool(book.get("cover_path") and os.path.isfile(book["cover_path"]))
     d.pop("cover_path", None)
     return d

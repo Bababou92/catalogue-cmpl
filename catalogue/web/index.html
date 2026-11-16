@@ -11,7 +11,7 @@
     --ok:#1f7a45; --warn:#b26a00; --bad:#b3261e; --radius:10px;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%}
+  html,body{margin:0}body{min-height:100vh}
   body{font:14px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
   header{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--accent);color:#fff;position:sticky;top:0;z-index:5;flex-wrap:wrap}
   header h1{font-size:16px;margin:0;font-weight:600;flex:1;min-width:150px;white-space:nowrap}
@@ -87,6 +87,9 @@
   .pnav .grow{flex:1;text-align:center;font-weight:600}
   .pnav button{padding:4px 12px}
   .pwrap{position:relative;display:inline-block;line-height:0;max-width:100%}
+  .pwrap.zoomed{max-width:none}.pwrap.zoomed img{width:100%;max-width:none}
+  .zoomc{display:inline-flex;gap:3px;margin-left:auto}.zoomc .btn{min-width:34px;padding:4px 8px}#z-lab{min-width:56px}
+  .prevbox.spread .zoomc{display:none}
   .pwrap img{display:block;max-width:100%;height:auto;box-shadow:0 2px 12px rgba(20,30,50,.25);background:#fff}
   .pwrap .hs{position:absolute;cursor:pointer;border-radius:3px}
   .pwrap .hs:hover{outline:2px dashed rgba(59,140,255,.8);background:rgba(59,140,255,.06)}
@@ -151,7 +154,7 @@
   .chkbox summary::-webkit-details-marker{display:none}
   .chkbox summary::before{content:"▸";color:var(--muted);font-size:11px;width:10px;transition:transform .12s}
   .chkbox details[open]>summary::before{transform:rotate(90deg)}
-  .chkbox .cgl{flex:1;font-weight:600}
+  .chkbox .cgl{flex:1;font-weight:600}.chkbox .cgshow{padding:1px 8px;font-size:12px}
   .chkbox .cgn{font-size:11.5px;font-weight:600;border-radius:999px;padding:0 8px;background:rgba(0,0,0,.07);color:var(--ink)}
   .chkbox .cg.bad .cgl{color:var(--bad)}.chkbox .cg.warn .cgl{color:var(--warn)}.chkbox .cg.info .cgl{color:var(--muted)}
   .chkbox ul{margin:0 0 8px;padding:0 0 0 22px;list-style:none}
@@ -193,6 +196,39 @@
   .card.drag{outline:2px dashed var(--accent-2)}
   .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1d2433;color:#fff;padding:10px 16px;border-radius:9px;z-index:90;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw}
   .toast.show{opacity:1}
+  .recent{margin-top:22px;padding-top:16px;border-top:1px solid var(--line);text-align:left}
+  .recent h3{margin:0 0 8px;font-size:13px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  .rcard{display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:8px;cursor:pointer;color:var(--ink);font:inherit;transition:border-color .15s,box-shadow .15s,transform .15s}
+  .rcard:hover,.rcard:focus-visible{border-color:var(--accent-2);box-shadow:0 3px 12px rgba(20,40,80,.12);transform:translateY(-1px);outline:none}
+  .rcard .th{flex:none;width:118px;height:62px;border-radius:6px;background:#eef1f6;display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--muted);font-size:20px}
+  .rcard .th img{max-width:100%;max-height:100%;display:block}
+  .rcard b{display:block;font-size:14px}.rcard small{color:var(--muted)}
+  .rcard .go{margin-left:auto;color:var(--accent-2);font-weight:600;font-size:13px;white-space:nowrap}
+  html.dark .rcard .th{background:#222b3b}
+  @keyframes fadeup{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .empty,.modal .mbox{animation:fadeup .25s ease both}
+  @media (prefers-reduced-motion:reduce){.empty,.modal .mbox,.rcard{animation:none;transition:none}}
+  #tour{position:fixed;inset:0;z-index:120}
+  #tour-hole{position:absolute;border-radius:10px;box-shadow:0 0 0 9999px rgba(15,22,36,.62);transition:all .25s ease;pointer-events:none}
+  #tour-card{position:absolute;width:320px;max-width:calc(100vw - 24px);background:var(--card);color:var(--ink);border-radius:12px;padding:14px 16px;box-shadow:0 14px 44px rgba(0,0,0,.4)}
+  #tour-card .tt{font-weight:700;font-size:15px;margin-bottom:4px}
+  #tour-card .tb{font-size:13.5px;line-height:1.5;color:var(--ink)}
+  #tour-card .tf{display:flex;gap:6px;align-items:center;margin-top:12px}
+  #tour-card .tf span:first-child{font-size:12px;color:var(--muted)}
+  #tour-card .grow{flex:1}
+  /* barre d'état */
+  #statusbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;gap:16px;align-items:center;height:26px;padding:0 14px;background:var(--card);border-top:1px solid var(--line);font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden}
+  #statusbar b{color:var(--ink);font-weight:600}
+  #statusbar .grow{flex:1}
+  #statusbar .sb-link{cursor:pointer;border-bottom:1px dotted var(--muted)}
+  #statusbar .sb-link:hover{color:var(--accent-2);border-color:var(--accent-2)}
+  #statusbar .sb-ok{color:#2e7d4f}
+  html.dark #statusbar .sb-ok{color:#7fd19b}
+  body.has-sb{padding-bottom:28px}
+  body.has-sb .toast{bottom:40px}
+  body.has-sb #bulk{bottom:36px}
+  body.has-sb .pcenter,body.has-sb #spreads{max-height:calc(100vh - 198px)}
+  @media (max-width:820px){#statusbar .sb-opt{display:none}}
   header button.themesw{position:relative;width:58px;height:30px;padding:0;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);flex:none}
   header button.themesw:hover{background:rgba(255,255,255,.26)}
   .themesw .ic{position:absolute;top:7px;width:14px;height:14px;z-index:1;transition:opacity .2s,fill .2s}
@@ -360,6 +396,75 @@
   .btn.linkish{border-color:transparent;background:none;color:var(--accent-2);text-decoration:underline;padding-left:0}
   #m-man .mbody{max-height:calc(100vh - 220px);overflow:auto}
   html.dark .mm-cov{background-color:#1b2230}html.dark .mm-cov:hover,html.dark .mm-cov.over{background-color:#1c2a40}
+  /* v0.13 : recherche, filtres, grille, palette */
+  .lsearch{position:relative;flex:1 1 220px;min-width:180px}
+  .lsearch input{width:100%;padding-right:30px}
+  .lsearch button{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--muted);cursor:pointer;font-size:13px;padding:4px 7px;border-radius:6px}
+  .lsearch button:hover{background:rgba(120,130,150,.18);color:var(--ink)}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:none}
+  .seg button{border:0;background:var(--card);color:var(--muted);padding:5px 11px;cursor:pointer;font-size:15px;line-height:1.2}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button.on{background:var(--accent-2);color:#fff}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+  .chip{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:3px 10px;font-size:12.5px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;transition:background .12s,border-color .12s}
+  .chip i{font-style:normal;font-size:11.5px;color:var(--muted);background:rgba(120,130,150,.16);border-radius:999px;padding:0 6px;min-width:18px;text-align:center}
+  .chip:hover{border-color:var(--accent-2)}
+  .chip.on{background:var(--accent-2);border-color:var(--accent-2);color:#fff}.chip.on i{background:rgba(255,255,255,.25);color:#fff}
+  .filtnote{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;background:rgba(59,95,143,.09);border:1px solid rgba(59,95,143,.25);border-radius:8px;padding:6px 10px;margin:0 0 10px}
+  .filtnote .grow{flex:1}.filtnote .onlylab{font-weight:600;color:var(--accent-2)}
+  .nomatch{text-align:center;color:var(--muted);padding:28px 10px;grid-column:1/-1}
+  #list.filtered .grip,#list.filtered [data-act=up],#list.filtered [data-act=down]{display:none}
+  #bulk-act{width:auto;max-width:190px}
+  .fnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px;padding-bottom:8px;border-bottom:1px dashed var(--line);font-size:12.5px;color:var(--muted)}
+  .card{scroll-margin-top:118px}
+  /* grille de couvertures */
+  #list.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;align-items:start}
+  #list.grid .rubsep{grid-column:1/-1;margin:10px 2px 0}
+  #list.grid .card{margin:0}
+  #list.grid .card.sel{grid-column:1/-1}
+  #list.grid .card:not(.sel){position:relative}
+  #list.grid .card:not(.sel) .chead{flex-direction:column;align-items:stretch;gap:6px;padding:6px 6px 8px}
+  #list.grid .card:not(.sel) .thumb{width:100%;height:auto;aspect-ratio:2/3;border-radius:4px}
+  #list.grid .card:not(.sel) .chk-zone{position:absolute;left:4px;top:4px;width:26px;height:26px;margin:0;border-radius:6px;background:rgba(255,255,255,.88);z-index:2;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+  #list.grid .card:not(.sel) .cinfo{text-align:left}
+  #list.grid .card:not(.sel) .ctitle{white-space:normal;font-size:12.5px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  #list.grid .card:not(.sel) .csub,#list.grid .card:not(.sel) .cbtns,#list.grid .card:not(.sel) .cflag,#list.grid .card:not(.sel) .cstat .why{display:none}
+  #list.grid .card:not(.sel) .cstat{margin-top:3px}
+  /* palette de commandes */
+  #m-cmd{align-items:flex-start;padding-top:12vh}
+  .cmdbox{max-width:560px;width:100%;padding:0;overflow:hidden}
+  #cmd-q{width:100%;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:15px 18px;font-size:16px;background:transparent;color:var(--ink);outline:0;box-sizing:border-box}
+  #cmd-list{max-height:min(52vh,420px);overflow:auto;padding:6px}
+  .cmd{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;text-align:left;border:0;background:none;color:var(--ink);padding:9px 12px;border-radius:8px;cursor:pointer;font:inherit}
+  .cmd small{color:var(--muted);font-size:11.5px;flex:none}
+  .cmd.on{background:var(--accent-2);color:#fff}.cmd.on small{color:rgba(255,255,255,.8)}
+  .cmd-foot{display:flex;gap:16px;padding:8px 14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+  html.dark .chip,html.dark .seg button{background:#1a202b}html.dark .chip.on,html.dark .seg button.on{background:var(--accent-2);color:#0f1520}
+  html.dark .chip.on i{color:#0f1520;background:rgba(0,0,0,.2)}
+  html.dark #list.grid .card:not(.sel) .chk-zone{background:rgba(26,32,43,.9)}
+  html.dark .filtnote{background:rgba(111,154,208,.12);border-color:rgba(111,154,208,.3)}
+  /* couvertures : comparaison et rognage */
+  .cvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .cvc{display:flex;flex-direction:column;gap:4px;align-items:stretch;border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--card)}
+  .cvc.cur{border-color:var(--accent-2);box-shadow:0 0 0 2px rgba(59,95,143,.2)}
+  .cvc small{color:var(--muted);font-size:12px}
+  .cvimg{aspect-ratio:2/3;background:#e3e6eb center/contain no-repeat;border-radius:4px}
+  .crstage{position:relative;display:block;width:fit-content;max-width:100%;margin:0 auto;touch-action:none;cursor:crosshair;line-height:0;user-select:none}
+  .crstage img{display:block;max-width:100%;max-height:58vh;border-radius:3px;background:repeating-conic-gradient(#d9dde5 0 25%,#f4f6fa 0 50%) 0 0/16px 16px}
+  #cr-box{position:absolute;border:2px solid #2f7be0;background:rgba(47,123,224,.14);box-shadow:0 0 0 9999px rgba(10,16,28,.45);pointer-events:none}
+  html.dark .cvc{background:#1a202b}
+  /* import : vérification des colonnes */
+  .imsheet{display:flex;gap:10px;align-items:center;margin-bottom:10px}.imsheet select{width:auto;flex:1}
+  .imcols{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow:auto;margin:10px 0;padding-right:4px}
+  .imrow{display:flex;gap:10px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--card)}
+  .imrow.on{border-color:var(--accent-2);background:rgba(59,95,143,.07)}
+  .imlab{display:flex;flex-direction:column;min-width:0;flex:1}.imlab b{font-size:12px;color:var(--muted)}
+  .imlab .imh{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .imlab small{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .imrow select{width:190px;flex:none}
+  .imprev{border-top:1px solid var(--line);padding-top:10px;font-size:13px}
+  .imtab{border-collapse:collapse;margin-top:6px;font-size:12.5px;width:100%}.imtab th,.imtab td{border:1px solid var(--line);padding:3px 8px;text-align:left}.imtab th{background:rgba(120,130,150,.12)}
+  html.dark .imrow{background:#1a202b}html.dark .imrow.on{background:rgba(111,154,208,.14)}
 </style>
 </head>
 <body>
@@ -378,6 +483,7 @@
       <button id="b-man" class="step1only" role="menuitem"><span class="mi-t">Ajouter un livre à la main</span><span class="mi-d">Sans ISBN, saisi de A à Z</span></button>
       <hr>
       <button id="b-new" class="danger" role="menuitem"><span class="mi-t">Nouveau catalogue</span><span class="mi-d">Vider le catalogue en cours</span></button>
+      <button id="b-tour" role="menuitem"><span class="mi-t">Visite guidée</span><span class="mi-d">Les repères du programme en 1 minute</span></button>
       <button id="b-report" role="menuitem"><span class="mi-t">Signaler un problème</span><span class="mi-d">Rapport à envoyer par Gmail ou WhatsApp</span></button>
     </div>
   </div>
@@ -387,7 +493,7 @@
     <i class="knob"></i>
   </button>
   <button id="b-gen" class="hgen" disabled>Générer le catalogue</button>
-  <input type="file" id="f-import" accept=".xlsx,.csv,.txt,.tsv,.slk" class="hide">
+  <input type="file" id="f-import" accept=".xlsx,.xlsm,.xls,.csv,.txt,.tsv,.slk" class="hide">
   <input type="file" id="f-cover" accept="image/*" class="hide">
   <input type="file" id="f-garde" accept="image/*" class="hide">
 </header>
@@ -409,6 +515,7 @@
         <button class="btn" id="e-man">Ajouter un livre à la main</button>
         <button class="btn" id="e-tpl">Télécharger le modèle Excel</button>
       </div>
+      <div id="e-recent" class="recent hide"></div>
     </div>
     <div id="structure" class="hide">
       <div class="sbox"><b>Pages du catalogue</b>
@@ -426,23 +533,29 @@
     <div id="listwrap" class="hide">
       <div class="listhead"><b id="list-title">Livres</b>
       </div>
-      <div class="listtools"><select id="l-sort" title="Réordonne tous les livres (annulable avec ↶)"><option value="">Trier par…</option><option value="titre">Titre</option><option value="auteur">Auteur</option><option value="editeur">Éditeur</option><option value="rubrique">Rubrique</option><option value="date">Date (récent d'abord)</option><option value="prix">Prix</option></select>
-        <button class="btn small" id="l-all" title="Cocher tous les livres">Tout cocher</button>
-        </div>
+      <div class="listtools">
+        <div class="lsearch"><input type="text" id="l-q" placeholder="Rechercher un livre…" aria-label="Rechercher un livre" autocomplete="off" spellcheck="false"><button type="button" id="l-qx" class="hide" aria-label="Effacer la recherche" title="Effacer (Échap)">✕</button></div>
+        <select id="l-rub-f" title="N'afficher qu'une rubrique" aria-label="Filtrer par rubrique"></select>
+        <select id="l-sort" title="Réordonne tous les livres (annulable avec ↶)"><option value="">Trier par…</option><option value="titre">Titre</option><option value="auteur">Auteur</option><option value="editeur">Éditeur</option><option value="rubrique">Rubrique</option><option value="date">Date (récent d'abord)</option><option value="prix">Prix</option></select>
+        <button class="btn small" id="l-all" title="Cocher les livres affichés">Tout cocher</button>
+        <div class="seg" id="l-view" role="group" aria-label="Affichage"><button type="button" data-v="list" class="on" title="Liste" aria-label="Liste">☰</button><button type="button" data-v="grid" title="Grille de couvertures" aria-label="Grille de couvertures">▦</button></div>
+      </div>
+      <div id="l-chips" class="chips" role="group" aria-label="Filtres"></div>
+      <div id="l-filt" class="filtnote hide"></div>
       <div id="list"></div>
-      <span id="bulk" class="hide"><b id="bulk-n"></b><input type="text" id="bulk-rub" list="rubs" placeholder="Ex. : Droit" aria-label="Nom de la rubrique"><datalist id="rubs"></datalist><button class="btn small primary" id="bulk-ok" title="Donne cette rubrique aux livres cochés et les regroupe à la suite">Créer la rubrique</button><button class="btn small" id="bulk-none">Décocher</button></span>
+      <span id="bulk" class="hide"><b id="bulk-n"></b><input type="text" id="bulk-rub" list="rubs" placeholder="Ex. : Droit" aria-label="Nom de la rubrique"><datalist id="rubs"></datalist><button class="btn small primary" id="bulk-ok" title="Donne cette rubrique aux livres cochés et les regroupe à la suite">Créer la rubrique</button><select id="bulk-act" aria-label="Autres actions sur les livres cochés"><option value="">Autres actions…</option><option value="editeur">Définir l'éditeur…</option><option value="collection">Définir la collection…</option><option value="prix">Définir le prix public…</option><option value="date">Définir la date de parution…</option><option value="shorten">Raccourcir les résumés…</option><option value="refetch">Chercher à nouveau les infos</option><option value="remove">Retirer du catalogue…</option></select><button class="btn small" id="bulk-none">Décocher</button></span>
     </div>
   </div>
   <div class="prev" id="prev">
     <div class="prevbox" id="prevbox">
-      <div class="pnav"><button class="btn small" id="p-first" title="Première page (Début)">⏮</button><button class="btn small" id="p-prev" title="Page précédente (←)">◀</button><div class="mid"><span id="p-lab">—</span><input id="p-num" type="text" inputmode="numeric" aria-label="Numéro de page"><small id="p-cnt"></small></div><button class="btn small" id="p-next" title="Page suivante (→)">▶</button><button class="btn small" id="p-last" title="Dernière page (Fin)">⏭</button><button class="btn small hide" id="p-tab" title="Aller au tableau des prix">Tableau des prix</button><button class="btn small" id="p-spread" title="Voir les pages côte à côte, comme dans le livret imprimé">Planches</button></div>
+      <div class="pnav"><button class="btn small" id="p-first" title="Première page (Début)">⏮</button><button class="btn small" id="p-prev" title="Page précédente (←)">◀</button><div class="mid"><span id="p-lab">—</span><input id="p-num" type="text" inputmode="numeric" aria-label="Numéro de page"><small id="p-cnt"></small></div><button class="btn small" id="p-next" title="Page suivante (→)">▶</button><button class="btn small" id="p-last" title="Dernière page (Fin)">⏭</button><button class="btn small hide" id="p-tab" title="Aller au tableau des prix">Tableau des prix</button><button class="btn small" id="p-spread" title="Voir les pages côte à côte, comme dans le livret imprimé">Planches</button><span class="zoomc" role="group" aria-label="Zoom"><button class="btn small" id="z-out" title="Réduire (touche −)" aria-label="Réduire">−</button><button class="btn small" id="z-lab" title="Ajuster à la largeur (touche 0)">100 %</button><button class="btn small" id="z-in" title="Agrandir (touche +)" aria-label="Agrandir">+</button></span></div>
       <div id="tauxbar" class="tauxbar hide"><b>Prix en Ariary</b>
         <label>Taux : 1 € = <input type="text" id="tb-taux" inputmode="decimal" aria-label="Taux en Ariary pour 1 euro"> Ar</label>
         <select id="tb-arr" aria-label="Arrondi"><option value="sup1000">Arrondi au millier supérieur</option><option value="1">Arrondi à l'Ariary</option><option value="10">Arrondi à 10 Ar</option><option value="100">Arrondi à 100 Ar</option><option value="500">Arrondi à 500 Ar</option></select>
         <span class="tb-note" id="tb-note">Le tableau se met à jour tout de suite ; rien n'est généré avant « Générer le catalogue ».</span></div>
       <div id="cellpop" class="hide"></div>
       <div id="spreads"></div>
-      <div class="kbdhelp" id="kbdhelp"><span><span class="kbd">←</span> <span class="kbd">→</span> changer de page</span><span><span class="kbd">Début</span> <span class="kbd">Fin</span> première / dernière</span><span><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> annuler</span></div>
+      <div class="kbdhelp" id="kbdhelp"><span><span class="kbd">←</span> <span class="kbd">→</span> changer de page</span><span><span class="kbd">Début</span> <span class="kbd">Fin</span> première / dernière</span><span><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> annuler</span><span><span class="kbd">↑</span> <span class="kbd">↓</span> autre livre</span><span><span class="kbd">+</span> <span class="kbd">−</span> zoom</span><span><span class="kbd">/</span> chercher</span><span><span class="kbd">Ctrl</span>+<span class="kbd">K</span> commandes</span></div>
       <div class="pcenter"><div class="pwrap" id="pwrap"><img id="pimg" alt="Aperçu de la page"><div id="phot"></div></div></div>
       <div class="hint" id="p-hint">Clique sur un livre pour le modifier, ou sur une case du tableau des prix.</div>
     </div>
@@ -476,6 +589,46 @@
   <div class="mbody"><label style="margin-top:0">Un ISBN par ligne (avec ou sans tirets)</label>
     <textarea id="ma-text" rows="7" placeholder="9782100870165&#10;978-2-200-61154-5"></textarea><div id="ma-pb"></div></div>
   <div class="mfoot"><button class="btn linkish" id="ma-man" title="Pour un livre sans ISBN">Livre sans ISBN ?</button><span style="flex:1"></span><button class="btn" id="ma-cancel">Annuler</button><button class="btn primary" id="ma-ok">Ajouter</button></div>
+</div></div>
+
+<div class="modal hide" id="m-imap"><div class="mbox" style="max-width:740px">
+  <div class="mhead"><h3>Vérifier les colonnes du fichier</h3><button class="xbtn" id="im-x" title="Fermer">✕</button></div>
+  <div class="mbody">
+    <div class="hint" style="margin:0 0 10px" id="im-intro"></div>
+    <div id="im-sheetbar" class="hide imsheet"><label style="margin:0">Feuille</label><select id="im-sheet" aria-label="Feuille du classeur"></select></div>
+    <div id="im-reasons"></div>
+    <div id="im-cols" class="imcols"></div>
+    <div id="im-prev" class="imprev"></div>
+    <label class="chk" id="im-rem-wrap" style="margin-top:12px"><input type="checkbox" id="im-rem" checked> Mémoriser ces colonnes pour les prochains fichiers au même format</label>
+    <div id="im-err" class="note warn hide" style="margin-top:10px"></div>
+  </div>
+  <div class="mfoot"><button class="btn" id="im-cancel">Annuler</button><button class="btn primary" id="im-ok">Importer</button></div>
+</div></div>
+
+<div class="modal hide" id="m-cov"><div class="mbox" style="max-width:760px">
+  <div class="mhead"><h3 id="cv-title">Comparer les couvertures</h3><button class="xbtn" id="cv-x" title="Fermer">✕</button></div>
+  <div class="mbody"><div id="cv-state" class="hint" style="margin:0 0 10px"></div><div id="cv-grid" class="cvgrid"></div></div>
+  <div class="mfoot"><button class="btn" id="cv-close">Fermer</button></div>
+</div></div>
+
+<div class="modal hide" id="m-crop"><div class="mbox" style="max-width:620px">
+  <div class="mhead"><h3>Rogner la couverture</h3><button class="xbtn" id="cr-x" title="Fermer">✕</button></div>
+  <div class="mbody"><div class="hint" style="margin:0 0 10px">Trace un cadre sur l'image avec la souris : seule cette zone sera gardée. « Rogner automatiquement » retire les marges blanches ou unies autour.</div>
+    <div class="crstage" id="cr-stage"><img id="cr-img" alt="Couverture" draggable="false"><div id="cr-box" class="hide"></div></div>
+    <div id="cr-err" class="note warn hide" style="margin-top:10px"></div></div>
+  <div class="mfoot"><button class="btn" id="cr-auto">Rogner automatiquement</button><span style="flex:1"></span><button class="btn" id="cr-cancel">Annuler</button><button class="btn primary" id="cr-ok" disabled>Appliquer le cadre</button></div>
+</div></div>
+
+<div class="modal hide" id="m-bulk"><div class="mbox" style="max-width:460px">
+  <div class="mhead"><h3 id="mb-title">Modifier</h3><button class="xbtn" id="mb-x" title="Fermer">✕</button></div>
+  <div class="mbody"><label style="margin-top:0" id="mb-lab"></label><input type="text" id="mb-val" autocomplete="off"><div class="hint" id="mb-hint"></div><div id="mb-err" class="note warn hide" style="margin-top:10px"></div></div>
+  <div class="mfoot"><button class="btn" id="mb-cancel">Annuler</button><button class="btn primary" id="mb-ok">Appliquer</button></div>
+</div></div>
+
+<div class="modal hide" id="m-cmd"><div class="mbox cmdbox" role="dialog" aria-label="Commandes">
+  <input type="text" id="cmd-q" placeholder="Que veux-tu faire ?  Une action, un livre, un filtre…" autocomplete="off" spellcheck="false" aria-label="Commande">
+  <div id="cmd-list" role="listbox"></div>
+  <div class="cmd-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> choisir</span><span><span class="kbd">Entrée</span> lancer</span><span><span class="kbd">Échap</span> fermer</span></div>
 </div></div>
 
 <div class="modal hide" id="m-man"><div class="mbox">
@@ -596,6 +749,8 @@
   <div class="mfoot"><button class="btn" id="c-cancel"></button><button class="btn primary" id="c-ok"></button></div>
 </div></div>
 
+<div id="tour" class="hide"><div id="tour-hole"></div><div id="tour-card" role="dialog" aria-label="Visite guidée"><div class="tt" id="tour-t"></div><div class="tb" id="tour-b"></div><div class="tf"><span id="tour-n"></span><span class="grow"></span><button class="btn small" id="tour-skip">Passer</button><button class="btn small" id="tour-prev">Précédent</button><button class="btn primary small" id="tour-next">Suivant</button></div></div></div>
+<div id="statusbar" class="hide" role="status" aria-live="off"></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -701,9 +856,11 @@ $("rp-copy").onclick = async () => {
   catch (er) { toast("Copie impossible : " + er.message); }
 };
 
+let lastRev = null, savedAt = null;
 const api = async (path, body) => {
   const r = await fetch(path, {method: "POST", headers: {"X-Token": TOKEN, "Content-Type": "application/json"}, body: JSON.stringify(body || {})});
   let j = {}; try { j = await r.json(); } catch (e) {}
+  const rv = r.headers.get("X-Rev"); if (rv !== null && rv !== lastRev) { if (lastRev !== null) { savedAt = new Date(); renderStatus(); } lastRev = rv; }
   const hh = r.headers.get("X-Hist"); if (hh) { $("b-undo").disabled = hh[0] !== "1"; $("b-redo").disabled = hh[1] !== "1"; }
   if (!r.ok) {
     const msg = j.error || r.statusText;
@@ -739,6 +896,117 @@ function setState(st){
   renderAll();
 }
 
+// ------------------------------------------------------------ barre d'état
+function renderStatus(){
+  const sb = $("statusbar"), n = S.books.length;
+  sb.classList.toggle("hide", n === 0); document.body.classList.toggle("has-sb", n > 0);
+  if (!n) return;
+  const todo = S.books.filter(b => b.statut !== "vert").length, np = S.books.filter(b => b.prix == null || b.prix === "").length;
+  const link = (k, t) => `<span class="sb-link" data-chip="${k}" title="Afficher ces livres">${t}</span>`;
+  const hm = d => String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  sb.innerHTML = `<span><b>${n}</b> livre${n > 1 ? "s" : ""}</span>`
+    + (todo ? `<span>${link("todo", `<b>${todo}</b> à compléter`)}</span>` : `<span class="sb-ok">✓ Tout est complet</span>`)
+    + (np ? `<span>${link("noprice", `<b>${np}</b> sans prix`)}</span>` : "")
+    + (pvCount ? `<span class="sb-opt">≈ <b>${pvCount}</b> page${pvCount > 1 ? "s" : ""}</span>` : "")
+    + `<span class="grow"></span>`
+    + `<span class="sb-ok" title="Chaque modification est enregistrée automatiquement">✓ ${savedAt ? "Enregistré à " + hm(savedAt) : "Enregistré automatiquement"}</span>`;
+}
+$("statusbar").addEventListener("click", e => {
+  const l = e.target.closest("[data-chip]"); if (!l) return;
+  if (step !== 1) setStep(1);
+  FILT.chip = l.dataset.chip; FILT.q = ""; FILT.rub = ""; FILT.only = null; $("l-q").value = "";
+  renderList(); renderChips(); renderBulk(); $("l-chips").scrollIntoView({block: "nearest"});
+});
+
+// ------------------------------------------------------------ écran d'accueil : catalogues récents
+function ago(ts){
+  const d = Math.max(0, Date.now() / 1000 - ts), j = Math.floor(d / 86400);
+  if (d < 90) return "à l'instant"; if (d < 3600) return `il y a ${Math.round(d / 60)} min`; if (d < 86400) return `il y a ${Math.round(d / 3600)} h`;
+  if (j === 1) return "hier"; if (j < 30) return `il y a ${j} jours`; const m = Math.floor(j / 30); return m < 12 ? `il y a ${m} mois` : `il y a plus d'un an`;
+}
+async function renderRecent(){
+  const box = $("e-recent"); if (!box || S.books.length) return;
+  let r; try { r = await api("/api/lib/list"); } catch (e) { return; }
+  const items = (r.items || []).filter(c => c.n > 0).slice(0, 4);
+  if (!items.length || S.books.length) { box.classList.add("hide"); return; }
+  box.innerHTML = `<h3>Reprendre un catalogue</h3>` + items.map(c => `<button type="button" class="rcard" data-id="${c.id}"><span class="th">${c.cover ? `<img alt="" src="/api/lib/thumb?id=${c.id}&t=${TOKEN}" onerror="this.replaceWith(document.createTextNode('📚'))">` : "📚"}</span><span><b>${esc(c.nom)}</b><small>${c.n} livre${c.n > 1 ? "s" : ""} · ${ago(c.updated)}</small></span><span class="go">Ouvrir ›</span></button>`).join("");
+  box.classList.remove("hide");
+}
+$("e-recent").addEventListener("click", async e => {
+  const c = e.target.closest(".rcard"); if (!c) return;
+  try { const r = await api("/api/lib/open", {id: c.dataset.id}); sel = null; page = 0; setState(r.state); loadPreview(); toast("✓ Catalogue ouvert"); } catch (er) { toast(er.message); }
+});
+
+// ------------------------------------------------------------ recherche, filtres, affichage
+const FILT = {q: "", chip: "all", rub: "", view: "list", only: null, onlyLabel: ""};
+try { if (localStorage.getItem("cmpl-cat-view") === "grid") FILT.view = "grid"; } catch (e) {}
+const norm = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const CHIPS = [
+  ["all", "Tous", () => true],
+  ["todo", "À compléter", b => b.statut !== "vert"],
+  ["noprice", "Sans prix", b => b.prix == null || b.prix === ""],
+  ["nocover", "Sans couverture", b => !b.has_cover],
+  ["covcheck", "Couverture à vérifier", b => b.has_cover && (b.cover_origin || "").endsWith("?")],
+  ["nores", "Sans résumé", b => !b.resume],
+  ["cut", "Résumé coupé", b => !!b.resume_cut && !b.resume_ia],
+  ["review", "À relire (IA)", b => !!b.resume_ia],
+  ["lost", "Introuvables", b => b.statut === "rouge"],
+];
+const chipFn = k => (CHIPS.find(c => c[0] === k) || CHIPS[0])[2];
+function hayOf(b){ return norm([b.titre, (b.auteurs || []).join(" "), b.isbn.replace(/-/g, ""), b.editeur, b.collection, b.rubrique, b.date].join(" ")); }
+function matches(b){
+  if (FILT.only && !FILT.only.has(b.isbn)) return false;
+  if (FILT.chip !== "all" && !chipFn(FILT.chip)(b)) return false;
+  const r = (b.rubrique || "").trim();
+  if (FILT.rub === "__none") { if (r) return false; } else if (FILT.rub && r !== FILT.rub) return false;
+  const toks = norm(FILT.q).split(/\s+/).filter(Boolean);
+  if (toks.length) { const h = hayOf(b); for (let t of toks) { if (/^[\d-]{4,}$/.test(t)) t = t.replace(/-/g, ""); if (!h.includes(t)) return false; } }
+  return true;
+}
+const filtActive = () => !!(FILT.q.trim() || FILT.chip !== "all" || FILT.rub || FILT.only);
+const visibleBooks = () => filtActive() ? S.books.filter(matches) : S.books;
+function renderChips(){
+  const box = $("l-chips"), n = S.books.length;
+  $("l-qx").classList.toggle("hide", !FILT.q);
+  $("l-view").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === FILT.view));
+  if (!n) { box.innerHTML = ""; return; }
+  const parts = CHIPS.map(([k, lab, fn]) => {
+    const c = k === "all" ? n : S.books.filter(fn).length;
+    if (k !== "all" && !c && FILT.chip !== k) return "";
+    return `<button type="button" class="chip${FILT.chip === k ? " on" : ""}" data-chip="${k}">${lab}<i>${c}</i></button>`;
+  }).filter(Boolean);
+  box.innerHTML = parts.length > 1 || FILT.chip !== "all" ? parts.join("") : "";
+}
+function renderFiltNote(vis){
+  const el = $("l-filt"), act = filtActive() && S.books.length; el.classList.toggle("hide", !act);
+  if (!act) return;
+  el.innerHTML = `<span><b>${vis.length}</b> livre${vis.length > 1 ? "s" : ""} affiché${vis.length > 1 ? "s" : ""} sur ${S.books.length}</span>` + (FILT.only ? `<span class="onlylab">${esc(FILT.onlyLabel)}</span>` : "") +
+    (vis.length ? `<button class="btn small" data-fa="check">Cocher ces ${vis.length}</button>` : "") + `<button class="btn small" data-fa="clear">Tout afficher</button><span class="grow"></span><span class="hint" style="margin:0">Le tri et le déplacement sont désactivés pendant un filtre.</span>`;
+}
+function clearFilters(){ FILT.q = ""; FILT.chip = "all"; FILT.rub = ""; FILT.only = null; FILT.onlyLabel = ""; $("l-q").value = ""; $("l-rub-f").value = ""; renderList(); renderChips(); renderBulk(); }
+let filtT = null;
+$("l-q").addEventListener("input", e => { FILT.q = e.target.value; $("l-qx").classList.toggle("hide", !FILT.q); clearTimeout(filtT); filtT = setTimeout(() => { renderList(); renderBulk(); }, 120); });
+$("l-q").addEventListener("keydown", e => { if (e.key === "Escape") { e.stopPropagation(); if ($("l-q").value) { $("l-q").value = ""; FILT.q = ""; renderList(); renderChips(); } else $("l-q").blur(); } else if (e.key === "Enter") { const v = visibleBooks(); if (v.length === 1) selectBook(v[0].isbn, true); } });
+$("l-qx").onclick = () => { $("l-q").value = ""; FILT.q = ""; renderList(); renderChips(); renderBulk(); $("l-q").focus(); };
+$("l-rub-f").onchange = e => { FILT.rub = e.target.value; renderList(); renderChips(); renderBulk(); };
+$("l-chips").addEventListener("click", e => { const c = e.target.closest("[data-chip]"); if (!c) return; FILT.chip = FILT.chip === c.dataset.chip ? "all" : c.dataset.chip; renderList(); renderChips(); renderBulk(); });
+$("l-filt").addEventListener("click", e => {
+  const a = e.target.closest("[data-fa]"); if (!a) return;
+  if (a.dataset.fa === "clear") clearFilters();
+  else { visibleBooks().forEach(b => chosen.add(b.isbn)); document.querySelectorAll(".chk-b").forEach(c => c.checked = chosen.has(c.dataset.isbn)); renderBulk(); }
+});
+$("list").addEventListener("click", e => { if (e.target.closest("[data-clearfilter]")) clearFilters(); });
+function setView(v){ FILT.view = v; try { localStorage.setItem("cmpl-cat-view", v); } catch (e) {} renderList(); renderChips(); if (sel) { const el = document.querySelector(`.card[data-isbn="${sel}"]`); el && el.scrollIntoView({block: "nearest"}); } }
+$("l-view").addEventListener("click", e => { const b = e.target.closest("[data-v]"); if (b && b.dataset.v !== FILT.view) setView(b.dataset.v); });
+function stepBook(d){
+  const vis = visibleBooks(); if (!vis.length) return;
+  let i = vis.findIndex(b => b.isbn === sel);
+  i = i < 0 ? (d > 0 ? 0 : vis.length - 1) : Math.max(0, Math.min(vis.length - 1, i + d));
+  if (vis[i].isbn === sel) return;
+  selectBook(vis[i].isbn, true);
+  const el = document.querySelector(`.card[data-isbn="${vis[i].isbn}"]`); el && el.scrollIntoView({block: "start"});
+}
+
 // ------------------------------------------------------------ liste
 const SRC = {google: "Google", bnf: "BnF", abebooks: "AbeBooks", amazon: "Amazon", openlibrary: "Open Library", web: "Internet"};
 const ARR_LAB = {sup1000: "arrondi au millier supérieur", 1: "arrondi à l'Ariary", 10: "arrondi à 10 Ar", 100: "arrondi à 100 Ar", 500: "arrondi à 500 Ar"};
@@ -760,12 +1028,15 @@ function bodyHTML(b){
   const ill = ILLS.map(([v, l]) => `<option value="${esc(v)}" ${b.illustrations === v ? "selected" : ""}>${esc(l)}</option>`).join("");
   const o = b.cover_origin || "";
   const covState = !b.has_cover ? `<span class="badge">pas de couverture</span>` : o.endsWith("?") ? `<span class="badge">à vérifier (${esc(SRC[o.slice(0, -1)] || o.slice(0, -1))}) : est-ce la bonne ?</span>` : `<span class="badge ok">couverture ${o === "manuel" ? "ajoutée" : o === "dossier" ? "du dossier" : "trouvée"}</span>`;
-  return `<div class="covbox" data-drop="${b.isbn}">
+  const vis = visibleBooks(), pos = vis.findIndex(x => x.isbn === b.isbn);
+  const fnav = pos < 0 ? "" : `<div class="fnav"><button class="btn small" data-act="prevb" ${pos === 0 ? "disabled" : ""} title="Livre précédent (↑)">◀ Précédent</button><span>${pos + 1} / ${vis.length}${filtActive() ? " affichés" : ""}</span><button class="btn small" data-act="nextb" ${pos === vis.length - 1 ? "disabled" : ""} title="Livre suivant (↓)">Suivant ▶</button></div>`;
+  return fnav + `<div class="covbox" data-drop="${b.isbn}">
       <div class="thumb" ${coverStyle(b)}>${b.has_cover ? "" : "aucune"}</div>
       <div class="acts">${covState}
         <div class="hint" style="margin:0">Glisse une image ici, ou colle-la avec Ctrl+V.</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          ${b.manuel ? "" : `<button class="btn small" data-act="search">Chercher sur Internet</button>`}
+          ${b.manuel ? "" : `<button class="btn small" data-act="search">Chercher sur Internet</button><button class="btn small" data-act="compare" title="Voir les couvertures de toutes les sources côte à côte">Comparer les sources</button>`}
+          ${b.has_cover ? `<button class="btn small" data-act="crop" title="Couper les marges ou ne garder qu'une partie de l'image">Rogner…</button>` : ""}
           <button class="btn small" data-act="pick">Choisir une image…</button>
           ${o.endsWith("?") ? `<button class="btn small" data-act="okcov">✓ C'est la bonne</button>` : ""}
           ${b.has_cover ? `<button class="btn small" data-act="nocov">Retirer</button>` : ""}
@@ -774,7 +1045,9 @@ function bodyHTML(b){
     <label>Titre</label><input type="text" data-f="titre" value="${esc(b.titre)}">
     <label>Auteurs <small>— un par ligne, « Nom, Prénom »</small></label><textarea data-f="auteurs" rows="${Math.max(2, Math.min(6, (b.auteurs || []).length + 1))}">${esc((b.auteurs || []).join("\n"))}</textarea>
     <label>Résumé <span class="cnt" data-cnt>${(b.resume || "").length} car.</span></label><textarea data-f="resume" rows="6">${esc(b.resume)}</textarea>
+    ${b.resume_cut && !b.resume_ia ? `<div class="iaNote cutNote">⚠ Ce résumé semble coupé par la source (il se termine en pleine phrase). Complète-le ou <button class="btn small" data-act="reia">réécris-le avec l'IA</button></div>` : ""}
     ${b.resume_ia ? `<div class="iaNote">✍ Écrit par l'IA : relis-le, corrige-le si besoin. <button class="btn small" data-act="okia">✓ Relu</button> <button class="btn small" data-act="reia">Réécrire</button></div>` : `<div style="margin-top:4px"><button class="btn small" data-act="reia">${b.resume ? "Réécrire avec l'IA" : "Écrire avec l'IA"}</button></div>`}
+    ${b.resume ? `<div style="margin-top:4px"><button class="btn small" data-act="shorten" title="Coupe le résumé à la fin d'une phrase">Raccourcir…</button></div>` : ""}
     <div class="grid2"><div><label>Date de parution</label><input type="text" data-f="date" value="${esc(b.date)}" placeholder="28/08/2024"></div>
       <div><label>Prix public (€)</label><input type="text" data-f="prix" value="${b.prix == null ? "" : esc(String(b.prix).replace(".", ","))}"></div></div>
     <div class="grid2"><div><label>Éditeur</label><input type="text" data-f="editeur" value="${esc(b.editeur)}"></div>
@@ -807,17 +1080,21 @@ function sepEl(label, count, seenBefore, isOther){
 }
 function renderList(){
   const box = $("list"); box.innerHTML = "";
-  const named = S.books.some(b => (b.rubrique || "").trim());
-  const labels = S.books.map(b => rubLabel(b, named));
+  const vis = visibleBooks(), act = filtActive();
+  box.classList.toggle("filtered", act); box.classList.toggle("grid", FILT.view === "grid");
+  const named = vis.some(b => (b.rubrique || "").trim());
+  const labels = vis.map(b => rubLabel(b, named));
   const seen = new Set(); let prev = null;
-  S.books.forEach((b, i) => {
+  vis.forEach((b, i) => {
     const l = labels[i];
     if (named && l !== prev) {
       let n = 1; while (labels[i + n] === l) n++;                         // longueur de la série
-      box.appendChild(sepEl(l, n, seen.has(l), !(b.rubrique || "").trim())); seen.add(l);
+      box.appendChild(sepEl(l, n, seen.has(l) && !act, !(b.rubrique || "").trim())); seen.add(l);
     }
     prev = l; box.appendChild(cardEl(b));
   });
+  if (!vis.length && S.books.length) { const d = document.createElement("div"); d.className = "nomatch"; d.innerHTML = `Aucun livre ne correspond.<br><button class="btn small" data-clearfilter="1">Tout afficher</button>`; box.appendChild(d); }
+  renderFiltNote(vis);
 }
 function replaceCard(b, force){
   const old = document.querySelector(`.card[data-isbn="${b.isbn}"]`);
@@ -832,8 +1109,13 @@ function renderAll(){
   const n = S.books.length;
   $("main").classList.toggle("vide", n === 0); $("empty").classList.toggle("hide", n > 0); $("listwrap").classList.toggle("hide", n === 0 || step !== 1); $("prev").classList.toggle("hide", n === 0);
   $("steps").classList.toggle("hide", n === 0); $("structure").classList.toggle("hide", n === 0 || step !== 2);
-  chosen.forEach(i => { if (!byIsbn(i)) chosen.delete(i); }); renderBulk();
-  $("rubs").innerHTML = [...new Set(S.books.map(b => (b.rubrique || "").trim()).filter(Boolean))].map(r => `<option value="${esc(r)}">`).join("");
+  chosen.forEach(i => { if (!byIsbn(i)) chosen.delete(i); });
+  const rubNames = [...new Set(S.books.map(b => (b.rubrique || "").trim()).filter(Boolean))];
+  $("rubs").innerHTML = rubNames.map(r => `<option value="${esc(r)}">`).join("");
+  if (FILT.rub && FILT.rub !== "__none" && !rubNames.includes(FILT.rub)) FILT.rub = "";
+  $("l-rub-f").innerHTML = `<option value="">Toutes les rubriques</option>` + rubNames.map(r => `<option value="${esc(r)}">${esc(r)}</option>`).join("") + (rubNames.length ? `<option value="__none">(Sans rubrique)</option>` : "");
+  $("l-rub-f").value = FILT.rub; $("l-rub-f").classList.toggle("hide", !rubNames.length);
+  renderChips(); renderBulk();
   if (step === 2) renderStruct();
   const todo = S.books.filter(b => !b.fetched).length;
   $("b-fetch").disabled = n === 0; $("b-gen").disabled = n === 0;
@@ -842,7 +1124,7 @@ function renderAll(){
   $("b-fetch").textContent = todo ? `Récupérer les infos (${todo})` : "Récupérer les infos";
   const ok = S.books.filter(b => b.statut === "vert").length, to = S.books.filter(b => b.statut === "orange").length, bad = S.books.filter(b => b.statut === "rouge").length;
   $("list-title").textContent = `${n} livre${n > 1 ? "s" : ""}` + (n && todo === 0 ? ` — ${ok} complet${ok > 1 ? "s" : ""}, ${to} à compléter${bad ? ", " + bad + " introuvable" + (bad > 1 ? "s" : "") : ""}` : "");
-  renderNotes(); renderNext(); renderList(); schedulePreview();
+  renderNotes(); renderNext(); renderList(); renderStatus(); if (!n) renderRecent(); schedulePreview();
 }
 function renderNext(){
   const box = $("next"), n = S.books.length;
@@ -904,18 +1186,22 @@ $("list").addEventListener("click", async e => {
   const card = e.target.closest(".card"); if (!card) return;
   if (e.target.closest(".chk-zone") || e.target.closest(".grip") || e.target.closest(".rubsep")) return;
   const isbn = card.dataset.isbn, act = e.target.dataset && e.target.dataset.act;
+  if (act === "prevb" || act === "nextb") { stepBook(act === "prevb" ? -1 : 1); return; }
   if (act === "up" || act === "down") { const r = await api("/api/book/move", {isbn, dir: act === "up" ? -1 : 1}); setState(r.state); return; }
   if (act === "del") {
     if (await confirmBox("Retirer ce livre ?", `<div>${esc(byIsbn(isbn).titre || isbn)}</div>`, "Retirer", "Garder")) { const r = await api("/api/book/remove", {isbn}); if (sel === isbn) sel = null; setState(r.state); }
     return;
   }
   if (act === "search") { window.open("https://www.google.com/search?tbm=isch&q=" + encodeURIComponent("ISBN " + isbn + " " + (byIsbn(isbn).titre || "")), "_blank"); return; }
+  if (act === "compare") { openCompare(isbn); return; }
+  if (act === "crop") { openCrop(isbn); return; }
   if (act === "pick") { coverTarget = isbn; $("f-cover").value = ""; $("f-cover").click(); return; }
   if (act === "nocov") { const r = await api("/api/cover/clear", {isbn}); bump(r.book); return; }
   if (act === "okcov") { const r = await api("/api/cover/confirm", {isbn}); bump(r.book, true); return; }
   if (act === "refetch") { startFetch([isbn], true); return; }
   if (act === "okia") { const r = await api("/api/book/update", {isbn, fields: {resume_ia: false}}); mergeBook(r.book); replaceCard(byIsbn(isbn), true); renderAllLight(); return; }
   if (act === "reia") { startAI([isbn]); return; }
+  if (act === "shorten") { openBulk("shorten", [isbn]); return; }
   if (e.target.closest(".chead")) selectBook(sel === isbn ? null : isbn, true);
 });
 function selectBook(isbn, fromList, noJump){
@@ -931,7 +1217,7 @@ function selectBook(isbn, fromList, noJump){
 function bump(b, force){ covRev[b.isbn] = (covRev[b.isbn] || 0) + 1; mergeBook(b); replaceCard(byIsbn(b.isbn), true); renderAllLight(); schedulePreview(); }
 function mergeBook(nb){ const i = S.books.findIndex(x => x.isbn === nb.isbn); if (i >= 0) S.books[i] = nb; }
 function renderAllLight(){ const todo = S.books.filter(b => !b.fetched).length; $("b-fetch").textContent = todo ? `Récupérer les infos (${todo})` : "Récupérer les infos";
-  const nr = S.books.filter(b => b.titre && !b.resume).length; $("b-ai").textContent = nr ? `Écrire les descriptions (${nr})` : "Écrire les descriptions"; renderNext(); }
+  const nr = S.books.filter(b => b.titre && !b.resume).length; $("b-ai").textContent = nr ? `Écrire les descriptions (${nr})` : "Écrire les descriptions"; renderNext(); renderChips(); renderStatus(); }
 
 // saisie dans les champs
 let saveT = {};
@@ -990,6 +1276,66 @@ document.addEventListener("drop", async e => {
 });
 
 // ------------------------------------------------------------ import
+let forceMap = false;
+const IMP_KEYS = ["isbn", "prix", "titre", "auteurs", "editeur", "collection", "date", "pages", "resume"];
+let imCtx = null, imT = null, imRes = null;
+function mapDialog(sheets, keys, data, filename){
+  return new Promise(resolve => {
+    const usable = sheets.filter(s => s.n_lines);
+    imCtx = {sheets: usable, keys, data, filename, maps: {}, cur: 0, edited: new Set(), resolve};
+    usable.forEach(s => { const m = {}; s.cols.forEach(c => { if (c.key) m[c.key] = c.idx; }); imCtx.maps[s.name] = m; });
+    const best = usable.reduce((bi, s, i) => s.n_isbn > usable[bi].n_isbn ? i : bi, 0); imCtx.cur = best;
+    const multi = usable.length > 1;
+    $("im-sheetbar").classList.toggle("hide", !multi);
+    $("im-sheet").innerHTML = usable.map((s, i) => `<option value="${i}">${esc(s.name || "Feuille " + (i + 1))} — ${s.n_isbn} ISBN</option>`).join(""); $("im-sheet").value = best;
+    $("im-intro").textContent = "Indique à quoi correspond chaque colonne. Le programme a fait des suggestions : vérifie surtout l'ISBN et le prix public TTC en euros. Rien n'est ajouté avant « Importer ».";
+    $("im-err").classList.add("hide"); renderMapSheet(); show("m-imap");
+  });
+}
+function imMapping(){
+  const mp = {};
+  imCtx.sheets.forEach(s => { const m = imCtx.maps[s.name]; if (m && (m.isbn != null || imCtx.edited.has(s.name))) mp[s.name] = {cols: m, start: s.start, signature: s.signature}; });
+  return mp;
+}
+function renderMapSheet(){
+  const s = imCtx.sheets[imCtx.cur], m = imCtx.maps[s.name];
+  $("im-reasons").innerHTML = (s.reasons || []).map(r => `<div class="note warn">${esc(r)}</div>`).join("");
+  const opts = sel => `<option value="">— Ignorer —</option>` + IMP_KEYS.map(k => `<option value="${k}" ${sel === k ? "selected" : ""}>${esc(imCtx.keys[k])}</option>`).join("");
+  $("im-cols").innerHTML = s.cols.slice(0, 40).map(c => {
+    const k = Object.keys(m).find(x => m[x] === c.idx) || "";
+    return `<div class="imrow${k ? " on" : ""}"><div class="imlab"><b>${esc(c.letter)}</b><span class="imh">${esc(c.header || "(sans titre)")}</span><small>${esc(c.samples.join(" · ") || "vide")}</small></div><select data-j="${c.idx}" aria-label="Sens de la colonne ${esc(c.letter)}">${opts(k)}</select></div>`;
+  }).join("");
+  $("im-rem-wrap").classList.toggle("hide", !imCtx.sheets.some(x => x.signature));
+  imPreview();
+}
+$("im-sheet").onchange = e => { imCtx.cur = +e.target.value; renderMapSheet(); };
+$("im-cols").addEventListener("change", e => {
+  const sel = e.target.closest("select[data-j]"); if (!sel) return;
+  const s = imCtx.sheets[imCtx.cur], m = imCtx.maps[s.name], j = +sel.dataset.j, k = sel.value;
+  Object.keys(m).forEach(x => { if (m[x] === j || (k && x === k)) delete m[x]; });         // une colonne = un sens ; un sens = une colonne
+  if (k) m[k] = j;
+  imCtx.edited.add(s.name); renderMapSheet();
+});
+function imPreview(){
+  clearTimeout(imT);
+  const ok = $("im-ok"), prev = $("im-prev");
+  const hasIsbn = imCtx.sheets.some(s => imCtx.maps[s.name] && imCtx.maps[s.name].isbn != null);
+  if (!hasIsbn) { prev.innerHTML = `<div class="note warn">Choisis la colonne qui contient les <b>ISBN</b>.</div>`; ok.disabled = true; return; }
+  prev.innerHTML = `<span class="hint">Aperçu…</span>`;
+  imT = setTimeout(async () => {
+    try {
+      const r = await api("/api/import/preview", {data: imCtx.data, filename: imCtx.filename, mapping: imMapping()});
+      const f = v => v == null ? "—" : String(v).replace(".", ",") + " €";
+      prev.innerHTML = `<div><b>${r.n}</b> livre${r.n > 1 ? "s" : ""} trouvé${r.n > 1 ? "s" : ""}${r.problems ? ` · ${r.problems} ligne${r.problems > 1 ? "s" : ""} non prise${r.problems > 1 ? "s" : ""}` : ""}${r.sans_prix ? ` · ${r.sans_prix} sans prix` : ""}</div>` +
+        (r.rows.length ? `<table class="imtab"><tr><th>ISBN</th><th>Prix</th><th>Titre</th></tr>${r.rows.map(x => `<tr><td>${esc(x.isbn)}</td><td>${esc(f(x.prix))}</td><td>${esc(x.titre || "")}</td></tr>`).join("")}</table>` : "");
+      ok.disabled = r.n === 0;
+    } catch (e) { prev.innerHTML = `<div class="note warn">${esc(e.message)}</div>`; ok.disabled = true; }
+  }, 200);
+}
+function imClose(v){ hide("m-imap"); const r = imCtx && imCtx.resolve; imCtx && (imCtx.resolve = null); r && r(v); }
+$("im-ok").onclick = () => imClose({mapping: imMapping(), remember: $("im-rem").checked && !$("im-rem-wrap").classList.contains("hide")});
+$("im-x").onclick = $("im-cancel").onclick = () => imClose(null);
+
 async function importFile(f){
   if (!f) return;
   let replace = false;
@@ -997,10 +1343,20 @@ async function importFile(f){
     const r = await confirmBox("Un catalogue est déjà ouvert", `<div>Tu veux <b>ajouter</b> ces livres à la suite, ou <b>remplacer</b> le catalogue actuel ?</div>`, "Ajouter à la suite", "Annuler");
     if (!r) return;
   }
+  let data, mapping = null, remember = false;
   try {
-    const r = await api("/api/import", {data: await fileB64(f), filename: f.name, replace});
+    data = await fileB64(f);
+    const an = await api("/api/import/analyze", {data, filename: f.name});
+    if (!an.sheets.length) { toast("Ce fichier est vide."); return; }
+    const need = forceMap || !an.sheets.some(s => s.has_isbn) || an.sheets.some(s => s.has_isbn && s.review);
+    forceMap = false;
+    if (need) { const r = await mapDialog(an.sheets, an.keys, data, f.name); if (!r) return; mapping = r.mapping; remember = r.remember; }
+  } catch (e) { forceMap = false; toast("Import impossible : " + e.message); return; }
+  try {
+    const r = await api("/api/import", {data, filename: f.name, replace, mapping, remember});
     setState(r.state);
-    toast(`${r.added} livre${r.added > 1 ? "s" : ""} ajouté${r.added > 1 ? "s" : ""}`);
+    const rc = r.recap || {}, n = r.added;
+    toast(`${n} livre${n > 1 ? "s" : ""} ajouté${n > 1 ? "s" : ""}` + (rc.deja ? ` · ${rc.deja} déjà présent${rc.deja > 1 ? "s" : ""} (mis à jour)` : "") + (rc.sans_prix ? ` · ${rc.sans_prix} sans prix` : ""));
     await showProblems(r.problems, r.added);
     if (r.changes && r.changes.length) await priceChanges(r.changes);
     if (r.added) askFetch();
@@ -1161,14 +1517,14 @@ async function loadPreview(){
   clearTimeout(pvT);
   const my = ++pvSeq;
   try {
-    const r = await api("/api/preview", {page, dpi: 100});
+    const r = await api("/api/preview", {page, dpi: pvDpi()});
     if (my !== pvSeq) return;
     page = r.page; where = r.where; pvCount = r.count; pvRev = r.rev; pvTable = r.table_start; pvPages = r.pages || [];
     closeCell();
-    $("pimg").src = pageUrl(r.page, r.rev);
+    $("pimg").src = pageUrl(r.page, r.rev, pvDpi());
     $("p-lab").textContent = r.label || "Page " + (r.page + 1);
     if (document.activeElement !== $("p-num")) $("p-num").value = r.page + 1;
-    $("p-cnt").textContent = "sur " + r.count;
+    $("p-cnt").textContent = "sur " + r.count; renderStatus();
     $("p-first").disabled = $("p-prev").disabled = r.page === 0; $("p-next").disabled = $("p-last").disabled = r.page >= r.count - 1;
     $("p-tab").classList.toggle("hide", r.table_start == null); $("p-tab").disabled = r.table_start == null || r.page === r.table_start;
     $("pwrap").dataset.k = r.w;
@@ -1184,7 +1540,7 @@ async function loadPreview(){
     placeHot(r.w); markHot(); syncTauxBar();
     if (spread) renderSpreads();
     if (step === 2) renderStruct();
-    [r.page + 1, r.page - 1].forEach(n => { if (n >= 0 && n < r.count) { const im = new Image(); im.src = pageUrl(n, r.rev); } });      // pages voisines préchargées
+    [r.page + 1, r.page - 1].forEach(n => { if (n >= 0 && n < r.count) { const im = new Image(); im.src = pageUrl(n, r.rev, pvDpi()); } });      // pages voisines préchargées
   } catch (e) { toast("Aperçu : " + e.message); }
 }
 // ---- prix en Ariary : mêmes règles que le serveur (aperçu, boîte Générer)
@@ -1220,6 +1576,21 @@ function tauxChanged(){
 $("tb-taux").addEventListener("input", tauxChanged); $("tb-arr").addEventListener("change", tauxChanged);
 $("tb-taux").addEventListener("keydown", e => { if (e.key === "Enter") { clearTimeout(tbT); tauxChanged(); } });
 
+const ZOOMS = [0.6, 0.8, 1, 1.25, 1.5, 2];
+let zoomI = 2;
+try { const z = parseFloat(localStorage.getItem("cmpl-cat-zoom")); if (ZOOMS.includes(z)) zoomI = ZOOMS.indexOf(z); } catch (e) {}
+const pvDpi = () => ZOOMS[zoomI] <= 1 ? 100 : ZOOMS[zoomI] <= 1.25 ? 130 : ZOOMS[zoomI] <= 1.5 ? 160 : 200;
+function applyZoom(reload){
+  const z = ZOOMS[zoomI], w = $("pwrap");
+  w.classList.toggle("zoomed", z !== 1); w.style.width = z === 1 ? "" : (z * 100) + "%";
+  $("z-lab").textContent = Math.round(z * 100) + " %"; $("z-out").disabled = zoomI === 0; $("z-in").disabled = zoomI === ZOOMS.length - 1;
+  try { localStorage.setItem("cmpl-cat-zoom", String(z)); } catch (e) {}
+  if (reload) loadPreview(); else placeHot(+w.dataset.k || $("pimg").naturalWidth);
+}
+function zoomBy(d){ const n = Math.max(0, Math.min(ZOOMS.length - 1, zoomI + d)); if (n === zoomI) return; const dpiBefore = pvDpi(); zoomI = n; applyZoom(pvDpi() !== dpiBefore); }
+$("z-in").onclick = () => zoomBy(1); $("z-out").onclick = () => zoomBy(-1); $("z-lab").onclick = () => { if (zoomI !== 2) { const d = pvDpi(); zoomI = 2; applyZoom(pvDpi() !== d); } };
+$("prevbox").addEventListener("wheel", e => { if (!e.ctrlKey || !e.target.closest(".pcenter")) return; e.preventDefault(); zoomBy(e.deltaY < 0 ? 1 : -1); }, {passive: false});
+applyZoom(false);
 function placeHot(naturalW){
   const img = $("pimg"), k = img.clientWidth / naturalW;
   document.querySelectorAll("#phot .hs").forEach(d => { d.style.left = d.dataset.x * k + "px"; d.style.top = d.dataset.y * k + "px"; d.style.width = d.dataset.w * k + "px"; d.style.height = d.dataset.h * k + "px"; });
@@ -1244,6 +1615,9 @@ document.addEventListener("keydown", e => {
   else if (e.key === "ArrowRight") { goPage(page + 1); e.preventDefault(); }
   else if (e.key === "Home") { goPage(0); e.preventDefault(); }
   else if (e.key === "End") { goPage(pvCount - 1); e.preventDefault(); }
+  else if (e.key === "+" || e.key === "=") { zoomBy(1); e.preventDefault(); }
+  else if (e.key === "-" || e.key === "−") { zoomBy(-1); e.preventDefault(); }
+  else if (e.key === "0") { $("z-lab").click(); e.preventDefault(); }
 });
 
 // planches : pages côte à côte comme dans le livret (couverture seule à droite, 4e seule à gauche)
@@ -1353,16 +1727,170 @@ $("st-col").addEventListener("click", async e => {
 $("st-grid").addEventListener("click", e => { const t = e.target.closest(".pt"); if (t) { setSpread(false); goPage(+t.dataset.n); } });
 $("st-spread").onclick = () => setSpread(!spread);
 
+// actions sur les livres cochés
+const BULKF = {editeur: ["Éditeur", "Dunod", "Définir l'éditeur"], collection: ["Collection", "Aide-mémoire", "Définir la collection"], prix: ["Prix public (€)", "12,90", "Définir le prix public"], date: ["Date de parution", "03/2026", "Définir la date de parution"], shorten: ["Longueur maximale du résumé (caractères)", "420", "Raccourcir les résumés"]};
+let bulkCtx = null;
+function openBulk(field, ids){
+  bulkCtx = {field, ids}; const [lab, ph, title] = BULKF[field];
+  $("mb-title").textContent = `${title} — ${ids.length} livre${ids.length > 1 ? "s" : ""}`; $("mb-lab").textContent = lab; $("mb-val").value = ""; $("mb-val").placeholder = "ex. " + ph;
+  $("mb-hint").textContent = field === "shorten" ? "Les résumés plus longs sont coupés à la fin d'une phrase, jamais en plein mot. Les autres ne changent pas (↶ pour annuler)." : "La même valeur sera donnée à tous les livres cochés (↶ pour annuler).";
+  if (field === "shorten") $("mb-val").value = "420"; $("mb-err").classList.add("hide"); show("m-bulk"); $("mb-val").focus();
+}
+async function bulkApply(){
+  const v = $("mb-val").value.trim(); if (!v) { $("mb-err").textContent = "Saisis une valeur."; $("mb-err").classList.remove("hide"); return; }
+  if (bulkCtx.field === "shorten") {
+    try {
+      const r = await api("/api/books/shorten", {isbns: bulkCtx.ids, max_chars: v}); hide("m-bulk"); setState(r.state); loadPreview();
+      toast(r.n ? `✓ ${r.n} résumé${r.n > 1 ? "s" : ""} raccourci${r.n > 1 ? "s" : ""} (↶ pour annuler)` : "Aucun résumé n'est plus long que cela.");
+    } catch (e) { $("mb-err").textContent = e.message; $("mb-err").classList.remove("hide"); }
+    return;
+  }
+  try {
+    const r = await api("/api/books/set", {isbns: bulkCtx.ids, field: bulkCtx.field, value: v}); hide("m-bulk"); setState(r.state);
+    toast(`✓ ${r.n} livre${r.n > 1 ? "s" : ""} modifié${r.n > 1 ? "s" : ""} (↶ pour annuler)`);
+  } catch (e) { $("mb-err").textContent = e.message; $("mb-err").classList.remove("hide"); }
+}
+$("mb-ok").onclick = bulkApply; $("mb-x").onclick = $("mb-cancel").onclick = () => hide("m-bulk");
+$("mb-val").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); bulkApply(); } });
+$("bulk-act").onchange = async e => {
+  const v = e.target.value; e.target.value = ""; const ids = [...chosen]; if (!v || !ids.length) return;
+  if (v === "refetch") { startFetch(ids, true); return; }
+  if (v === "remove") {
+    if (!(await confirmBox(`Retirer ${ids.length} livre${ids.length > 1 ? "s" : ""} ?`, `<div>Les livres cochés seront retirés du catalogue. Tu peux annuler avec ↶.</div>`, "Retirer", "Garder"))) return;
+    try { const r = await api("/api/books/remove", {isbns: ids}); chosen.clear(); if (ids.includes(sel)) sel = null; setState(r.state); toast(`✓ ${r.n} livre${r.n > 1 ? "s" : ""} retiré${r.n > 1 ? "s" : ""} (↶ pour annuler)`); } catch (er) { toast(er.message); }
+    return;
+  }
+  openBulk(v, ids);
+};
+
+// palette de commandes (Ctrl+K)
+let cmdItems = [], cmdIdx = 0;
+function buildCmds(q){
+  const L = [], n = S.books.length;
+  const add = (label, run, kw, group) => L.push({label, run, group: group || "Action", hay: norm(label + " " + (kw || ""))});
+  add("Importer un fichier", () => { setStep(1); $("b-import").click(); }, "excel csv dilicom ouvrir");
+  add("Importer un fichier en vérifiant les colonnes", () => { forceMap = true; setStep(1); $("b-import").click(); }, "excel colonnes fournisseur");
+  add("Ajouter des ISBN", () => $("b-add").click(), "coller isbn");
+  add("Ajouter un livre à la main", () => $("b-man").click(), "sans isbn saisir nouveau livre");
+  if (n) {
+    add("Récupérer les infos", () => { setStep(1); $("b-fetch").click(); }, "chercher titres auteurs couvertures internet");
+    add("Écrire les descriptions avec l'IA", () => { setStep(1); $("b-ai").click(); }, "résumés claude");
+    add("Saisir les prix", () => openPrix(), "prix public euros");
+    add("Raccourcir les résumés trop longs", () => openBulk("shorten", S.books.map(b => b.isbn)), "couper longueur");
+    add("Étape 1 : Livres", () => setStep(1), "liste"); add("Étape 2 : Mise en page", () => setStep(2), "pages couleur citation");
+    add("Étape 3 : Générer", () => setStep(3), "pdf powerpoint"); add("Générer le catalogue", () => $("b-gen").click(), "pdf powerpoint exporter");
+    if (typeof pvTable !== "undefined") add("Aller au tableau des prix", () => { if (pvTable != null) goPage(pvTable); }, "ariary taux");
+    add("Affichage en liste", () => { setStep(1); setView("list"); }, "vue"); add("Affichage en grille de couvertures", () => { setStep(1); setView("grid"); }, "vue vignettes");
+    CHIPS.forEach(([k, lab, fn]) => { if (k === "all") return; const c = S.books.filter(fn).length; if (c) add(`Afficher : ${lab.toLowerCase()} (${c})`, () => { setStep(1); FILT.chip = k; renderList(); renderChips(); renderBulk(); }, "filtre filtrer", "Filtre"); });
+    [...new Set(S.books.map(b => (b.rubrique || "").trim()).filter(Boolean))].forEach(r => add(`Afficher la rubrique « ${r} »`, () => { setStep(1); FILT.rub = r; $("l-rub-f").value = r; renderList(); renderChips(); renderBulk(); }, "rubrique filtre", "Filtre"));
+    if (filtActive()) add("Effacer les filtres et la recherche", () => clearFilters(), "tout afficher");
+  }
+  add("Annuler", () => doUndo(-1), "ctrl z"); add("Rétablir", () => doUndo(1), "ctrl y");
+  add("Changer de thème (clair / sombre)", () => $("b-theme").click(), "dark sombre");
+  add("Mes catalogues", () => $("b-lib").click(), "enregistrer rouvrir sauvegardes"); add("Réglages", () => $("b-set").click(), "clé google claude taux");
+  add("Visite guidée du programme", () => $("b-tour").click(), "aide tutoriel découverte"); add("Nouveau catalogue", () => $("b-new").click(), "vider"); add("Signaler un problème", () => $("b-report").click(), "aide gmail whatsapp");
+  const toks = norm(q).split(/\s+/).filter(Boolean);
+  let out = toks.length ? L.filter(c => toks.every(t => c.hay.includes(t))) : L;
+  if (toks.length) {
+    const books = S.books.filter(b => { const h = hayOf(b); return toks.every(t => h.includes(t.replace(/-/g, ""))); }).slice(0, 8)
+      .map(b => ({label: `${b.titre || "(titre à saisir)"}${(b.auteurs || [])[0] ? " — " + b.auteurs[0] : ""}`, group: "Livre", run: () => { setStep(1); selectBook(b.isbn, true); const el = document.querySelector(`.card[data-isbn="${b.isbn}"]`); el && el.scrollIntoView({block: "start"}); }}));
+    out = out.concat(books);
+  }
+  return out.slice(0, 14);
+}
+function renderCmds(){
+  const q = $("cmd-q").value; cmdItems = buildCmds(q); cmdIdx = Math.min(cmdIdx, Math.max(0, cmdItems.length - 1));
+  $("cmd-list").innerHTML = cmdItems.length ? cmdItems.map((c, i) => `<button type="button" class="cmd${i === cmdIdx ? " on" : ""}" role="option" data-i="${i}"><span>${esc(c.label)}</span><small>${esc(c.group)}</small></button>`).join("") : `<div class="nomatch" style="padding:18px">Rien ne correspond.</div>`;
+}
+function openCmd(){ if (!$("m-cmd").classList.contains("hide")) { hide("m-cmd"); return; } if (document.querySelector(".modal:not(.hide)")) return; $("cmd-q").value = ""; cmdIdx = 0; show("m-cmd"); renderCmds(); $("cmd-q").focus(); }
+function runCmd(i){ const c = cmdItems[i]; if (!c) return; hide("m-cmd"); setTimeout(() => c.run(), 30); }
+$("cmd-q").addEventListener("input", () => { cmdIdx = 0; renderCmds(); });
+$("cmd-q").addEventListener("keydown", e => {
+  if (e.key === "ArrowDown") { e.preventDefault(); cmdIdx = Math.min(cmdItems.length - 1, cmdIdx + 1); renderCmds(); }
+  else if (e.key === "ArrowUp") { e.preventDefault(); cmdIdx = Math.max(0, cmdIdx - 1); renderCmds(); }
+  else if (e.key === "Enter") { e.preventDefault(); runCmd(cmdIdx); }
+  const on = $("cmd-list").querySelector(".cmd.on"); on && on.scrollIntoView({block: "nearest"});
+});
+$("cmd-list").addEventListener("click", e => { const b = e.target.closest("[data-i]"); b && runCmd(+b.dataset.i); });
+$("cmd-list").addEventListener("mousemove", e => { const b = e.target.closest("[data-i]"); if (b && +b.dataset.i !== cmdIdx) { cmdIdx = +b.dataset.i; $("cmd-list").querySelectorAll(".cmd").forEach((x, i) => x.classList.toggle("on", i === cmdIdx)); } });
+$("m-cmd").addEventListener("mousedown", e => { if (e.target === $("m-cmd")) hide("m-cmd"); });
+
+// clavier : / recherche, Ctrl+K commandes, ↑ ↓ autre livre (fiche ouverte), Échap referme la fiche
+document.addEventListener("keydown", e => {
+  const t = e.target, inField = t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable);
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "k") { e.preventDefault(); openCmd(); return; }
+  if (document.querySelector(".modal:not(.hide), .overlay:not(.hide)") || !S.books.length) return;
+  if (e.altKey && !e.ctrlKey && (e.key === "ArrowDown" || e.key === "ArrowUp") && step === 1) { e.preventDefault(); stepBook(e.key === "ArrowDown" ? 1 : -1); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey || inField) return;
+  if (e.key === "/" ) { e.preventDefault(); if (step !== 1) setStep(1); $("l-q").focus(); $("l-q").select(); }
+  else if ((e.key === "ArrowDown" || e.key === "ArrowUp") && step === 1 && sel) { e.preventDefault(); stepBook(e.key === "ArrowDown" ? 1 : -1); }
+});
+
+// couvertures : comparer les sources, rogner
+let cvBook = null;
+async function openCompare(isbn){
+  if (!(await needNet("La comparaison des couvertures"))) return;
+  cvBook = isbn; const b = byIsbn(isbn);
+  $("cv-title").textContent = "Comparer les couvertures"; $("cv-state").textContent = "Recherche dans toutes les sources…"; $("cv-grid").innerHTML = ""; show("m-cov");
+  try {
+    const r = await api("/api/cover/compare", {isbn});
+    if (cvBook !== isbn) return;
+    let h = b && b.has_cover ? `<div class="cvc cur"><div class="cvimg" style="background-image:url('/api/cover?isbn=${esc(isbn)}&t=${TOKEN}&v=${covRev[isbn] || 0}')"></div><b>Actuelle</b><small>${esc(b.cover_origin ? (SRC[String(b.cover_origin).replace(/\?$/, "")] || b.cover_origin) : "")}</small></div>` : "";
+    h += r.items.map(it => `<div class="cvc"><div class="cvimg" style="background-image:url('${it.thumb}')"></div><b>${esc(it.name)}</b><small>${it.w} × ${it.h} px · ${it.kb} Ko</small><button class="btn small primary" data-i="${it.i}">Utiliser celle-ci</button></div>`).join("");
+    $("cv-grid").innerHTML = h;
+    $("cv-state").textContent = r.items.length ? `${r.items.length} couverture${r.items.length > 1 ? "s" : ""} trouvée${r.items.length > 1 ? "s" : ""}. Choisis la plus nette ; tu pourras la rogner ensuite.` : "Aucune source n'a de couverture pour ce livre (ou la connexion est coupée). Tu peux en ajouter une à la main.";
+  } catch (e) { $("cv-state").textContent = e.message; }
+}
+$("cv-grid").addEventListener("click", async e => {
+  const b = e.target.closest("button[data-i]"); if (!b) return;
+  try { const r = await api("/api/cover/choose", {isbn: cvBook, i: +b.dataset.i}); hide("m-cov"); bump(r.book); toast("✓ Couverture remplacée"); } catch (er) { $("cv-state").textContent = er.message; }
+});
+$("cv-x").onclick = $("cv-close").onclick = () => { hide("m-cov"); cvBook = null; };
+
+let crBook = null, crBox = null, crDrag = null;
+function crShow(){
+  const bx = $("cr-box");
+  if (!crBox) { bx.classList.add("hide"); $("cr-ok").disabled = true; return; }
+  const [x0, y0, x1, y1] = crBox; bx.classList.remove("hide");
+  bx.style.left = x0 * 100 + "%"; bx.style.top = y0 * 100 + "%"; bx.style.width = (x1 - x0) * 100 + "%"; bx.style.height = (y1 - y0) * 100 + "%";
+  $("cr-ok").disabled = (x1 - x0) < 0.04 || (y1 - y0) < 0.04;
+}
+function openCrop(isbn){
+  const b = byIsbn(isbn); if (!b || !b.has_cover) return;
+  crBook = isbn; crBox = null; crShow(); $("cr-err").classList.add("hide");
+  $("cr-img").src = `/api/cover?isbn=${encodeURIComponent(isbn)}&t=${TOKEN}&v=${(covRev[isbn] || 0)}&r=${Date.now()}`; show("m-crop");
+}
+(() => {
+  const st = $("cr-stage"), rel = e => { const r = $("cr-img").getBoundingClientRect(); return [Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), Math.max(0, Math.min(1, (e.clientY - r.top) / r.height))]; };
+  st.addEventListener("pointerdown", e => { if (e.button) return; e.preventDefault(); st.setPointerCapture(e.pointerId); crDrag = rel(e); crBox = [crDrag[0], crDrag[1], crDrag[0], crDrag[1]]; crShow(); });
+  st.addEventListener("pointermove", e => { if (!crDrag) return; const p = rel(e); crBox = [Math.min(crDrag[0], p[0]), Math.min(crDrag[1], p[1]), Math.max(crDrag[0], p[0]), Math.max(crDrag[1], p[1])]; crShow(); });
+  const end = () => { crDrag = null; };
+  st.addEventListener("pointerup", end); st.addEventListener("pointercancel", end);
+})();
+async function cropApply(auto){
+  try {
+    const r = await api("/api/cover/crop", auto ? {isbn: crBook, auto: true} : {isbn: crBook, box: crBox});
+    if (!r.changed) { $("cr-err").textContent = "Rien à rogner : les bords de l'image sont déjà nets."; $("cr-err").classList.remove("hide"); return; }
+    hide("m-crop"); bump(r.book); toast("✓ Couverture rognée");
+  } catch (e) { $("cr-err").textContent = e.message; $("cr-err").classList.remove("hide"); }
+}
+$("cr-ok").onclick = () => cropApply(false); $("cr-auto").onclick = () => cropApply(true);
+$("cr-x").onclick = $("cr-cancel").onclick = () => hide("m-crop");
+
 // livres : cases à cocher (rubrique en lot), tri, glisser-déposer
 function renderBulk(){
   const n = chosen.size; $("bulk").classList.toggle("hide", n === 0); $("bulk-n").textContent = n ? `${n} livre${n > 1 ? "s" : ""} :` : "";
-  $("l-all").textContent = n === S.books.length && n ? "Tout décocher" : "Tout cocher";
+  const vis = visibleBooks(); $("l-all").textContent = vis.length && vis.every(b => chosen.has(b.isbn)) ? "Tout décocher" : "Tout cocher";
 }
 $("list").addEventListener("change", e => {
   const c = e.target.closest(".chk-b"); if (!c) return;
   c.checked ? chosen.add(c.dataset.isbn) : chosen.delete(c.dataset.isbn); renderBulk();
 });
-$("l-all").onclick = () => { const all = chosen.size === S.books.length; chosen.clear(); if (!all) S.books.forEach(b => chosen.add(b.isbn)); document.querySelectorAll(".chk-b").forEach(c => c.checked = chosen.has(c.dataset.isbn)); renderBulk(); };
+$("l-all").onclick = () => {
+  const vis = visibleBooks(), all = vis.length && vis.every(b => chosen.has(b.isbn));
+  vis.forEach(b => all ? chosen.delete(b.isbn) : chosen.add(b.isbn));
+  document.querySelectorAll(".chk-b").forEach(c => c.checked = chosen.has(c.dataset.isbn)); renderBulk();
+};
 $("bulk-none").onclick = () => { chosen.clear(); document.querySelectorAll(".chk-b").forEach(c => c.checked = false); renderBulk(); };
 $("bulk-ok").onclick = async () => {
   const name = $("bulk-rub").value.trim();
@@ -1591,11 +2119,16 @@ function renderCheck(c){
   else {
     const open = c.groups.length === 1 ? " open" : "";
     h += `<div class="ck-intro">${pl(c.groups.length, "point")} à vérifier. Cela n'empêche pas la génération.</div><div class="ck-list">` + c.groups.map(g =>
-      `<details class="cg ${g.level}"${open}><summary><span class="cgl">${esc(g.label)}</span><span class="cgn">${g.items.length}</span></summary><ul>` +
+      `<details class="cg ${g.level}"${open}><summary><span class="cgl">${esc(g.label)}</span><span class="cgn">${g.items.length}</span>${g.items.some(i => i.isbn) ? `<button type="button" class="btn small cgshow" data-gi="${c.groups.indexOf(g)}" title="Afficher ces livres dans la liste">Voir dans la liste</button>` : ""}</summary><ul>` +
       g.items.map(i => `<li><a data-isbn="${esc(i.isbn)}">${esc(i.titre || i.isbn)}</a></li>`).join("") + `</ul></details>`).join("") + `</div>`;
   }
   el.innerHTML = h;
   el.querySelectorAll("a[data-isbn]").forEach(a => a.onclick = () => { hide("m-gen"); selectBook(a.dataset.isbn, true); });
+  el.querySelectorAll(".cgshow").forEach(b => b.onclick = e => {
+    e.preventDefault(); e.stopPropagation(); const g = c.groups[+b.dataset.gi];
+    FILT.only = new Set(g.items.map(i => i.isbn).filter(Boolean)); FILT.onlyLabel = "Contrôle : " + g.label; FILT.q = ""; FILT.chip = "all"; FILT.rub = ""; $("l-q").value = ""; $("l-rub-f").value = "";
+    hide("m-gen"); setStep(1); renderList(); renderChips(); renderBulk(); window.scrollTo({top: 0, behavior: "smooth"});
+  });
 }
 
 // ------------------------------------------------------------ annuler / rétablir
@@ -1646,7 +2179,8 @@ $("ml-body").addEventListener("click", async e => {
 
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
-  for (const id of ["m-upd", "m-confirm", "m-gen", "m-set", "m-man", "m-add", "m-prix", "m-lib", "m-report"]) if (!$(id).classList.contains("hide")) { id === "m-confirm" ? $("c-cancel").click() : id === "m-upd" ? $("mu-later").click() : hide(id); return; }
+  for (const id of ["m-upd", "m-confirm", "m-gen", "m-set", "m-cmd", "m-bulk", "m-cov", "m-crop", "m-imap", "m-man", "m-add", "m-prix", "m-lib", "m-report"]) if (!$(id).classList.contains("hide")) { id === "m-confirm" ? $("c-cancel").click() : id === "m-upd" ? $("mu-later").click() : hide(id); return; }
+  const t = e.target; if (sel && step === 1 && !(t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable))) selectBook(null, true);
 });
 window.addEventListener("pagehide", () => navigator.sendBeacon("/api/bye?t=" + TOKEN, "{}"));
 
@@ -1728,7 +2262,7 @@ function updFill(u){
   later.textContent = canGo ? "Plus tard" : (u.state === "checking" ? "Fermer" : "OK");
 }
 function updPopup(u){
-  if (updPopupShown || S.settings.update_popup === false || document.querySelector(".modal:not(.hide)")) return;
+  if (updPopupShown || S.settings.update_popup === false || document.querySelector(".modal:not(.hide)") || !$("tour").classList.contains("hide")) return;
   updPopupShown = true; updOpen("launch"); updFill(u);
 }
 function updPopupClose(go){
@@ -1748,11 +2282,64 @@ function updInitialCheck(){
   setTimeout(go, 3000);
 }
 
+// ------------------------------------------------------------ visite guidée
+const TOUR = [
+  {sel: "#b-import", t: "Importer ses livres", b: "Charge ici un fichier Excel, CSV ou un export Dilicom avec les ISBN et les prix. Les colonnes sont reconnues toutes seules, même d'un fournisseur à l'autre."},
+  {sel: "#b-fetch", t: "Récupérer les informations", b: "Le programme cherche titre, auteurs, résumé et couverture pour chaque ISBN. Il suffit ensuite de vérifier."},
+  {sel: "#l-q", t: "Chercher et filtrer", b: "Recherche par titre, auteur, ISBN ou rubrique. Les boutons en dessous isolent les livres à compléter, sans prix ou sans couverture.", need: true},
+  {sel: "#l-view", t: "Liste ou grille", b: "Passe à la grille de couvertures pour avoir une vue d'ensemble du catalogue.", need: true},
+  {sel: "#steps", t: "Les trois étapes", b: "Livres, mise en page, puis génération du PDF et du PowerPoint.", need: true},
+  {sel: "#prev", t: "Aperçu en direct", b: "L'aperçu suit chaque modification. Les flèches du clavier changent de page ; les boutons + et − règlent le zoom.", need: true},
+  {sel: "#b-undo", t: "Annuler / rétablir", b: "Chaque modification peut être annulée avec Ctrl+Z, et rétablie avec Ctrl+Y."},
+  {sel: "#b-menu", t: "Menu", b: "Catalogues enregistrés, réglages, ajout d'un livre à la main et nouveau catalogue. Astuce : Ctrl+K ouvre la recherche de commandes, pour tout faire au clavier."},
+];
+let tourI = 0, tourList = [];
+const tourVisible = el => el && el.getClientRects().length > 0;
+function tourStart(){
+  tourList = TOUR.filter(st => tourVisible(document.querySelector(st.sel)));
+  if (!tourList.length) return;
+  tourI = 0; show("tour"); tourShow();
+}
+function tourEnd(){ hide("tour"); try { localStorage.setItem("cmpl-cat-tour", "1"); } catch (e) {} }
+function tourShow(){
+  const st = tourList[tourI], el = document.querySelector(st.sel);
+  if (!tourVisible(el)) { if (tourI < tourList.length - 1) { tourI++; return tourShow(); } return tourEnd(); }
+  el.scrollIntoView({block: "nearest", inline: "nearest"});
+  const r = el.getBoundingClientRect(), pad = 6, hole = $("tour-hole"), card = $("tour-card");
+  hole.style.left = r.left - pad + "px"; hole.style.top = r.top - pad + "px"; hole.style.width = r.width + 2 * pad + "px"; hole.style.height = r.height + 2 * pad + "px";
+  $("tour-t").textContent = st.t; $("tour-b").textContent = st.b; $("tour-n").textContent = `${tourI + 1} / ${tourList.length}`;
+  $("tour-prev").classList.toggle("hide", tourI === 0);
+  $("tour-next").textContent = tourI === tourList.length - 1 ? "Terminer" : "Suivant";
+  const cw = Math.min(320, innerWidth - 24), ch = card.offsetHeight || 150;
+  let x = Math.min(Math.max(12, r.left), innerWidth - cw - 12), y = r.bottom + pad + 12;
+  if (y + ch > innerHeight - 8) y = Math.max(8, r.top - pad - 12 - ch);
+  if (y < 8 || (r.top < y + ch && y < r.bottom && r.height > innerHeight * 0.5)) { y = Math.max(8, Math.min(innerHeight - ch - 8, r.top + 16)); x = Math.min(Math.max(12, r.left + 16), innerWidth - cw - 12); }
+  card.style.left = x + "px"; card.style.top = y + "px";
+  $("tour-next").focus();
+}
+$("tour-next").onclick = () => { if (tourI >= tourList.length - 1) tourEnd(); else { tourI++; tourShow(); } };
+$("tour-prev").onclick = () => { if (tourI > 0) { tourI--; tourShow(); } };
+$("tour-skip").onclick = tourEnd;
+document.addEventListener("keydown", e => {
+  if ($("tour").classList.contains("hide")) return;
+  if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); tourEnd(); }
+  else if (e.key === "ArrowRight") { e.preventDefault(); $("tour-next").click(); }
+  else if (e.key === "ArrowLeft") { e.preventDefault(); $("tour-prev").click(); }
+}, true);
+addEventListener("resize", () => { if (!$("tour").classList.contains("hide")) tourShow(); });
+$("b-tour").onclick = () => { menuOpen(false); setTimeout(tourStart, 60); };
+function tourMaybe(){
+  if (navigator.webdriver && !location.hash.includes("tour")) return;     // pas de visite pendant les tests automatiques
+  let seen = null; try { seen = localStorage.getItem("cmpl-cat-tour"); } catch (e) { seen = "1"; }
+  if (!seen && !document.querySelector(".modal:not(.hide)")) setTimeout(tourStart, 700);
+}
+
 // ------------------------------------------------------------ démarrage
 (async () => {
   const r = await fetch("/api/bootstrap?t=" + TOKEN); const st = await r.json();
   $("ver").textContent = "v" + st.version;
   setState(st);
+  tourMaybe();
   fetch("/api/ping");
   updInitialCheck();
   netCheck(true);

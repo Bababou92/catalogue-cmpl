@@ -44,7 +44,9 @@ def list_catalogues():
             continue
         try:
             c = _jread(os.path.join(d, f))
-            out.append({"id": c["id"], "nom": c.get("nom", ""), "updated": c.get("updated", 0), "n": len(c.get("books", []))})
+            bks = c.get("books", [])
+            cov = any(b.get("cover_path") and os.path.isfile(b["cover_path"]) for b in bks[:60])
+            out.append({"id": c["id"], "nom": c.get("nom", ""), "updated": c.get("updated", 0), "n": len(bks), "cover": cov})
         except Exception:
             continue
     return sorted(out, key=lambda x: -x["updated"])

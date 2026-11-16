@@ -43,6 +43,28 @@ Bouton "Ecrire les descriptions" : l'IA Claude redige un resume pour les livres 
 Settings > Billing (acheter du credit, 5 $ suffisent) puis Settings > API Keys > Create Key ; la coller dans Reglages.
 Cout : quelques centimes par catalogue.
 
+Retrouver et trier ses livres
+-----------------------------
+- Champ de recherche au-dessus de la liste (touche "/") : titre, auteur, ISBN, editeur, rubrique.
+- Boutons de filtre : a completer, sans prix, sans couverture, sans resume, resume coupe, a relire, introuvables. Menu "Toutes les rubriques".
+- Affichage en liste ou en grille de couvertures. Fleches haut/bas : livre suivant / precedent. Ctrl+K : palette de commandes.
+- Livres coches : barre d'actions groupees (rubrique, prix, taux special, raccourcir les resumes, supprimer). Tout est annulable (Ctrl+Z).
+- Barre d'etat en bas : nombre de livres, ce qui reste a completer (cliquable), nombre de pages et heure de la derniere sauvegarde.
+
+Importer des fichiers de fournisseurs differents
+------------------------------------------------
+Le programme reconnait tout seul les colonnes (ISBN, prix, titre, editeur...), meme avec des en-tetes differents, plusieurs feuilles
+ou des lignes de titre/total. Si le fichier est ambigu, un ecran montre un apercu et laisse choisir les colonnes ; ce choix est
+memorise pour les prochains fichiers du meme fournisseur. Formats : .xlsx .xlsm .xls .csv .tsv .slk. (Un ancien .xls demande le module
+xlrd ; sinon, l'enregistrer en .xlsx dans Excel.) Un bilan s'affiche apres l'import.
+
+Couvertures : outils supplementaires
+------------------------------------
+Sur la fiche d'un livre : "Comparer les sources" (choisir entre plusieurs couvertures trouvees), "Rogner..." (automatique ou a la main),
+Ctrl+V pour coller une image copiee. Les resumes trop longs se raccourcissent avec "Raccourcir..." (coupe en fin de phrase).
+
+Visite guidee : au premier lancement, ou a tout moment via Menu > "Visite guidee".
+
 Prix
 ----
 Les prix viennent du fichier importe (Dilicom en particulier). S'il en manque : lien "Saisir les prix" en haut de la

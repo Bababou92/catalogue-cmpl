@@ -86,4 +86,10 @@ def http_get(url, timeout=25):
     if "books.google.com/books/content" in url:
         isbn = re.search(r"ISBN(\d+)", url).group(1)
         return cover_png(COVER_ISBN[isbn]) if isbn in COVER_ISBN else blank_png()
+    if "pictures.abebooks.com/isbn/" in url:                       # 2e source de couverture (plus grande) pour les mêmes livres
+        isbn = re.search(r"isbn/(\d+)-", url).group(1)
+        if isbn in COVER_ISBN:
+            c = COVER_ISBN[isbn]
+            return cover_png((c[2], c[0], c[1]), 400, 600, "ABEBOOKS")
+        raise urllib.error.HTTPError(url, 404, "not found", {}, None)
     raise urllib.error.URLError("hors ligne (test)")

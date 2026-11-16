@@ -474,3 +474,114 @@ _xl = os.path.join(tempfile.mkdtemp(), "t.xlsx"); prix.export_xlsx(_xl, _srv.CAT
 _rv = prix.row_values(_nbk, 3366, "sup1000"); assert _rv[4] == "" and _rv[0] == "Mon livre" and _rv[-1].replace("\u202f", " ").replace("\xa0", " ") == "53 000"       # case ISBN vide ; 15,5 x 3366 = 52 173 -> 53 000
 print("OK livre sans ISBN")
 
+
+# ---- résumés : espaces propres, pas de vide à côté de la couverture, résumé coupé repéré
+assert pages.clean_text("a  b\xa0 c\nd :\xa0e  ") == "a b c d :\xa0e"
+assert catalog.resume_cut("Cet ouvrage présente les outils et notions à maîtriser ; un cours illustré de nombreux théorèmes à…")
+assert catalog.resume_cut("Un texte assez long qui se termine au milieu de la phrase sans ponctuation finale") and not catalog.resume_cut("Un texte complet qui se termine bien, avec un point final.") and not catalog.resume_cut("Court")
+import tempfile as _tf2
+from PIL import Image as _Im4
+_lorem = ("Cet ouvrage présente de façon claire et pédagogique les principaux outils de la statistique et des probabilités.  Chaque chapitre s'organise "
+          "en quatre temps forts : une introduction présentant la problématique  abordée, assortie d'objectifs de connaissances et des notions à maîtriser ; "
+          "un cours illustré de nombreux théorèmes, applications et définitions ; une page L'essentiel, mentionnant les points clés du chapitre ; des exercices corrigés.")
+for _ratio in (1.0, 1.3, 1.4, 1.5, 1.58, 1.7, 2.0):
+    for _n in (20, 40, 80, 120):
+        _p = _tf2.mktemp(suffix=".jpg"); _Im4.new("RGB", (300, int(300 * _ratio)), (190, 150, 110)).save(_p)
+        _b = {"isbn": "9782100000005", "titre": "Un titre assez long pour passer sur deux lignes", "auteurs": ["Nom, Prénom"], "cover_path": _p,
+              "resume": " ".join((_lorem.split() * 4)[:_n]), "date": "2019", "editeur": "Dunod"}
+        _els, _h = pages.entry_layout(_b, 0, 0)
+        _cov = next(e for e in _els if e.name == "Couverture"); _bs = next(e for e in _els if e.name == "Titre et auteurs")
+        _rest = [e for e in _els if e.name.startswith("Résumé (suite)")]
+        if _rest and _n >= 40:
+            _gap = _rest[0].y - (_bs.y + _bs.h - 0.6)               # espace entre la fin du texte à côté et la suite
+            assert _gap <= 4.0 + (_cov.y + _cov.h - (_bs.y + _bs.h)), (_ratio, _n, _gap)      # jamais un trou de plus d'une ligne
+        assert _h > 0
+print("OK résumés autour de la couverture")
+
+# ---- actions groupées (éditeur, prix, retrait) : un seul enregistrement, un seul « annuler »
+_srv.CAT["books"] = _full(); _srv.CAT["meta"] = {"titre": "T", "date": ""}; _srv.save()
+_ids = [b["isbn"] for b in _srv.CAT["books"]][:3]
+_srv.HIST["t"] = 0; _h0 = _srv.HIST["idx"]
+assert _srv.update_many(_ids + ["inconnu"], "editeur", "  Dunod ") == 3 and all(_srv.find(i)["editeur"] == "Dunod" for i in _ids)
+assert _srv.HIST["idx"] == _h0 + 1                                                                 # une seule étape d'historique pour tout le lot
+assert _srv.update_many(_ids, "prix", "12,9") == 3 and _srv.find(_ids[0])["prix"] == 12.9
+for _bad in (("prix", "abc"), ("titre", "x"), ("isbn", "1")):
+    try: _srv.update_many(_ids, *_bad); raise SystemExit("lot invalide accepté " + str(_bad))
+    except ValueError: pass
+_n0 = len(_srv.CAT["books"]); assert _srv.remove_many(_ids[:2]) == 2 and len(_srv.CAT["books"]) == _n0 - 2 and _srv.remove_many(["inconnu"]) == 0
+print("OK actions groupées")
+
+# ---- résumés raccourcis proprement
+_t = "Cet ouvrage présente de façon claire les outils. Chaque chapitre s'organise en quatre temps forts : une introduction présentant la problématique. Un cours illustré de nombreux théorèmes, applications et définitions ; une page L'essentiel, mentionnant les points clés."
+assert catalog.shorten_text(_t, 300) == _t
+_r = catalog.shorten_text(_t, 200); assert _r.endswith("problématique.") and len(_r) <= 200
+_r = catalog.shorten_text("un " * 100, 50); assert _r.endswith("…") and len(_r) <= 50 and not _r.endswith(" …")
+_r = catalog.shorten_text("Abcdefghij " * 30, 100); assert len(_r) <= 100 and _r.endswith("…")
+_srv.CAT["books"] = _full(); _srv.CAT["books"][0]["resume"] = _t; _srv.save()
+assert _srv.shorten_many([b["isbn"] for b in _srv.CAT["books"]], 200) == 1 and _srv.CAT["books"][0]["resume"].endswith("problématique.")
+for _bad in ("abc", 5, 99999):
+    try: _srv.shorten_many([], _bad); raise SystemExit("longueur invalide acceptée")
+    except ValueError: pass
+print("OK résumés raccourcis")
+
+# ---- import Excel : classeurs de fournisseurs aux formats variés
+import io as _io5
+from openpyxl import Workbook as _Wb5
+_I = ["9782100870165", "9782100861514", "9782100865420", "9782200611545", "9782200620035", "9782200623296"]
+def _xl(sheets, hidden=()):
+    _wb = _Wb5(); _wb.remove(_wb.active)
+    for _n, _rs in sheets:
+        _ws = _wb.create_sheet(_n)
+        for _r in _rs: _ws.append(_r)
+        if _n in hidden: _ws.sheet_state = "hidden"
+    _b = _io5.BytesIO(); _wb.save(_b); return _b.getvalue()
+def _imp(data, fn="x.xlsx", **kw): return importer.import_data(data, fn, **kw)
+def _prix(rows): return [r.get("prix") for r in rows]
+# A : bannière, EAN13 numérique, PVP TTC (et pas le prix net HT), colonnes en désordre
+_A = [["Société XYZ – commande du 12/10/2026"], [], ["EAN13", "Désignation", "Auteur", "Éditeur", "PVP TTC", "Remise", "Prix net HT", "Qté"]] + [[int(x), f"Titre {i}", f"Nom{i} Prénom", "Dunod", 12.9 + i, "30%", 8.5 + i, 2] for i, x in enumerate(_I)]
+_r, _pb, _rc = _imp(_xl([("Commande", _A)]))
+assert len(_r) == 6 and _prix(_r) == [12.9, 13.9, 14.9, 15.9, 16.9, 17.9] and _r[0]["titre"] == "Titre 0" and _r[0]["editeur"] == "Dunod" and not _pb
+assert not importer.analyze_file(_xl([("Commande", _A)]), "x.xlsx")[0]["review"]
+# B : aucun en-tête -> ISBN et prix devinés d'après le contenu, à confirmer ; les colonnes d'entiers (pages) ne sont pas des prix
+_B = [[x, f"Titre {i}", 15.9 + i, 100 + i * 10] for i, x in enumerate(_I)]
+_an = importer.analyze_file(_xl([("F", _B)]), "x.xlsx")[0]
+assert _an["cols"] == {"isbn": 0, "prix": 2} and _an["review"] and _an["from"]["prix"] == "contenu", _an["cols"]
+assert _prix(_imp(_xl([("F", _B)]))[0]) == [15.9, 16.9, 17.9, 18.9, 19.9, 20.9]
+# C : plusieurs feuilles lues, ISBN en double entre feuilles signalé ; feuille masquée ignorée
+_C1 = [["ISBN", "Titre", "Prix TTC"]] + [[_I[i], f"D{i}", 20 + i] for i in range(3)]
+_C2 = [["ISBN", "Titre", "Prix TTC"]] + [[_I[i], f"E{i}", 30 + i] for i in range(2, 6)]
+_r, _pb, _rc = _imp(_xl([("Droit", _C1), ("Économie", _C2), ("Brouillon", [["ISBN", "Prix"], [_I[0], 1]])], hidden=("Brouillon",)))
+assert [x["isbn"] for x in _r] == _I and len(_rc["sheets"]) == 2 and any("déjà lu" in p for p in _pb), (len(_r), _pb)
+# D : colonne « code article » sans rapport, prix de vente TTC et non le prix HT
+_D = [["Code article", "Libellé", "ISBN", "Prix de vente TTC", "Prix HT"]] + [[f"A{i:05d}", f"T{i}", x, 10.5 + i, 9.9 + i] for i, x in enumerate(_I)]
+assert _prix(_imp(_xl([("S", _D)]))[0]) == [10.5, 11.5, 12.5, 13.5, 14.5, 15.5]
+# E : ISBN-10, « Tarif » ; F : HT et TTC côte à côte ; K : prix écrits en texte
+assert [x["isbn"] for x in _imp(_xl([("S", [["ISBN", "Tarif"]] + [[isbn.to10(x), 12.5] for x in _I[:3]])]))[0]] == _I[:3]
+assert _prix(_imp(_xl([("S", [["ISBN", "Prix public HT", "Prix public TTC"]] + [[x, 9.5, 10.0] for x in _I[:3]])]))[0]) == [10.0] * 3
+assert _prix(_imp(_xl([("S", [["ISBN", "Prix"]] + [[x, f"{12 + i},90 €"] for i, x in enumerate(_I[:3])])]))[0]) == [12.9, 13.9, 14.9]
+# G : pas de prix -> simple remarque ; L : lignes de total / pied de page ignorées sans bruit
+_an = importer.analyze_file(_xl([("S", [["ISBN", "Titre"]] + [[x, "t"] for x in _I[:3]])]), "x.xlsx")[0]
+assert "prix" not in _an["cols"] and not _an["review"] and any("Aucune colonne de prix" in r for r in _an["reasons"])
+_r, _pb, _rc = _imp(_xl([("S", [["ISBN", "Prix"]] + [[x, 10] for x in _I[:3]] + [["Total", "30"], [None, None], ["Merci de votre commande"]])]))
+assert len(_r) == 3 and not _pb and _rc["sans_prix"] == 0
+# CSV à virgules, ISBN invalide signalé, .xls ancien format
+_r, _pb, _ = _imp('Isbn,Titre,Prix (€)\n9782100870165,A,"12,90"\n9782100861514,B,13.5\n9782100861515,C,9\n'.encode(), "f.csv")
+assert _prix(_r) == [12.9, 13.5] and len(_pb) == 1 and "9782100861515" in _pb[0]
+try:
+    import xlwt as _xlwt
+    _w = _xlwt.Workbook(); _s = _w.add_sheet("F1")
+    for _j, _h in enumerate(["EAN", "Titre", "Prix public"]): _s.write(0, _j, _h)
+    for _i, _x in enumerate(_I[:4]): _s.write(_i + 1, 0, float(_x)); _s.write(_i + 1, 1, f"T{_i}"); _s.write(_i + 1, 2, 12.9 + _i)
+    _b = _io5.BytesIO(); _w.save(_b)
+    _r, _pb, _ = _imp(_b.getvalue(), "f.xls"); assert len(_r) == 4 and _prix(_r)[0] == 12.9 and _r[1]["titre"] == "T1"
+except ImportError:
+    print("  (xlwt absent : test .xls ignoré)")
+# format mémorisé : les colonnes confirmées une fois sont reprises pour le même en-tête
+_E = [["Réf", "Colonne X", "Colonne Y"]] + [[x, "titre?", 5.5] for x in _I[:3]]
+_an = importer.analyze_file(_xl([("S", _E)]), "x.xlsx")[0]
+assert "isbn" in _an["cols"] and _an["signature"]
+_mem = {_an["signature"]: {"cols": {"isbn": 0, "titre": 1, "prix": 2}}}
+_an2 = importer.analyze_file(_xl([("S", _E)]), "x.xlsx", _mem)[0]
+assert _an2["remembered"] and _an2["cols"] == {"isbn": 0, "titre": 1, "prix": 2} and not _an2["review"]
+_r, _, _ = _imp(_xl([("S", _E)]), mapping={"S": {"cols": {"isbn": 0, "prix": 2}, "start": 1}}); assert _prix(_r) == [5.5] * 3 and "titre" not in _r[0]    # colonnes choisies à la main
+print("OK import Excel de fournisseurs variés")

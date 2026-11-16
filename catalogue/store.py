@@ -44,6 +44,20 @@ def _write(name, obj):
         os.replace(tmp, _path(name))
 
 
+# ---------------------------------------------------------------- colonnes mémorisées par format de fichier (import)
+def load_import_maps():
+    m = _read("import_maps.json", {})
+    return m if isinstance(m, dict) else {}
+
+
+def remember_import_map(signature, cols, name=""):
+    m = load_import_maps()
+    m[signature] = {"cols": cols, "name": name}
+    while len(m) > 60:                       # on ne garde que les 60 formats les plus récents
+        m.pop(next(iter(m)))
+    _write("import_maps.json", m)
+
+
 # ---------------------------------------------------------------- réglages
 def load_settings():
     s = {"google_key": "", "claude_key": "", "ai_model": "", "out_dir": docs_dir(), "covers_dir": os.path.join(docs_dir(), "Couvertures"),

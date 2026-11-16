@@ -26,6 +26,16 @@ def _run(text, size, bold=False, italic=False, color=BLACK):
     return Run(text, family="arial", size=size, bold=bold, italic=italic, color=color)
 
 
+OVERSHOOT = 0.5     # une ligne de plus à côté de la couverture si elle dépasse d'au plus une demi-ligne
+
+
+def clean_text(text):
+    """Texte propre : espaces et retours à la ligne multiples réduits à un seul espace (une insécable seule est gardée)."""
+    t = re.sub(r"[ \t\r\n\u2009\u200a\u202f]+", " ", str(text or ""))
+    t = re.sub(r"\xa0 | \xa0", " ", t)
+    return t.strip()
+
+
 def _paras_height(paras, width_mm):
     return textfit.layout(paras, width_mm / MM_PER_PT)[1] * MM_PER_PT if paras else 0.0
 
@@ -104,14 +114,19 @@ def entry_layout(book, x, y, col_w=COL_W):
         head.append(Para([_run(a, AUTHOR_PT + 0.5, italic=True, color=GREY)], align="l", space_before_pt=3.0 if i == 0 else 0.0))
     head_h = _paras_height(head, text_w)
 
-    resume = (book.get("resume") or "").strip()
+    resume = clean_text(book.get("resume"))
     first_txt, rest_txt = "", resume
     if resume:
         run = _run(resume, TEXT_PT)
         lh = textfit.line_height_pt(run) * MM_PER_PT
-        room = cover_h - head_h - 1.2
-        n = int(room // lh) if room > 0 else 0
-        first_txt, rest_txt = _split_first_lines(resume, text_w / MM_PER_PT, n, run)
+        sb = 2.5 * MM_PER_PT                                 # espace avant le résumé
+        used = head_h + sb
+        # nombre de lignes à côté de la couverture : la dernière peut dépasser un peu le bas de la couverture
+        # (le texte qui suit reprend juste dessous), plutôt que de laisser un vide.
+        n = int((cover_h - used) // lh) if cover_h > used else 0
+        if n >= 0 and used + (n + 1) * lh - cover_h <= OVERSHOOT * lh:
+            n += 1
+        first_txt, rest_txt = _split_first_lines(resume, text_w / MM_PER_PT, max(n, 0), run)
     beside = list(head)
     if first_txt:
         beside.append(Para([_run(first_txt, TEXT_PT)], align="l", space_before_pt=2.5))
@@ -131,8 +146,13 @@ def entry_layout(book, x, y, col_w=COL_W):
     fl = format_line(book)
     if fl:
         below.append(Para([_run(fl, META_PT)], align="l"))
-    block_h = max(cover_h, beside_h)
-    below_y = top + block_h + 1.2
+    # le texte du résumé reprend juste sous la dernière ligne ; sous la couverture si elle descend plus bas ;
+    # les références (date, collection...) gardent un petit espace
+    if rest_txt:
+        below_y = top + max(beside_h, cover_h + 0.5)
+    else:
+        below_y = top + max(cover_h, beside_h) + 1.2
+    block_h = below_y - top
     below_h = _paras_height(below, col_w)
     if below:
         els.append(TextBox(x, below_y, col_w, below_h + 0.6, below, name="Résumé (suite) et références"))

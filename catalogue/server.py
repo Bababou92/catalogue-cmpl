@@ -584,6 +584,37 @@ def set_rubrique(isbns, name):
         return n
 
 
+def lib_thumb(cid, n=3, size=(96, 132)):
+    """Vignette d'un catalogue enregistré : les premières couvertures côte à côte (JPEG), ou None."""
+    try:
+        books = libs.load_catalogue(cid).get("books", [])
+    except Exception:
+        return None
+    ims = []
+    for b in books:
+        p = b.get("cover_path")
+        if p and os.path.isfile(p):
+            try:
+                im = Image.open(p).convert("RGB")
+                im.thumbnail(size)
+                ims.append(im)
+            except Exception:
+                continue
+        if len(ims) >= n:
+            break
+    if not ims:
+        return None
+    W = sum(i.width for i in ims) + 6 * (len(ims) - 1)
+    out = Image.new("RGB", (W, size[1]), (238, 241, 246))
+    x = 0
+    for im in ims:
+        out.paste(im, (x, (size[1] - im.height) // 2))
+        x += im.width + 6
+    buf = io.BytesIO()
+    out.save(buf, "JPEG", quality=82)
+    return buf.getvalue()
+
+
 def add_manual_book(fields, cover=None):
     """Ajoute un livre saisi à la main. Sans ISBN : identifiant interne MAN-xxxxxxxx, aucune recherche sur Internet.
     Avec un ISBN valide : livre ordinaire dont la saisie est protégée, la recherche pourra compléter le reste."""
@@ -614,41 +645,101 @@ def add_manual_book(fields, cover=None):
     return book
 
 
+def _apply_fields(b, fields):
+    """Applique des champs saisis à un livre (sans enregistrer)."""
+    if fields.get("resume_ia") is False:
+        b["resume_ia"] = False
+    for k, v in fields.items():
+        if k not in EDITABLE:
+            continue
+        if k == "resume" and v != b.get("resume"):
+            b["resume_ia"] = False
+        if k == "auteurs":
+            v = [x.strip() for x in (v if isinstance(v, list) else str(v).split("\n")) if x.strip()]
+        elif k == "prix":
+            v = importer.parse_price(v)
+        elif k == "prix_ar":
+            tv = re.sub(r"[^\d.,]", "", str(v or "")).replace(",", ".")
+            try:
+                v = int(round(float(tv))) if tv else ""
+            except ValueError:
+                v = ""
+        elif k == "taux":
+            tv = str(v or "").replace(",", ".").replace(" ", "")
+            try:
+                v = (int(float(tv)) if float(tv) == int(float(tv)) else float(tv)) if tv else ""
+            except ValueError:
+                v = ""
+        else:
+            v = str(v or "").strip() if k != "resume" else re.sub(r"\s+", " ", str(v or "")).strip()
+        b[k] = v
+        if k not in ("prix", "taux", "prix_ar") and k not in b["edited"]:
+            b["edited"].append(k)
+
+
 def update_book(isbn, fields):
     with LOCK:
         b = find(isbn)
         if b is None:
             raise ValueError("livre introuvable")
-        if fields.get("resume_ia") is False:
-            b["resume_ia"] = False
-        for k, v in fields.items():
-            if k not in EDITABLE:
-                continue
-            if k == "resume" and v != b.get("resume"):
-                b["resume_ia"] = False
-            if k == "auteurs":
-                v = [x.strip() for x in (v if isinstance(v, list) else str(v).split("\n")) if x.strip()]
-            elif k == "prix":
-                v = importer.parse_price(v)
-            elif k == "prix_ar":
-                tv = re.sub(r"[^\d.,]", "", str(v or "")).replace(",", ".")
-                try:
-                    v = int(round(float(tv))) if tv else ""
-                except ValueError:
-                    v = ""
-            elif k == "taux":
-                tv = str(v or "").replace(",", ".").replace(" ", "")
-                try:
-                    v = (int(float(tv)) if float(tv) == int(float(tv)) else float(tv)) if tv else ""
-                except ValueError:
-                    v = ""
-            else:
-                v = str(v or "").strip() if k != "resume" else re.sub(r"\s+", " ", str(v or "")).strip()
-            b[k] = v
-            if k not in ("prix", "taux", "prix_ar") and k not in b["edited"]:
-                b["edited"].append(k)
+        _apply_fields(b, fields)
         save()
         return catalog.public(b)
+
+
+BULK_FIELDS = ("editeur", "collection", "prix", "date", "illustrations", "dimensions")
+
+
+def update_many(isbns, field, value):
+    """Donne la même valeur à un champ pour plusieurs livres (un seul enregistrement : un seul « annuler »)."""
+    if field not in BULK_FIELDS:
+        raise ValueError("Ce champ ne peut pas être modifié en lot.")
+    if field == "prix" and importer.parse_price(value) is None and str(value or "").strip():
+        raise ValueError("Prix non reconnu (exemple : 12,90).")
+    with LOCK:
+        n = 0
+        for i in dict.fromkeys(isbns or []):
+            b = find(i)
+            if b is not None:
+                _apply_fields(b, {field: value})
+                n += 1
+        if n:
+            save()
+        return n
+
+
+def shorten_many(isbns, max_chars):
+    """Raccourcit les résumés trop longs (coupés à la fin d'une phrase). Retourne le nombre de livres modifiés."""
+    try:
+        n = int(max_chars)
+    except (TypeError, ValueError):
+        raise ValueError("Indique un nombre de caractères (par exemple 420).")
+    if not 100 <= n <= 3000:
+        raise ValueError("La longueur doit être comprise entre 100 et 3000 caractères.")
+    with LOCK:
+        done = 0
+        for i in dict.fromkeys(isbns or []):
+            b = find(i)
+            if b is None or len(b.get("resume") or "") <= n:
+                continue
+            b["resume"] = catalog.shorten_text(b["resume"], n)
+            if "resume" not in b["edited"]:
+                b["edited"].append("resume")
+            done += 1
+        if done:
+            save()
+        return done
+
+
+def remove_many(isbns):
+    with LOCK:
+        ids = set(isbns or [])
+        before = len(CAT["books"])
+        CAT["books"] = [x for x in CAT["books"] if x["isbn"] not in ids]
+        n = before - len(CAT["books"])
+        if n:
+            save()
+        return n
 
 
 def set_prices(prices):
@@ -681,6 +772,82 @@ def set_cover(isbn, data):
         return catalog.public(b)
 
 
+COVER_CAND = {}          # isbn -> [(source, octets)] : couvertures proposées dans « Comparer les sources »
+
+
+def cover_compare(isbn):
+    """Teste toutes les sources de couverture et renvoie les images trouvées (miniatures) pour les comparer."""
+    from concurrent.futures import ThreadPoolExecutor
+    with LOCK:
+        b = find(isbn)
+        if b is None:
+            raise ValueError("livre introuvable")
+        key = store.load_settings().get("google_key", "")
+    raw = sources.fetch_raw(isbn, key)
+    cands = sources.cover_candidates(isbn, raw)
+    with ThreadPoolExecutor(max_workers=len(cands) or 1) as ex:
+        res = list(ex.map(lambda c: sources._try_cover(c[1]), cands))
+    kept, items, log = [], [], []
+    for (name, _url, _v), (data, why) in zip(cands, res):
+        log.append(f"{name} : {'✓' if data else why}")
+        if not data or any(d == data for _, d in kept):
+            continue
+        im = Image.open(io.BytesIO(data))
+        im.load()
+        w, h = im.size
+        th = im.convert("RGB")
+        th.thumbnail((260, 380))
+        buf = io.BytesIO()
+        th.save(buf, "JPEG", quality=85)
+        items.append({"i": len(kept), "name": name, "w": w, "h": h, "kb": max(1, round(len(data) / 1024)),
+                      "thumb": "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()})
+        kept.append((name, data))
+    COVER_CAND[isbn] = kept
+    return {"items": items, "log": log}
+
+
+def cover_choose(isbn, idx):
+    cands = COVER_CAND.get(isbn) or []
+    if not 0 <= int(idx) < len(cands):
+        raise ValueError("Cette proposition n'est plus disponible : relance la comparaison.")
+    return set_cover(isbn, cands[int(idx)][1])
+
+
+def _auto_box(im):
+    """Cadre du contenu : retire les marges de la couleur du fond (blanc ou uniforme) autour de l'image."""
+    from PIL import ImageChops
+    rgb = im.convert("RGB")
+    bg = Image.new("RGB", rgb.size, rgb.getpixel((0, 0)))
+    diff = ImageChops.difference(rgb, bg).convert("L").point(lambda v: 255 if v > 24 else 0)
+    return diff.getbbox()
+
+
+def crop_cover(isbn, box=None, auto=False):
+    """Rogne la couverture d'un livre. box = (x0, y0, x1, y1) en fractions 0..1 ; auto = enlève les marges unies."""
+    with LOCK:
+        b = find(isbn)
+        if b is None:
+            raise ValueError("livre introuvable")
+        path = b.get("cover_path")
+    if not path or not os.path.isfile(path):
+        raise ValueError("Ce livre n'a pas de couverture.")
+    im = Image.open(path)
+    im.load()
+    W, H = im.size
+    if auto:
+        bb = _auto_box(im)
+        if not bb or (bb[2] - bb[0]) * (bb[3] - bb[1]) >= 0.985 * W * H:
+            return None
+    else:
+        x0, y0, x1, y1 = [max(0.0, min(1.0, float(v))) for v in box]
+        bb = (round(min(x0, x1) * W), round(min(y0, y1) * H), round(max(x0, x1) * W), round(max(y0, y1) * H))
+        if bb[2] - bb[0] < 20 or bb[3] - bb[1] < 20:
+            raise ValueError("La zone choisie est trop petite.")
+    out = io.BytesIO()
+    im.crop(bb).convert("RGB").save(out, "JPEG", quality=92)
+    return set_cover(isbn, out.getvalue())
+
+
 # ------------------------------------------------------------------ HTTP
 class Handler(BaseHTTPRequestHandler):
     server_version = "CMPLCat/1.0"
@@ -708,6 +875,7 @@ class Handler(BaseHTTPRequestHandler):
         if ctype.startswith("application/json"):
             h = hist_state()
             self.send_header("X-Hist", f"{int(h['undo'])}{int(h['redo'])}")
+            self.send_header("X-Rev", str(REV["n"]))
         for k, v in (extra or {}).items():
             self.send_header(k, v)
         self.end_headers()
@@ -748,6 +916,12 @@ class Handler(BaseHTTPRequestHandler):
             d = re.search(r"dpi=(\d+)", query)
             return self._send(200, page_png(int(m.group(1)) if m else 0, max(30, min(int(d.group(1)) if d else 100, 200))),
                               "image/png", {"Cache-Control": "private, max-age=600"})
+        if path == "/api/lib/thumb":
+            m = re.search(r"id=([0-9a-f]{12})", query)
+            data = lib_thumb(m.group(1)) if m else None
+            if not data:
+                return self._send(404, {"error": "pas de vignette"})
+            return self._send(200, data, "image/jpeg", {"Cache-Control": "private, max-age=60"})
         if path == "/api/cover":
             m = re.search(r"isbn=([\w\-]+)", query)
             b = find(m.group(1)) if m else None
@@ -776,7 +950,10 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/state":
                 return self._send(200, public_state())
             if path in ("/api/undo", "/api/redo"):
-                undo_redo(-1 if path == "/api/undo" else 1)
+                try:
+                    undo_redo(-1 if path == "/api/undo" else 1)
+                except ValueError as e:      # rien à annuler / recherche en cours : simple message
+                    return self._send(400, {"error": str(e)})
                 return self._send(200, {"state": public_state()})
             if path == "/api/prices/revert":
                 with LOCK:
@@ -850,10 +1027,35 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/backup/restore":
                 replace_catalogue(libs.load_backup(b.get("name")), "restauration")
                 return self._send(200, {"state": public_state()})
-            if path == "/api/import":
-                rows, problems = importer.read_rows(base64.b64decode(b["data"]), b.get("filename", ""))
+            if path == "/api/import/analyze":
+                try:
+                    sheets = importer.analyze_file(base64.b64decode(b["data"]), b.get("filename", ""), store.load_import_maps())
+                except ValueError as e:
+                    return self._send(400, {"error": str(e)})
+                except Exception as e:
+                    errlog.record(path, e)
+                    return self._send(400, {"error": "Ce fichier est illisible (est-il vraiment un classeur Excel, un CSV ou un export Dilicom ?)."})
+                return self._send(200, {"sheets": [importer.sheet_view(a) for a in sheets if a["lines"]], "keys": importer.KEY_LABELS})
+            if path in ("/api/import", "/api/import/preview"):
+                try:
+                    rows, problems, recap = importer.import_data(base64.b64decode(b["data"]), b.get("filename", ""), b.get("mapping"), store.load_import_maps())
+                except ValueError as e:
+                    return self._send(400, {"error": str(e)})
+                except Exception as e:
+                    errlog.record(path, e)
+                    return self._send(400, {"error": "Ce fichier est illisible (est-il vraiment un classeur Excel, un CSV ou un export Dilicom ?)."})
+                if path == "/api/import/preview":
+                    return self._send(200, {"n": len(rows), "problems": len(problems), "sans_prix": recap["sans_prix"],
+                                            "rows": [{k: r.get(k) for k in ("isbn", "prix", "titre")} for r in rows[:5]]})
+                if b.get("remember") and b.get("mapping"):
+                    for m in b["mapping"].values():
+                        if m.get("signature") and (m.get("cols") or {}).get("isbn") is not None:
+                            store.remember_import_map(m["signature"], {k: int(v) for k, v in m["cols"].items() if k in importer.KEYS}, b.get("filename", ""))
+                with LOCK:
+                    known = sum(1 for r in rows if find(r["isbn"]) is not None) if not b.get("replace") else 0
                 added, changes = add_rows(rows, replace=bool(b.get("replace")))
-                return self._send(200, {"added": added, "problems": problems, "changes": changes, "state": public_state()})
+                recap["deja"] = known
+                return self._send(200, {"added": added, "problems": problems, "changes": changes, "recap": recap, "state": public_state()})
             if path == "/api/add_isbns":
                 found = re.findall(r"[0-9][0-9\- ]{8,15}[0-9Xx]", b.get("text", ""))
                 rows, bad = [], []
@@ -916,6 +1118,21 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"book": book, "state": public_state()})
             if path == "/api/book/update":
                 return self._send(200, {"book": update_book(b["isbn"], b["fields"])})
+            if path == "/api/books/set":
+                try:
+                    n = update_many(b.get("isbns"), b.get("field"), b.get("value"))
+                except ValueError as e:
+                    return self._send(400, {"error": str(e)})
+                return self._send(200, {"n": n, "state": public_state()})
+            if path == "/api/books/shorten":
+                try:
+                    n = shorten_many(b.get("isbns"), b.get("max_chars"))
+                except ValueError as e:
+                    return self._send(400, {"error": str(e)})
+                return self._send(200, {"n": n, "state": public_state()})
+            if path == "/api/books/remove":
+                n = remove_many(b.get("isbns"))
+                return self._send(200, {"n": n, "state": public_state()})
             if path == "/api/book/remove":
                 with LOCK:
                     CAT["books"] = [x for x in CAT["books"] if x["isbn"] != b["isbn"]]
@@ -1049,6 +1266,22 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {})
             if path == "/api/cover/upload":
                 return self._send(200, {"book": set_cover(b["isbn"], base64.b64decode(b["data"]))})
+            if path == "/api/cover/compare":
+                try:
+                    return self._send(200, cover_compare(b["isbn"]))
+                except ValueError as e:
+                    return self._send(400, {"error": str(e)})
+            if path == "/api/cover/choose":
+                try:
+                    return self._send(200, {"book": cover_choose(b["isbn"], b.get("i", -1))})
+                except ValueError as e:
+                    return self._send(400, {"error": str(e)})
+            if path == "/api/cover/crop":
+                try:
+                    bk = crop_cover(b["isbn"], b.get("box"), bool(b.get("auto")))
+                except (ValueError, TypeError) as e:
+                    return self._send(400, {"error": str(e)})
+                return self._send(200, {"book": bk, "changed": bk is not None})
             if path == "/api/cover/clear":
                 with LOCK:
                     x = find(b["isbn"])
