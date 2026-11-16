@@ -29,6 +29,13 @@ Dans l'apercu, sur la page "Tableau des prix", une barre permet de regler le tau
 recalcule tout de suite. Par defaut les prix sont arrondis au millier superieur (ex. 66 983 Ar -> 67 000 Ar). Un prix en Ariary
 saisi a la main dans une case du tableau reste tel quel, et le "taux special" d'un livre prime sur le taux general.
 
+Livre sans ISBN ou saisi a la main
+----------------------------------
+Menu > "Ajouter un livre a la main" (ou bouton sur l'ecran d'accueil). Seul le titre est obligatoire ; on peut aussi renseigner
+auteurs (un par ligne, "Nom, Prenom"), editeur, collection, date, pages, prix, rubrique, resume et couverture (clic ou glisser
+une image). "Ajouter et en saisir un autre" permet d'enchainer. Un livre sans ISBN n'est pas cherche sur Internet : tout ce qui
+est saisi est conserve. Avec un ISBN valide, le livre est traite comme les autres (la recherche complete ce qui manque).
+
 Descriptions ecrites par l'IA (facultatif)
 ------------------------------------------
 Bouton "Ecrire les descriptions" : l'IA Claude redige un resume pour les livres qui n'en ont pas. Ils sont marques
@@ -65,6 +72,8 @@ Faire des essais / repartir de zero
 -----------------------------------
 Menu > "Nouveau catalogue" : vide la liste ; cocher "Oublier aussi les recherches memorisees" pour que tout soit cherche a nouveau,
 et (option) "Supprimer aussi mes images du dossier des couvertures" pour effacer les couvertures d'essai.
+Le catalogue en cours est sauvegarde automatiquement avant (Menu > Mes catalogues > sauvegardes). Cocher "Oublier aussi les recherches
+memorisees" fait perdre les couvertures deja telechargees des catalogues enregistres : a laisser decoche en temps normal.
 
 Tableau des prix (Ariary)
 -------------------------

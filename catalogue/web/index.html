@@ -351,6 +351,15 @@
   .tr-ex span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.tr-ex span:last-child{flex:none;color:var(--ink)}
   html.dark .tauxbar{background:#1c2a40;border-color:#2f4466}
   html.dark .taux-recap{background:#1b2230}
+  /* v0.12.3 : livre ajouté à la main */
+  .mm-top{display:flex;gap:14px;align-items:flex-start}
+  .mm-fields{flex:1;min-width:0}
+  .mm-cov{flex:none;width:108px;height:152px;border:2px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;background:#f6f8fb center/cover no-repeat;transition:border-color .12s,background-color .12s}
+  .mm-cov small{display:block;font-weight:400;font-size:11.5px;margin-top:4px;padding:0 6px}
+  .mm-cov:hover,.mm-cov:focus-visible,.mm-cov.over{border-color:var(--accent-2);background-color:#eef4fb;outline:0}
+  .btn.linkish{border-color:transparent;background:none;color:var(--accent-2);text-decoration:underline;padding-left:0}
+  #m-man .mbody{max-height:calc(100vh - 220px);overflow:auto}
+  html.dark .mm-cov{background-color:#1b2230}html.dark .mm-cov:hover,html.dark .mm-cov.over{background-color:#1c2a40}
 </style>
 </head>
 <body>
@@ -366,6 +375,7 @@
       <button id="b-lib" role="menuitem"><span class="mi-t">Mes catalogues</span><span class="mi-d">Enregistrer, rouvrir, dupliquer, sauvegardes</span></button>
       <button id="b-set" role="menuitem"><span class="mi-t">Réglages</span><span class="mi-d">Clés, taux Ariary, pages, dossiers</span></button>
       <button id="b-add" class="step1only" role="menuitem"><span class="mi-t">Ajouter des ISBN</span><span class="mi-d">Coller quelques ISBN</span></button>
+      <button id="b-man" class="step1only" role="menuitem"><span class="mi-t">Ajouter un livre à la main</span><span class="mi-d">Sans ISBN, saisi de A à Z</span></button>
       <hr>
       <button id="b-new" class="danger" role="menuitem"><span class="mi-t">Nouveau catalogue</span><span class="mi-d">Vider le catalogue en cours</span></button>
       <button id="b-report" role="menuitem"><span class="mi-t">Signaler un problème</span><span class="mi-d">Rapport à envoyer par Gmail ou WhatsApp</span></button>
@@ -396,6 +406,7 @@
       <div class="row">
         <button class="btn primary" id="e-import">Choisir un fichier</button>
         <button class="btn" id="e-add">Coller des ISBN</button>
+        <button class="btn" id="e-man">Ajouter un livre à la main</button>
         <button class="btn" id="e-tpl">Télécharger le modèle Excel</button>
       </div>
     </div>
@@ -464,7 +475,26 @@
   <div class="mhead"><h3>Ajouter des ISBN</h3><button class="xbtn" id="ma-x">✕</button></div>
   <div class="mbody"><label style="margin-top:0">Un ISBN par ligne (avec ou sans tirets)</label>
     <textarea id="ma-text" rows="7" placeholder="9782100870165&#10;978-2-200-61154-5"></textarea><div id="ma-pb"></div></div>
-  <div class="mfoot"><button class="btn" id="ma-cancel">Annuler</button><button class="btn primary" id="ma-ok">Ajouter</button></div>
+  <div class="mfoot"><button class="btn linkish" id="ma-man" title="Pour un livre sans ISBN">Livre sans ISBN ?</button><span style="flex:1"></span><button class="btn" id="ma-cancel">Annuler</button><button class="btn primary" id="ma-ok">Ajouter</button></div>
+</div></div>
+
+<div class="modal hide" id="m-man"><div class="mbox">
+  <div class="mhead"><h3>Ajouter un livre à la main</h3><button class="xbtn" id="mm-x" title="Fermer">✕</button></div>
+  <div class="mbody">
+    <div class="hint" style="margin:0 0 10px">Pour un livre sans ISBN, ou que le programme ne trouve pas. Seul le titre est obligatoire ; sans ISBN, le livre n'est pas cherché sur Internet.</div>
+    <div class="mm-top">
+      <div class="mm-cov" id="mm-drop" tabindex="0" role="button" aria-label="Choisir une couverture" title="Cliquer ou glisser une image"><span id="mm-covtxt">Couverture<small>cliquer ou glisser une image</small></span></div>
+      <div class="mm-fields"><label style="margin-top:0">Titre <b style="color:var(--bad)">*</b></label><input type="text" id="mm-titre" autocomplete="off">
+        <label>Auteurs <small>— un par ligne, « Nom, Prénom »</small></label><textarea id="mm-aut" rows="3"></textarea></div></div>
+    <div class="grid2"><div><label>Éditeur</label><input type="text" id="mm-edit"></div><div><label>Collection</label><input type="text" id="mm-coll"></div></div>
+    <div class="grid3"><div><label>Date de parution</label><input type="text" id="mm-date" placeholder="ex. 03/2026"></div><div><label>Pages</label><input type="text" id="mm-pages" inputmode="numeric"></div><div><label>Prix public (€)</label><input type="text" id="mm-prix" inputmode="decimal"></div></div>
+    <label>Rubrique <small>(titre de section)</small></label><input type="text" id="mm-rub" list="rubs" placeholder="aucune">
+    <label>Résumé</label><textarea id="mm-res" rows="5"></textarea>
+    <label>ISBN <small>— facultatif ; laisse vide pour un livre sans ISBN</small></label><input type="text" id="mm-isbn" autocomplete="off" style="max-width:260px">
+    <div id="mm-err" class="note warn hide" style="margin-top:12px"></div>
+    <input type="file" id="mm-file" accept="image/*" class="hide">
+  </div>
+  <div class="mfoot"><button class="btn" id="mm-cancel">Annuler</button><button class="btn" id="mm-more" title="Ajoute ce livre et vide le formulaire">Ajouter et en saisir un autre</button><button class="btn primary" id="mm-ok">Ajouter le livre</button></div>
 </div></div>
 
 <div class="modal hide" id="m-set"><div class="mbox">
@@ -721,7 +751,7 @@ function headHTML(b){
   return `<label class="chk-zone" title="Cocher pour regrouper des livres dans une rubrique (Maj + clic : une série de livres)"><input type="checkbox" class="chk-b" data-isbn="${esc(b.isbn)}" ${chosen.has(b.isbn) ? "checked" : ""}></label>
     <div class="thumb" ${coverStyle(b)}>${b.has_cover ? "" : "sans couv."}</div>
     <div class="cinfo"><div class="ctitle">${esc(b.titre || "(titre à saisir)")}</div>
-      <div class="csub">${esc(b.isbn)}${authors ? " · " + esc(authors) : ""}</div>
+      <div class="csub">${b.manuel ? "Sans ISBN" : esc(b.isbn)}${authors ? " · " + esc(authors) : ""}</div>
       <div class="cstat ${b.statut}"><span class="pill"><span class="dot ${b.statut}"></span>${esc(STAT_LAB[b.statut] || b.statut)}</span>${b.statut === "orange" && b.statut_txt ? `<span class="why" title="${esc(b.statut_txt)}">${esc(shortWhy(b.statut_txt))}</span>` : b.statut === "rouge" ? `<span class="why">à saisir à la main</span>` : ""}</div>
       ${b.alerte ? `<span class="cflag" title="Information Dilicom">⚠ ${esc(b.alerte)}</span>` : ""}</div>
     <div class="cbtns"><span class="grip" draggable="true" title="Glisser pour déplacer le livre">⠿</span><button data-act="up" title="Monter">▲</button><button data-act="down" title="Descendre">▼</button><button data-act="del" title="Retirer du catalogue">✕</button></div>`;
@@ -735,7 +765,7 @@ function bodyHTML(b){
       <div class="acts">${covState}
         <div class="hint" style="margin:0">Glisse une image ici, ou colle-la avec Ctrl+V.</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn small" data-act="search">Chercher sur Internet</button>
+          ${b.manuel ? "" : `<button class="btn small" data-act="search">Chercher sur Internet</button>`}
           <button class="btn small" data-act="pick">Choisir une image…</button>
           ${o.endsWith("?") ? `<button class="btn small" data-act="okcov">✓ C'est la bonne</button>` : ""}
           ${b.has_cover ? `<button class="btn small" data-act="nocov">Retirer</button>` : ""}
@@ -759,7 +789,7 @@ function bodyHTML(b){
       <div><label>Illustrations</label><select data-f="illustrations">${ill}</select></div></div>
     ${(b.infos || []).length ? `<div class="infos">ℹ ${esc(b.infos.join(" · "))}</div>` : ""}
     ${(b.errors || []).length ? `<div class="hint" style="color:var(--warn);margin-top:8px">⚠ ${esc(b.errors.join(" · "))}</div>` : ""}
-    <div style="margin-top:10px;display:flex;gap:8px"><button class="btn small" data-act="refetch">Chercher à nouveau les infos</button></div>`;
+    ${b.manuel ? `<div class="hint">Livre ajouté à la main, sans ISBN : il n'est pas cherché sur Internet.</div>` : `<div style="margin-top:10px;display:flex;gap:8px"><button class="btn small" data-act="refetch">Chercher à nouveau les infos</button></div>`}`;
 }
 function cardEl(b){
   const d = document.createElement("div");
@@ -998,10 +1028,46 @@ $("ma-ok").onclick = async () => {
     hide("m-add"); if (r.added) { toast(`${r.added} livre${r.added > 1 ? "s" : ""} ajouté${r.added > 1 ? "s" : ""}`); askFetch(); }
   } catch (e) { toast(e.message); }
 };
+// ------------------------------------------------------------ livre ajouté à la main
+let mmCover = null;
+const MM_IDS = ["mm-titre", "mm-aut", "mm-edit", "mm-coll", "mm-date", "mm-pages", "mm-prix", "mm-rub", "mm-res", "mm-isbn"];
+function mmSetCover(f){
+  if (!f || !/^image\//.test(f.type)) { if (f) toast("Ce fichier n'est pas une image."); return; }
+  mmCover = f; $("mm-drop").style.backgroundImage = `url('${URL.createObjectURL(f)}')`; $("mm-covtxt").classList.add("hide");
+}
+function mmReset(){
+  MM_IDS.forEach(id => $(id).value = ""); mmCover = null; $("mm-drop").style.backgroundImage = ""; $("mm-covtxt").classList.remove("hide"); $("mm-err").classList.add("hide");
+}
+function openMan(){ hide("m-add"); mmReset(); show("m-man"); $("mm-titre").focus(); }
+async function mmSubmit(more){
+  const f = {titre: $("mm-titre").value, auteurs: $("mm-aut").value, editeur: $("mm-edit").value, collection: $("mm-coll").value, date: $("mm-date").value,
+             pages: $("mm-pages").value, prix: $("mm-prix").value, rubrique: $("mm-rub").value, resume: $("mm-res").value, isbn: $("mm-isbn").value};
+  if (!f.titre.trim()) { $("mm-err").textContent = "Le titre est obligatoire."; $("mm-err").classList.remove("hide"); $("mm-titre").focus(); return; }
+  $("mm-ok").disabled = $("mm-more").disabled = true;
+  try {
+    const body = {fields: f}; if (mmCover) body.cover = await fileB64(mmCover);
+    const r = await api("/api/book/add", body); setState(r.state);
+    toast(`✓ « ${r.book.titre} » ajouté`);
+    if (more) { mmReset(); $("mm-titre").focus(); }
+    else { hide("m-man"); selectBook(r.book.isbn, true); if (r.book.fetched === false) askFetch(); }
+  } catch (e) { $("mm-err").textContent = e.message; $("mm-err").classList.remove("hide"); }
+  $("mm-ok").disabled = $("mm-more").disabled = false;
+}
+$("b-man").onclick = $("e-man").onclick = $("ma-man").onclick = openMan;
+$("mm-x").onclick = $("mm-cancel").onclick = () => hide("m-man");
+$("mm-ok").onclick = () => mmSubmit(false); $("mm-more").onclick = () => mmSubmit(true);
+$("mm-titre").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); mmSubmit(false); } });
+$("mm-drop").onclick = () => { $("mm-file").value = ""; $("mm-file").click(); };
+$("mm-drop").addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("mm-drop").click(); } });
+$("mm-file").onchange = e => mmSetCover(e.target.files[0]);
+["dragenter", "dragover"].forEach(ev => $("mm-drop").addEventListener(ev, e => { e.preventDefault(); $("mm-drop").classList.add("over"); }));
+["dragleave", "drop"].forEach(ev => $("mm-drop").addEventListener(ev, e => { e.preventDefault(); $("mm-drop").classList.remove("over"); }));
+$("mm-drop").addEventListener("drop", e => mmSetCover(e.dataTransfer.files[0]));
+
 $("b-new").onclick = async () => {
   if (!S.books.length) return;
   const ok = await confirmBox("Vider le catalogue ?", `<div>Tous les livres seront retirés de la liste. Une copie de secours est gardée (menu Catalogues) et tu peux annuler avec ↶.</div>
-    <label class="chk"><input type="checkbox" id="n-cache" checked> <span>Oublier aussi les recherches mémorisées (Google, BnF) et les couvertures téléchargées : repart de zéro, utile pour les essais.</span></label>
+    <label class="chk"><input type="checkbox" id="n-cache"> <span>Oublier aussi les recherches mémorisées (Google, BnF) et les couvertures téléchargées : repart de zéro, utile pour les essais. Attention : les catalogues enregistrés perdent alors leurs couvertures téléchargées (elles se retéléchargent avec « Tout rechercher à nouveau »).</span></label>
     <label class="chk"><input type="checkbox" id="n-cov"> <span>Supprimer aussi mes images du dossier des couvertures (celles nommées avec un ISBN).</span></label>`, "Vider", "Garder");
   if (ok) {
     const r = await api("/api/clear", {cache: $("n-cache").checked, covers_folder: $("n-cov").checked});
@@ -1580,7 +1646,7 @@ $("ml-body").addEventListener("click", async e => {
 
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
-  for (const id of ["m-upd", "m-confirm", "m-gen", "m-set", "m-add", "m-prix", "m-lib", "m-report"]) if (!$(id).classList.contains("hide")) { id === "m-confirm" ? $("c-cancel").click() : id === "m-upd" ? $("mu-later").click() : hide(id); return; }
+  for (const id of ["m-upd", "m-confirm", "m-gen", "m-set", "m-man", "m-add", "m-prix", "m-lib", "m-report"]) if (!$(id).classList.contains("hide")) { id === "m-confirm" ? $("c-cancel").click() : id === "m-upd" ? $("mu-later").click() : hide(id); return; }
 });
 window.addEventListener("pagehide", () => navigator.sendBeacon("/api/bye?t=" + TOKEN, "{}"));
 

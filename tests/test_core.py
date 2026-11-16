@@ -425,3 +425,52 @@ _f = _srv.find(_ids[2]); assert _f["titre"] == "Titre trouvé" and _f["fetched"]
 assert _f["rubrique"] == "Sciences" and _f["prix"] == 12.5 and str(_f["taux"]) == "4000" and str(_f["prix_ar"]) == "60000", _f          # saisies de l'utilisateur intactes
 print("OK rubriques regroupées / saisies conservées")
 
+# ---- une recherche en cours n'écrase plus un catalogue ouvert entre-temps (perte de données signalée le 16/11)
+def _full():
+    out = []
+    for i in range(3):
+        bk = catalog.new_book("97821000%05d" % (i + 1)); bk.update(titre="Titre %d" % i, resume="R" * 60, fetched=True, editeur="Dunod"); out.append(bk)
+    return out
+_srv.CAT["books"] = _full(); _srv.CAT["meta"] = {"titre": "Test", "date": ""}
+_cid = _libs.save_catalogue(_srv.CAT, "Test"); _srv.CAT["meta"]["lib_id"] = _cid; _srv.save()
+_srv.CAT["books"] = [catalog.new_book(b["isbn"]) for b in _full()]; _srv.CAT["meta"] = {"titre": "", "date": ""}; _srv.save()    # « Nouveau » + import des mêmes ISBN
+_ep = _srv.EPOCH["n"]
+_snap = [dict(b, edited=list(b["edited"])) for b in _srv.CAT["books"]]                                                             # la recherche démarre
+_c = _libs.load_catalogue(_cid); _srv.replace_catalogue({"meta": dict(_c["meta"], lib_id=_cid), "books": _c["books"]}, "ouverture")   # ouverture de « Test » pendant la recherche
+assert _srv.EPOCH["n"] == _ep + 1
+for _nb in _snap:
+    _nb["fetched"] = True; _srv.merge_fetched(_nb, _ep)                                                                            # la recherche se termine : ignorée
+assert [b["titre"] for b in _libs.load_catalogue(_cid)["books"]] == ["Titre 0", "Titre 1", "Titre 2"] and all(b["resume"] for b in _srv.CAT["books"])
+_nb = dict(_srv.CAT["books"][0], titre="", resume="", edited=[]); _srv.merge_fetched(_nb)                                          # même sans garde : jamais de vide par-dessus une information
+assert _srv.CAT["books"][0]["titre"] == "Titre 0" and _srv.CAT["books"][0]["resume"]
+_srv.merge_fetched(dict(_srv.CAT["books"][0], titre="Autre titre", edited=[]), _srv.EPOCH["n"]); assert _srv.CAT["books"][0]["titre"] == "Autre titre"   # une vraie mise à jour passe
+print("OK recherche et catalogue ouvert")
+_bk = catalog.new_book("9782100000005"); _bk.update(titre="Titre", resume="R" * 60, auteurs=["A, B"], editeur="Dunod", fetched=True)
+for _raw in ({}, {"errors": ["x"]}, None):
+    _c = dict(_bk, edited=[]); catalog.apply_fetch(_c, _raw, _st.load_settings(), "")
+    assert _c["titre"] == "Titre" and _c["resume"] and _c["auteurs"] == ["A, B"] and _c["editeur"] == "Dunod", _raw        # une recherche vide n'efface rien
+print("OK une recherche vide n'efface pas la fiche")
+
+# ---- livre ajouté à la main (sans ISBN)
+import io as _io3
+from PIL import Image as _Im3
+_srv.CAT["books"] = _full(); _srv.CAT["meta"] = {"titre": "T", "date": ""}; _srv.save()
+_png = _io3.BytesIO(); _Im3.new("RGB", (120, 180), (200, 30, 30)).save(_png, "PNG")
+_nbk = _srv.add_manual_book({"titre": "Mon livre", "auteurs": "Rakoto, Jean\nRabe, Marie", "editeur": "CMPL", "pages": "120", "prix": "15,5", "resume": "Un résumé écrit à la main " * 3, "date": "01/2026", "rubrique": "Droit"}, _png.getvalue())
+assert _nbk["isbn"].startswith("MAN-") and _nbk["manuel"] and _nbk["fetched"] and _nbk["has_cover"] and _nbk["prix"] == 15.5 and _nbk["auteurs"] == ["Rakoto, Jean", "Rabe, Marie"]
+assert _nbk["statut"] == "vert", _nbk["statut_txt"]                                                                                  # complet : rien ne manque
+assert catalog.is_manual(_nbk["isbn"]) and not catalog.is_manual("9782100000005") and prix.fmt_isbn(_nbk["isbn"]) == ""
+try: _srv.add_manual_book({"titre": ""}); raise SystemExit("titre vide accepté")
+except ValueError as _e: assert "titre" in str(_e).lower()
+try: _srv.add_manual_book({"titre": "X", "isbn": "9782100000006"}); raise SystemExit("ISBN faux accepté")
+except ValueError as _e: assert "ISBN" in str(_e)
+_wi = _srv.add_manual_book({"titre": "Avec ISBN", "isbn": "978-2-1000-0000-5"}); assert _wi["isbn"] == "9782100000005" and not _wi["manuel"] and not _wi["fetched"]
+try: _srv.add_manual_book({"titre": "Doublon", "isbn": "9782100000005"}); raise SystemExit("doublon accepté")
+except ValueError as _e: assert "déjà" in str(_e)
+_job = _srv.start_fetch([_nbk["isbn"], "9782100000135"]); assert _nbk["isbn"] not in _job.isbns                                       # jamais cherché sur Internet
+_srv.JOB["job"] = None
+_pg = pages.build_pages(_srv.CAT["books"]); assert _pg
+_xl = os.path.join(tempfile.mkdtemp(), "t.xlsx"); prix.export_xlsx(_xl, _srv.CAT["books"], "T", "Nov 2026", 3366, "sup1000"); assert os.path.getsize(_xl) > 2000
+_rv = prix.row_values(_nbk, 3366, "sup1000"); assert _rv[4] == "" and _rv[0] == "Mon livre" and _rv[-1].replace("\u202f", " ").replace("\xa0", " ") == "53 000"       # case ISBN vide ; 15,5 x 3366 = 52 173 -> 53 000
+print("OK livre sans ISBN")
+

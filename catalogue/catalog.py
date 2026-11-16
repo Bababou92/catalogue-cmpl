@@ -9,11 +9,16 @@ FIELDS = ("titre", "auteurs", "resume", "date", "collection", "editeur", "pages"
           "edition", "taux", "titre_tableau", "prix_ar")
 
 
+def is_manual(isbn):
+    """Livre ajouté à la main sans ISBN : son identifiant interne commence par MAN-."""
+    return str(isbn or "").startswith("MAN-")
+
+
 def new_book(isbn, **kw):
     b = {"isbn": isbn, "titre": "", "auteurs": [], "resume": "", "date": "", "collection": "", "editeur": "",
          "pages": "", "illustrations": "", "dimensions": "", "prix": None, "sujets": [],
          "edition": "", "taux": "", "titre_tableau": "", "prix_ar": "", "rubrique": "", "prix_ancien": "",
-         "resume_ia": False, "cover_path": "", "cover_origin": "", "cover_log": [], "titre_origin": "", "dispo": "", "dilicom": {}, "edited": [], "fetched": False, "errors": []}
+         "resume_ia": False, "cover_path": "", "cover_origin": "", "cover_log": [], "titre_origin": "", "dispo": "", "dilicom": {}, "edited": [], "fetched": False, "errors": [], "manuel": False}
     b.update(kw)
     return b
 
@@ -52,6 +57,8 @@ def apply_fetch(book, raw, settings, covers_dir):
     for k, v in fields.items():
         if k in book["edited"]:
             continue
+        if v in (None, "", [], {}) and book.get(k) not in (None, "", [], {}):      # une recherche qui ne trouve rien n'efface jamais une fiche déjà remplie
+            continue
         book[k] = v
     book["errors"] = list((raw or {}).get("errors") or [])
     book["fetched"] = True
@@ -83,6 +90,8 @@ def resolve_cover(book, raw, covers_dir, download=True):
         if p:
             book["cover_path"], book["cover_origin"] = p, origin
             return
+    if book.get("cover_path") and os.path.isfile(book["cover_path"]):      # rien de trouvé cette fois : on garde la couverture déjà présente
+        return
     book["cover_path"], book["cover_origin"] = "", ""
 
 

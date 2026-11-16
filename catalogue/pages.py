@@ -98,7 +98,7 @@ def entry_layout(book, x, y, col_w=COL_W):
     text_w = col_w - cover_w - COVER_GAP
 
     # --- à droite de la couverture : titre, auteurs, début du résumé
-    title = (book.get("titre") or "").strip() or f"(titre à saisir) {book.get('isbn', '')}"
+    title = (book.get("titre") or "").strip() or ("(titre à saisir)" if str(book.get("isbn", "")).startswith("MAN-") else f"(titre à saisir) {book.get('isbn', '')}")
     head = [Para([_run(title, TITLE_PT, bold=True, color=BLACK if book.get("titre") else "#B3261E")], align="l")]
     for i, a in enumerate(book.get("auteurs") or []):
         head.append(Para([_run(a, AUTHOR_PT + 0.5, italic=True, color=GREY)], align="l", space_before_pt=3.0 if i == 0 else 0.0))

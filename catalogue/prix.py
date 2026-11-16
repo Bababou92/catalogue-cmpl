@@ -82,6 +82,8 @@ def fmt_date(s):
 
 
 def fmt_isbn(i):
+    if str(i or "").startswith("MAN-"):                  # livre ajouté à la main, sans ISBN
+        return ""
     d = re.sub(r"\D", "", i or "")
     return f"{d[0]} {d[1:4]} {d[4:7]} {d[7:10]} {d[10:13]}" if len(d) == 13 else (i or "")
 

@@ -27,6 +27,7 @@ _state = {"bye_at": None}
 LOCK = threading.RLock()
 CAT = {"meta": {"titre": "", "date": ""}, "books": []}
 JOB = {"job": None}
+EPOCH = {"n": 0}                      # change quand le catalogue en cours est remplacé (ouverture, restauration, vidage) : une recherche en cours ne doit plus y écrire
 
 
 # ------------------------------------------------------------------ catalogue en mémoire
@@ -52,6 +53,14 @@ HIST_MAX = 60
 
 def _snap():
     return json.dumps(CAT, ensure_ascii=False, sort_keys=True)
+
+
+def _new_epoch():
+    """Le catalogue en cours est remplacé par un autre : on arrête la recherche en cours et ses résultats seront ignorés."""
+    EPOCH["n"] += 1
+    j = JOB.get("job")
+    if j and j.running:
+        j.cancel = True
 
 
 def _job_running():
@@ -114,6 +123,8 @@ def replace_catalogue(new, reason="remplace", history=True):
     with LOCK:
         if reason and reason != "annuler":
             libs.backup(CAT, reason)
+        if reason != "annuler":
+            _new_epoch()
         CAT.clear()
         CAT.update(copy.deepcopy(new))
         _normalize()
@@ -279,14 +290,23 @@ def check():
 USER_OWNED = ("rubrique", "prix", "taux", "prix_ar")      # saisis par l'utilisateur : jamais écrasés par une recherche en cours
 
 
-def merge_fetched(nb):
+def _empty(v):
+    return v is None or v == "" or v == [] or v == {}
+
+
+def merge_fetched(nb, epoch=None):
     """Reporte le résultat d'une recherche sur le livre en cours, sans toucher à ce que l'utilisateur a saisi
-    (y compris pendant la recherche : rubrique, prix, taux…)."""
+    (y compris pendant la recherche : rubrique, prix, taux…). Ignoré si le catalogue a été remplacé entre-temps ;
+    une information déjà présente n'est jamais remplacée par du vide."""
     with LOCK:
+        if epoch is not None and epoch != EPOCH["n"]:
+            return
         b = find(nb["isbn"])
         if b is not None:
             for k, v in nb.items():
                 if k == "edited" or k in USER_OWNED or (k in b["edited"] and k in EDITABLE):
+                    continue
+                if _empty(v) and not _empty(b.get(k)):
                     continue
                 b[k] = v
             save()
@@ -295,19 +315,20 @@ def merge_fetched(nb):
 def start_fetch(isbns, force=False):
     with LOCK:
         j = JOB["job"]
-        if j and j.running:
+        if j and j.running and not j.cancel:
             return j
         settings = store.load_settings()
-        job = catalog.FetchJob(isbns, settings)
+        job = catalog.FetchJob([i for i in isbns if not catalog.is_manual(i)], settings)       # un livre sans ISBN n'est jamais cherché sur Internet
         JOB["job"] = job
+        ep = EPOCH["n"]
 
     def get_book(i):
         with LOCK:
-            b = find(i)
+            b = find(i) if EPOCH["n"] == ep else None
             return dict(b, edited=list(b["edited"])) if b else None
 
     def set_book(nb, ia=False):
-        merge_fetched(nb)
+        merge_fetched(nb, ep)
 
     threading.Thread(target=catalog.run_fetch, args=(job, get_book, set_book, force), daemon=True, name="recuperation").start()
     return job
@@ -316,20 +337,21 @@ def start_fetch(isbns, force=False):
 def start_ai(isbns):
     with LOCK:
         j = JOB["job"]
-        if j and j.running:
+        if j and j.running and not j.cancel:
             return j
         job = catalog.FetchJob(isbns, store.load_settings())
         job.kind = "ai"
         JOB["job"] = job
+        ep = EPOCH["n"]
 
     def get_book(i):
         with LOCK:
-            b = find(i)
+            b = find(i) if EPOCH["n"] == ep else None
             return dict(b, edited=list(b["edited"])) if b else None
 
     def set_book(nb, ia=False):
         with LOCK:
-            b = find(nb["isbn"])
+            b = find(nb["isbn"]) if EPOCH["n"] == ep else None
             if b is not None:
                 b["resume"], b["resume_ia"] = nb["resume"], True
                 if "resume" not in b["edited"]:
@@ -562,6 +584,36 @@ def set_rubrique(isbns, name):
         return n
 
 
+def add_manual_book(fields, cover=None):
+    """Ajoute un livre saisi à la main. Sans ISBN : identifiant interne MAN-xxxxxxxx, aucune recherche sur Internet.
+    Avec un ISBN valide : livre ordinaire dont la saisie est protégée, la recherche pourra compléter le reste."""
+    fields = dict(fields or {})
+    titre = str(fields.get("titre") or "").strip()
+    if not titre:
+        raise ValueError("Le titre est obligatoire.")
+    raw = str(fields.pop("isbn", "") or "").strip()
+    if raw:
+        i = isbnlib.to13(raw)
+        if not i:
+            raise ValueError(f"« {raw} » n'est pas un ISBN valide (clé de contrôle incorrecte ?). Laisse la case vide pour un livre sans ISBN.")
+    else:
+        i = ""
+    with LOCK:
+        if i and find(i) is not None:
+            raise ValueError("Ce livre est déjà dans le catalogue.")
+        ident = i or "MAN-" + secrets.token_hex(4)
+        b = catalog.new_book(ident)
+        b["manuel"], b["fetched"] = not i, not i
+        CAT["books"].append(b)
+        save()
+    book = update_book(ident, fields)
+    if str(fields.get("rubrique") or "").strip():
+        set_rubrique([ident], fields["rubrique"])
+    if cover:
+        book = set_cover(ident, cover)
+    return book
+
+
 def update_book(isbn, fields):
     with LOCK:
         b = find(isbn)
@@ -697,7 +749,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, page_png(int(m.group(1)) if m else 0, max(30, min(int(d.group(1)) if d else 100, 200))),
                               "image/png", {"Cache-Control": "private, max-age=600"})
         if path == "/api/cover":
-            m = re.search(r"isbn=(\d+)", query)
+            m = re.search(r"isbn=([\w\-]+)", query)
             b = find(m.group(1)) if m else None
             if not b or not b.get("cover_path") or not os.path.isfile(b["cover_path"]):
                 return self._send(404, {"error": "pas de couverture"})
@@ -855,6 +907,13 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/prices":
                 n = set_prices(b.get("prices") or {})
                 return self._send(200, {"n": n, "state": public_state()})
+            if path == "/api/book/add":
+                data = base64.b64decode(b["cover"]) if b.get("cover") else None
+                try:
+                    book = add_manual_book(b.get("fields"), data)
+                except ValueError as e:      # saisie incorrecte : message clair, pas une panne
+                    return self._send(400, {"error": str(e)})
+                return self._send(200, {"book": book, "state": public_state()})
             if path == "/api/book/update":
                 return self._send(200, {"book": update_book(b["isbn"], b["fields"])})
             if path == "/api/book/remove":
@@ -875,6 +934,7 @@ class Handler(BaseHTTPRequestHandler):
                 n = 0
                 with LOCK:
                     libs.backup(CAT, "nouveau")
+                    _new_epoch()
                     CAT.get("meta", {}).pop("lib_id", None)
                     CAT["books"] = []
                     CAT["meta"] = {"titre": "", "date": ""}
