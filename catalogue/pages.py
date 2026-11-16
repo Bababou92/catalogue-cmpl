@@ -1,6 +1,7 @@
 """Mise en page des pages de livres (A4, deux colonnes, comme le flyer du CMPL)."""
 import dataclasses
 import os
+import math
 import re
 from collections import OrderedDict
 from functools import lru_cache
@@ -26,14 +27,18 @@ def _run(text, size, bold=False, italic=False, color=BLACK):
     return Run(text, family="arial", size=size, bold=bold, italic=italic, color=color)
 
 
-OVERSHOOT = 0.5     # une ligne de plus à côté de la couverture si elle dépasse d'au plus une demi-ligne
+_WS = "[ \t\r\n\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]"
 
 
 def clean_text(text):
-    """Texte propre : espaces et retours à la ligne multiples réduits à un seul espace (une insécable seule est gardée)."""
-    t = re.sub(r"[ \t\r\n\u2009\u200a\u202f]+", " ", str(text or ""))
-    t = re.sub(r"\xa0 | \xa0", " ", t)
-    return t.strip()
+    """Texte propre : espaces (insécables, fines, doubles) et retours à la ligne ramenés à un seul espace ;
+    avant « : ; ? ! » et après « « », une seule insécable (typographie française, sans élargissement)."""
+    t = re.sub("[\u200b\u200c\u200d\u2060\ufeff\u00ad]", "", str(text or ""))
+    t = re.sub("(?<=\\d)[\xa0\u202f](?=\\d)", "\ue000", t)               # « 1 000 » : l'insécable entre chiffres est gardée
+    t = re.sub(_WS + "+", " ", t)
+    t = re.sub(r"(?<=\S) ([:;?!»])(?!\w)", "\xa0\\1", t)
+    t = re.sub(r"(«) ", "\\1\xa0", t)
+    return t.replace("\ue000", "\xa0").strip()
 
 
 def _paras_height(paras, width_mm):
@@ -78,10 +83,10 @@ def _split_first_lines(text, width_pt, n_lines, run):
     lines = textfit._wrap(Para([run]), width_pt)
     if len(lines) <= n_lines:
         return text, ""
-    first = "".join(p.text for ln in lines[:n_lines] for p in ln).strip()
+    first = " ".join("".join(p.text for p in ln) for ln in lines[:n_lines]).strip()     # une ligne par morceau : chaque fin de ligne est un espace
     # on repart des mots du texte d'origine pour garder exactement la même ponctuation
-    words = text.split()
-    k = len(first.split())
+    words = text.split(" ")                          # on ne coupe qu'aux espaces ordinaires : les insécables restent collées
+    k = len(first.split(" "))
     return " ".join(words[:k]), " ".join(words[k:])
 
 
@@ -121,11 +126,10 @@ def entry_layout(book, x, y, col_w=COL_W):
         lh = textfit.line_height_pt(run) * MM_PER_PT
         sb = 2.5 * MM_PER_PT                                 # espace avant le résumé
         used = head_h + sb
-        # nombre de lignes à côté de la couverture : la dernière peut dépasser un peu le bas de la couverture
-        # (le texte qui suit reprend juste dessous), plutôt que de laisser un vide.
-        n = int((cover_h - used) // lh) if cover_h > used else 0
-        if n >= 0 and used + (n + 1) * lh - cover_h <= OVERSHOOT * lh:
-            n += 1
+        # nombre de lignes à côté de la couverture : on continue tant que la ligne suivante commencerait encore
+        # à la hauteur de la couverture ; la dernière peut donc dépasser un peu le bas de la couverture (le texte
+        # est à droite, sans gêne), et la suite pleine largeur reprend juste dessous, sans aucun vide.
+        n = max(0, math.ceil((cover_h + 0.5 - used) / lh - 1e-6))
         first_txt, rest_txt = _split_first_lines(resume, text_w / MM_PER_PT, max(n, 0), run)
     beside = list(head)
     if first_txt:

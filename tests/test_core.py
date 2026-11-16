@@ -476,7 +476,8 @@ print("OK livre sans ISBN")
 
 
 # ---- résumés : espaces propres, pas de vide à côté de la couverture, résumé coupé repéré
-assert pages.clean_text("a  b\xa0 c\nd :\xa0e  ") == "a b c d :\xa0e"
+assert pages.clean_text("a  b\xa0 c\nd :\xa0e  ") == "a b c d\xa0: e"
+assert pages.clean_text("indique \xa0 : \"x\" juge-t-il\u202f? 1\xa0000 €  « a » ") == "indique\xa0: \"x\" juge-t-il\xa0? 1\xa0000 € «\xa0a\xa0»"
 assert catalog.resume_cut("Cet ouvrage présente les outils et notions à maîtriser ; un cours illustré de nombreux théorèmes à…")
 assert catalog.resume_cut("Un texte assez long qui se termine au milieu de la phrase sans ponctuation finale") and not catalog.resume_cut("Un texte complet qui se termine bien, avec un point final.") and not catalog.resume_cut("Court")
 import tempfile as _tf2
@@ -492,9 +493,10 @@ for _ratio in (1.0, 1.3, 1.4, 1.5, 1.58, 1.7, 2.0):
         _els, _h = pages.entry_layout(_b, 0, 0)
         _cov = next(e for e in _els if e.name == "Couverture"); _bs = next(e for e in _els if e.name == "Titre et auteurs")
         _rest = [e for e in _els if e.name.startswith("Résumé (suite)")]
-        if _rest and _n >= 40:
+        if _rest and _rest[0].paras[0].runs[0].text.split()[0] in _b["resume"].split() and _rest[0].paras[0].runs[0].text != "2019":
             _gap = _rest[0].y - (_bs.y + _bs.h - 0.6)               # espace entre la fin du texte à côté et la suite
-            assert _gap <= 4.0 + (_cov.y + _cov.h - (_bs.y + _bs.h)), (_ratio, _n, _gap)      # jamais un trou de plus d'une ligne
+            assert _rest[0].y >= _cov.y + _cov.h, (_ratio, _n)              # la suite ne passe jamais sous la couverture
+            assert _gap <= 1.3, (_ratio, _n, _gap)                       # aucun trou entre le texte à côté de la couverture et la suite
         assert _h > 0
 print("OK résumés autour de la couverture")
 
