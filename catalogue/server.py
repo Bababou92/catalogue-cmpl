@@ -519,6 +519,40 @@ EDITABLE = ("titre", "auteurs", "resume", "date", "collection", "editeur", "page
             "edition", "taux", "titre_tableau", "prix_ar", "rubrique")
 
 
+def set_rubrique(isbns, name):
+    """Donne une rubrique aux livres indiqués et regroupe tous les livres de cette rubrique en un seul bloc,
+    placé à l'endroit du premier d'entre eux. Retourne le nombre de livres du groupe."""
+    name = str(name or "").strip()
+    with LOCK:
+        wanted = set(isbns or [])
+        books = CAT["books"]
+        if name:                                         # même rubrique tapée avec une autre casse : on garde l'écriture existante
+            for x in books:
+                if x["isbn"] not in wanted and _fold(x.get("rubrique")) == _fold(name) and (x.get("rubrique") or "").strip():
+                    name = x["rubrique"].strip()
+                    break
+        for x in books:
+            if x["isbn"] in wanted:
+                x["rubrique"] = name
+        n = 0
+        if name:
+            key = _fold(name)
+            idx = [i for i, x in enumerate(books) if _fold(x.get("rubrique")) == key and (x.get("rubrique") or "").strip()]
+            n = len(idx)
+            if n > 1 and idx != list(range(idx[0], idx[0] + n)):
+                block, ids, out, done = [books[i] for i in idx], set(idx), [], False
+                for i, x in enumerate(books):
+                    if i in ids:
+                        if not done:
+                            out.extend(block)
+                            done = True
+                    else:
+                        out.append(x)
+                CAT["books"] = out
+        save()
+        return n
+
+
 def update_book(isbn, fields):
     with LOCK:
         b = find(isbn)
@@ -705,13 +739,20 @@ class Handler(BaseHTTPRequestHandler):
                         save()
                 return self._send(200, {"state": public_state()})
             if path == "/api/rubrique":
-                with LOCK:
-                    for i in b.get("isbns", []):
-                        x = find(i)
-                        if x is not None:
-                            x["rubrique"] = str(b.get("rubrique") or "").strip()
-                    save()
-                return self._send(200, {"state": public_state()})
+                n = set_rubrique(b.get("isbns", []), b.get("rubrique"))
+                return self._send(200, {"state": public_state(), "n": n})
+            if path == "/api/test_key":
+                kind = b.get("kind")
+                key = str(b.get("key") or "").strip()
+                if not key or key.startswith("••"):
+                    key = store.load_settings().get("google_key" if kind == "google" else "claude_key", "")
+                if kind == "google":
+                    ok, msg = sources.test_google_key(key)
+                elif kind == "claude":
+                    ok, msg = ailib.test_key(key)
+                else:
+                    return self._send(400, {"error": "Type de clé inconnu."})
+                return self._send(200, {"ok": ok, "msg": msg})
             if path == "/api/check":
                 return self._send(200, check())
             if path == "/api/lib/list":

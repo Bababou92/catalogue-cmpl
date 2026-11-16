@@ -318,6 +318,27 @@
   .fgroup>h4{margin:12px 0 0;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
   .pages-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 16px}
   @media(max-width:520px){.pages-grid{grid-template-columns:1fr}}
+  /* v0.12.3 : rubriques et test des clés */
+  .chk-zone{align-self:stretch;display:flex;align-items:center;justify-content:center;width:40px;margin:-10px 0 -10px -12px;cursor:pointer;flex:none;border-radius:12px 0 0 12px;transition:background .12s}
+  .chk-zone:hover{background:rgba(59,95,143,.10)}
+  .chk-b{width:20px;height:20px;accent-color:var(--accent-2)}
+  .rubsep{display:flex;align-items:center;gap:10px;margin:16px 2px 8px;font-size:12.5px;color:var(--muted)}
+  .rubsep:first-child{margin-top:4px}
+  .rubname{font-weight:700;font-size:13px;color:var(--ink);padding:3px 11px 3px 9px;border-left:4px solid var(--accent-2);background:rgba(59,95,143,.10);border-radius:0 7px 7px 0}
+  .rubsep.other .rubname{border-left-color:#b6bdca;background:rgba(120,130,150,.12);color:var(--muted);font-weight:600}
+  .rubline{flex:1;height:1px;background:var(--line)}
+  .rubdup{color:var(--warn);font-weight:600}
+  .keyrow{display:flex;gap:8px;align-items:center}.keyrow input{flex:1;min-width:0}.keyrow .btn{flex:none}
+  .keyres{margin-top:8px;padding:8px 12px;border-radius:8px;font-size:13px;line-height:1.45;background:#eef1f6;color:var(--ink)}
+  .keyres.ok{background:#e4f5ea;color:var(--ok)}.keyres.ko{background:#fde8e8;color:var(--bad)}
+  html.dark .chk-zone:hover{background:rgba(111,154,208,.16)}
+  html.dark .rubname{background:rgba(111,154,208,.16)}
+  html.dark .rubsep.other .rubname{background:rgba(150,160,180,.14);border-left-color:#4a5568}
+  html.dark .keyres{background:#232b39}html.dark .keyres.ok{background:#173a26;color:#7fd6a0}html.dark .keyres.ko{background:#3d1d1d;color:#f1a4a4}
+  #bulk{position:sticky;bottom:14px;z-index:20;box-shadow:0 6px 22px rgba(20,30,50,.22);margin-top:10px;padding:9px 12px;gap:8px}
+  #bulk input{flex:1;min-width:120px;width:auto}
+  #bulk .btn{white-space:nowrap}
+  html.dark #bulk{background:#3a2d12;border-color:#6b5420}
 </style>
 </head>
 <body>
@@ -384,8 +405,9 @@
       </div>
       <div class="listtools"><select id="l-sort" title="Réordonne tous les livres (annulable avec ↶)"><option value="">Trier par…</option><option value="titre">Titre</option><option value="auteur">Auteur</option><option value="editeur">Éditeur</option><option value="rubrique">Rubrique</option><option value="date">Date (récent d'abord)</option><option value="prix">Prix</option></select>
         <button class="btn small" id="l-all" title="Cocher tous les livres">Tout cocher</button>
-        <span id="bulk" class="hide"><b id="bulk-n"></b><input type="text" id="bulk-rub" list="rubs" placeholder="Rubrique, ex. Droit"><datalist id="rubs"></datalist><button class="btn small primary" id="bulk-ok">Appliquer</button><button class="btn small" id="bulk-none">Décocher</button></span></div>
+        </div>
       <div id="list"></div>
+      <span id="bulk" class="hide"><b id="bulk-n"></b><input type="text" id="bulk-rub" list="rubs" placeholder="Ex. : Droit" aria-label="Nom de la rubrique"><datalist id="rubs"></datalist><button class="btn small primary" id="bulk-ok" title="Donne cette rubrique aux livres cochés et les regroupe à la suite">Créer la rubrique</button><button class="btn small" id="bulk-none">Décocher</button></span>
     </div>
   </div>
   <div class="prev" id="prev">
@@ -436,8 +458,8 @@
   <div class="stab" data-tab="src">
     <div class="fgroup"><h4>Google Books</h4>
     <label style="margin-top:12px">Clé Google Books <small>— pour les résumés, les dates exactes et les couvertures</small></label>
-    <input type="password" id="s-key" placeholder="Colle ta clé ici" autocomplete="off">
-    <div class="hint" id="s-keyhint"></div>
+    <div class="keyrow"><input type="password" id="s-key" placeholder="Colle ta clé ici" autocomplete="off"><button type="button" class="btn small" id="s-key-test">Tester la clé</button></div>
+    <div class="hint" id="s-keyhint"></div><div class="keyres hide" id="s-key-res" role="status"></div>
     <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--muted);font-size:13px">Comment obtenir la clé (gratuit, 5 minutes)</summary>
       <ol class="steps"><li>Va sur <b>console.cloud.google.com</b> avec un compte Google et crée un projet.</li>
         <li>« API et services » → « Bibliothèque » → cherche <b>Books API</b> → Activer.</li>
@@ -454,8 +476,8 @@
   <div class="stab hide" data-tab="ia">
     <div class="fgroup"><h4>Clé Claude</h4>
     <label style="margin-top:12px">Clé Claude <small>— pour écrire les descriptions des livres sans résumé (facultatif)</small></label>
-    <input type="password" id="s-ckey" placeholder="Colle ta clé ici (commence par sk-ant-…)" autocomplete="off">
-    <div class="hint" id="s-ckeyhint"></div>
+    <div class="keyrow"><input type="password" id="s-ckey" placeholder="Colle ta clé ici (commence par sk-ant-…)" autocomplete="off"><button type="button" class="btn small" id="s-ckey-test">Tester la clé</button></div>
+    <div class="hint" id="s-ckeyhint"></div><div class="keyres hide" id="s-ckey-res" role="status"></div>
     <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--muted);font-size:13px">Comment obtenir la clé (quelques centimes par catalogue)</summary>
       <ol class="steps"><li>Va sur <b>console.anthropic.com</b> et connecte-toi (compte distinct de claude.ai).</li>
         <li><b>Settings → Billing</b> : achète du crédit (5 $ suffisent pour des années).</li>
@@ -679,7 +701,7 @@ const STAT_LAB = {vert: "Complet", orange: "À compléter", rouge: "Introuvable"
 function shortWhy(t){ return String(t || "").replace(/^manque\s*:\s*/i, "manque : "); }
 function headHTML(b){
   const authors = (b.auteurs || []).join(" · ");
-  return `<input type="checkbox" class="chk-b" data-isbn="${esc(b.isbn)}" ${chosen.has(b.isbn) ? "checked" : ""} title="Cocher pour donner une rubrique à plusieurs livres">
+  return `<label class="chk-zone" title="Cocher pour regrouper des livres dans une rubrique (Maj + clic : une série de livres)"><input type="checkbox" class="chk-b" data-isbn="${esc(b.isbn)}" ${chosen.has(b.isbn) ? "checked" : ""}></label>
     <div class="thumb" ${coverStyle(b)}>${b.has_cover ? "" : "sans couv."}</div>
     <div class="cinfo"><div class="ctitle">${esc(b.titre || "(titre à saisir)")}</div>
       <div class="csub">${esc(b.isbn)}${authors ? " · " + esc(authors) : ""}</div>
@@ -728,9 +750,27 @@ function cardEl(b){
   d.innerHTML = `<div class="chead">${headHTML(b)}</div>` + (sel === b.isbn ? `<div class="cbody">${bodyHTML(b)}</div>` : "");
   return d;
 }
+function rubLabel(b, named){ return (b.rubrique || "").trim() || (named ? "Autres titres" : ""); }
+function sepEl(label, count, seenBefore, isOther){
+  const d = document.createElement("div");
+  d.className = "rubsep" + (isOther ? " other" : "");
+  d.innerHTML = `<span class="rubname">${esc(label)}</span><span class="rubn">${count} livre${count > 1 ? "s" : ""}</span>` +
+    (seenBefore && !isOther ? `<span class="rubdup">déjà présente plus haut</span><button type="button" class="btn small" data-regroup="${esc(label)}">Regrouper</button>` : "") + `<span class="rubline"></span>`;
+  return d;
+}
 function renderList(){
   const box = $("list"); box.innerHTML = "";
-  S.books.forEach(b => box.appendChild(cardEl(b)));
+  const named = S.books.some(b => (b.rubrique || "").trim());
+  const labels = S.books.map(b => rubLabel(b, named));
+  const seen = new Set(); let prev = null;
+  S.books.forEach((b, i) => {
+    const l = labels[i];
+    if (named && l !== prev) {
+      let n = 1; while (labels[i + n] === l) n++;                         // longueur de la série
+      box.appendChild(sepEl(l, n, seen.has(l), !(b.rubrique || "").trim())); seen.add(l);
+    }
+    prev = l; box.appendChild(cardEl(b));
+  });
 }
 function replaceCard(b, force){
   const old = document.querySelector(`.card[data-isbn="${b.isbn}"]`);
@@ -815,7 +855,7 @@ function renderNotes(){
 // clics sur la liste
 $("list").addEventListener("click", async e => {
   const card = e.target.closest(".card"); if (!card) return;
-  if (e.target.closest(".chk-b") || e.target.closest(".grip")) return;
+  if (e.target.closest(".chk-zone") || e.target.closest(".grip") || e.target.closest(".rubsep")) return;
   const isbn = card.dataset.isbn, act = e.target.dataset && e.target.dataset.act;
   if (act === "up" || act === "down") { const r = await api("/api/book/move", {isbn, dir: act === "up" ? -1 : 1}); setState(r.state); return; }
   if (act === "del") {
@@ -858,6 +898,19 @@ $("list").addEventListener("input", e => {
     try { const r = await api("/api/book/update", {isbn, fields}); mergeBook(r.book); card.querySelector(".chead").innerHTML = headHTML(r.book); renderNotes(); renderAllLight(); schedulePreview(); }
     catch (er) { toast(er.message); }
   }, 450);
+});
+
+$("list").addEventListener("change", async e => {
+  if (!(e.target.dataset && e.target.dataset.f === "rubrique")) return;
+  const card = e.target.closest(".card"), isbn = card.dataset.isbn, name = e.target.value.trim();
+  clearTimeout(saveT[isbn]);
+  try {
+    const fields = {}; card.querySelectorAll("[data-f]").forEach(el => fields[el.dataset.f] = el.value);
+    await api("/api/book/update", {isbn, fields});                       // enregistre d'abord ce qui est en attente
+    const r = await api("/api/rubrique", {isbns: [isbn], rubrique: name}); setState(r.state);
+    const el = document.querySelector(`.card[data-isbn="${isbn}"]`); el && el.scrollIntoView({block: "nearest"});
+    if (name && r.n > 1) toast(`✓ « ${name} » : ${r.n} livres regroupés`);
+  } catch (er) { toast(er.message); }
 });
 
 // couvertures : fichier, glisser-déposer, Ctrl+V
@@ -1196,8 +1249,32 @@ $("list").addEventListener("change", e => {
 $("l-all").onclick = () => { const all = chosen.size === S.books.length; chosen.clear(); if (!all) S.books.forEach(b => chosen.add(b.isbn)); document.querySelectorAll(".chk-b").forEach(c => c.checked = chosen.has(c.dataset.isbn)); renderBulk(); };
 $("bulk-none").onclick = () => { chosen.clear(); document.querySelectorAll(".chk-b").forEach(c => c.checked = false); renderBulk(); };
 $("bulk-ok").onclick = async () => {
-  try { const r = await api("/api/rubrique", {isbns: [...chosen], rubrique: $("bulk-rub").value}); setState(r.state); toast($("bulk-rub").value.trim() ? "✓ Rubrique appliquée" : "✓ Rubrique retirée"); } catch (e) { toast(e.message); }
+  const name = $("bulk-rub").value.trim();
+  try {
+    const r = await api("/api/rubrique", {isbns: [...chosen], rubrique: name}); setState(r.state);
+    toast(name ? `✓ Rubrique « ${name} » : ${r.n} livre${r.n > 1 ? "s" : ""} regroupé${r.n > 1 ? "s" : ""}` : "✓ Rubrique retirée");
+    if (name) { chosen.clear(); $("bulk-rub").value = ""; document.querySelectorAll(".chk-b").forEach(c => c.checked = false); renderBulk(); }
+  } catch (e) { toast(e.message); }
 };
+// clic sur la zone de coche (large) ; Maj + clic : coche ou décoche toute une série de livres
+let lastChk = null;
+$("list").addEventListener("click", e => {
+  const z = e.target.closest(".chk-zone"); if (!z) return;
+  const c = z.querySelector(".chk-b");
+  if (e.target !== c) { e.preventDefault(); c.checked = !c.checked; }       // clic à côté de la case : on la bascule nous-mêmes
+  const boxes = [...document.querySelectorAll(".chk-b")];
+  let range = [c];
+  if (e.shiftKey && lastChk && lastChk !== c && boxes.includes(lastChk)) {
+    const a = boxes.indexOf(lastChk), t = boxes.indexOf(c); range = boxes.slice(Math.min(a, t), Math.max(a, t) + 1);
+  }
+  range.forEach(x => { x.checked = c.checked; c.checked ? chosen.add(x.dataset.isbn) : chosen.delete(x.dataset.isbn); });
+  lastChk = c; renderBulk();
+});
+$("list").addEventListener("click", async e => {
+  const g = e.target.closest("[data-regroup]"); if (!g) return;
+  const name = g.dataset.regroup, ids = S.books.filter(b => (b.rubrique || "").trim() === name).map(b => b.isbn);
+  try { const r = await api("/api/rubrique", {isbns: ids, rubrique: name}); setState(r.state); toast(`✓ « ${name} » : ${r.n} livres regroupés (↶ pour annuler)`); } catch (er) { toast(er.message); }
+});
 $("l-sort").onchange = async e => {
   const k = e.target.value; e.target.value = ""; if (!k) return;
   try { const r = await api("/api/sort", {key: k}); setState(r.state); toast("✓ Livres triés (↶ pour annuler)"); } catch (er) { toast(er.message); }
@@ -1318,6 +1395,17 @@ async function confirmAllCovers(){
   const r = await api("/api/cover/confirm_all", {}); setState(r.state); covRev = Object.fromEntries(S.books.map(b => [b.isbn, (covRev[b.isbn] || 0) + 1]));
   toast(r.n ? `✓ ${r.n} couverture${r.n > 1 ? "s" : ""} validée${r.n > 1 ? "s" : ""}` : "Aucune couverture à valider.");
 }
+function keyTest(btnId, inId, resId, kind){
+  $(btnId).onclick = async () => {
+    const b = $(btnId), r = $(resId); b.disabled = true; const t0 = b.textContent; b.textContent = "Test en cours…";
+    r.className = "keyres"; r.textContent = "Test en cours…";
+    try { const j = await api("/api/test_key", {kind, key: $(inId).value}); r.className = "keyres " + (j.ok ? "ok" : "ko"); r.textContent = (j.ok ? "✓ " : "✗ ") + j.msg; }
+    catch (e) { r.className = "keyres ko"; r.textContent = "✗ " + e.message; }
+    b.disabled = false; b.textContent = t0;
+  };
+  $(inId).addEventListener("input", () => { $(resId).className = "keyres hide"; });
+}
+keyTest("s-key-test", "s-key", "s-key-res", "google"); keyTest("s-ckey-test", "s-ckey", "s-ckey-res", "claude");
 $("ms-ok").onclick = async () => {
   try {
     const r = await api("/api/settings", {google_key: $("s-key").value, claude_key: $("s-ckey").value, taux: $("s-taux").value, arrondi: +$("s-arr").value, inclure_prix: $("s-incl").checked, p_garde: $("s-pg").checked, p_cond: $("s-pc").checked, p_proforma: $("s-pp").checked, p_dos: $("s-pd").checked, p_multi4: $("s-m4").checked, conditions_texte: $("s-cond").value, out_dir: $("s-out").value, covers_dir: $("s-cov").value, resume_max: +$("s-max").value || 420, ia_credit: $("s-credit").value, ia_reflexion: $("s-refl").value});

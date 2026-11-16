@@ -55,6 +55,60 @@ def get_retry(url, timeout=25):
 
 
 # ---------------------------------------------------------------- accès brut
+_GOOGLE_REASONS = (       # (fragment du motif ou du message renvoyé par Google, explication)
+    ("API_KEY_IP_ADDRESS_BLOCKED", "la clé est limitée à certaines adresses IP : dans Google Cloud (Identifiants > la clé), mets « Restrictions relatives aux applications » sur « Aucune »"),
+    ("ip address", "la clé est limitée à certaines adresses IP : dans Google Cloud (Identifiants > la clé), mets « Restrictions relatives aux applications » sur « Aucune »"),
+    ("API_KEY_HTTP_REFERRER_BLOCKED", "la clé est limitée à certains sites web : dans Google Cloud (Identifiants > la clé), mets « Restrictions relatives aux applications » sur « Aucune »"),
+    ("referer", "la clé est limitée à certains sites web : dans Google Cloud (Identifiants > la clé), mets « Restrictions relatives aux applications » sur « Aucune »"),
+    ("API_KEY_ANDROID_APP_BLOCKED", "la clé est limitée à une application mobile : retire cette restriction dans Google Cloud"),
+    ("API_KEY_IOS_APP_BLOCKED", "la clé est limitée à une application mobile : retire cette restriction dans Google Cloud"),
+    ("API_KEY_SERVICE_BLOCKED", "la clé n'autorise pas Books API : dans Google Cloud (Identifiants > la clé), ajoute « Books API » ou retire la restriction d'API"),
+    ("SERVICE_DISABLED", "Books API n'est pas activée pour ce projet : dans Google Cloud, « API et services > Bibliothèque > Books API > Activer »"),
+    ("accessNotConfigured", "Books API n'est pas activée pour ce projet : dans Google Cloud, « API et services > Bibliothèque > Books API > Activer »"),
+    ("has not been used in project", "Books API n'est pas activée pour ce projet : dans Google Cloud, « API et services > Bibliothèque > Books API > Activer »"),
+    ("API_KEY_INVALID", "clé invalide ou mal recopiée : colle-la de nouveau en entier"),
+    ("API key not valid", "clé invalide ou mal recopiée : colle-la de nouveau en entier"),
+    ("API_KEY_EXPIRED", "clé expirée : crée-en une nouvelle dans Google Cloud"),
+    ("rateLimitExceeded", "trop de demandes : réessaie dans quelques minutes"),
+    ("quota", "quota atteint : réessaie plus tard (il se renouvelle chaque jour)"),
+)
+
+
+def google_error_text(e):
+    """Message lisible pour une erreur HTTP de Google Books, avec le vrai motif donné par Google."""
+    if e.code == 429:
+        return "Google Books : quota atteint, réessaie plus tard (il se renouvelle chaque jour)"
+    msg, reasons = "", ""
+    try:
+        err = (json.loads(e.read().decode("utf-8", "replace")) or {}).get("error") or {}
+        msg = str(err.get("message") or "")
+        reasons = " ".join([str(x.get("reason", "")) for x in (err.get("errors") or []) if isinstance(x, dict)]
+                           + [str(x.get("reason", "")) for x in (err.get("details") or []) if isinstance(x, dict)])
+    except Exception:
+        pass
+    hay = (reasons + " " + msg).lower()
+    for frag, why in _GOOGLE_REASONS:
+        if frag.lower() in hay:
+            return f"Google Books : {why}"
+    if e.code in (400, 403):
+        return "Google Books : clé refusée" + (f" (« {msg[:140]} »)" if msg else f" (erreur {e.code})") + ", vérifie-la dans les Réglages"
+    return f"Google Books : erreur HTTP {e.code}"
+
+
+def test_google_key(key):
+    """Interroge Google Books avec un ISBN connu. Retourne (ok, message)."""
+    key = (key or "").strip()
+    if not key:
+        return False, "Pas de clé à tester."
+    try:
+        google_raw("9782070368228", key)
+        return True, "Clé valide : Google Books répond."
+    except NetworkError:
+        return False, "Pas de connexion internet : impossible de tester la clé pour l'instant."
+    except SourceError as e:
+        return False, str(e)
+
+
 def google_raw(isbn, key):
     if not key:
         raise SourceError("pas de clé Google Books (Réglages)")
@@ -63,11 +117,7 @@ def google_raw(isbn, key):
     try:
         j = json.loads(get_retry(url).decode("utf-8", "replace"))
     except urllib.error.HTTPError as e:
-        if e.code == 429:
-            raise SourceError("Google Books : quota du jour atteint, réessaie plus tard")
-        if e.code in (400, 403):
-            raise SourceError("Google Books : clé refusée (vérifie-la dans les Réglages)")
-        raise SourceError(f"Google Books : erreur HTTP {e.code}")
+        raise SourceError(google_error_text(e))
     items = j.get("items") or []
     if not items:
         return None

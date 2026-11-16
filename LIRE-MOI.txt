@@ -20,6 +20,8 @@ Cle Google Books (une seule fois)
 ---------------------------------
 Sans cle, le programme ne trouve que la fiche technique (BnF). Avec une cle gratuite, il trouve aussi les resumes,
 les dates exactes et parfois les couvertures. Reglages > "Comment obtenir la cle" (5 minutes, gratuit).
+Le bouton "Tester la cle" (Reglages > Sources) dit si la cle fonctionne et, sinon, pourquoi (restriction d'adresse IP, API Books
+non activee, quota...). Meme bouton pour la cle Claude (Reglages > IA) : il verifie aussi que le compte a du credit.
 
 Descriptions ecrites par l'IA (facultatif)
 ------------------------------------------
@@ -73,7 +75,7 @@ Pages fixes (v0.6.0) : page de garde, conditions de vente, demande de facture pr
 
 Catalogues (v0.8.0) : le bouton Catalogues enregistre le catalogue sous un nom, le rouvre, et permet de "Repartir de celui-ci" pour le suivant : on garde les livres, resumes et couvertures, puis on importe le nouveau panier Dilicom (les prix modifies sont signales). ↶ ↷ (Ctrl+Z / Ctrl+Y) annulent et retablissent. Des sauvegardes automatiques (10 dernieres) sont dans le meme menu. Avant de generer, une fenetre de controle liste ce qui manque.
 
-Organisation (v0.9.0) : etape 1 Livres (import, recherche, corrections, tri, glisser-deposer, rubriques en cochant des livres), etape 2 Mise en page (pages incluses, couleur, miniatures, planches), etape 3 Generer.
+Organisation (v0.9.0) : etape 1 Livres (import, recherche, corrections, tri, glisser-deposer, rubriques en cochant des livres : ils sont regroupes a la suite sous un separateur ; Maj + clic coche une serie), etape 2 Mise en page (pages incluses, couleur, miniatures, planches), etape 3 Generer.
 
 Citation de la 4e de couverture (v0.10.0) : clique sur le bandeau de couleur de la 4e de couverture (ou utilise le cadre "Citation" de l'etape 2). "Autre citation" tire une citation de la liste (jamais deux fois la meme avant la fin du tour), "Precedente" revient en arriere, "Modifier" permet d'ecrire la tienne, "Sans citation" retire le texte.
 Quand tu as vu toutes les citations, un bouton IA apparait : un clic = une seule demande a Haiku (moins d'1 centime) qui rapporte 12 citations gardees sur le PC pour la suite. Limites : une demande a la fois, 30 secondes d'ecart, 6 par jour. Une citation proposee par l'IA est marquee "IA : a verifier" : verifie toujours l'auteur.

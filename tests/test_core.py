@@ -364,3 +364,36 @@ try:
 finally:
     _st.update_settings({"ia_reflexion": "on"}); _ur.urlopen = _real_open
 print("OK connexion / consommation IA")
+
+# ---- clés Google / Claude : vrai motif d'erreur et boutons de test, regroupement des rubriques
+import io as _io2, json as _j2, urllib.error as _ue2
+def _gerr(code, body): return _ue2.HTTPError("u", code, "x", {}, _io2.BytesIO(_j2.dumps(body).encode()))
+_msg = sources.google_error_text
+assert "adresses IP" in _msg(_gerr(403, {"error": {"code": 403, "message": "Requests from IP address 1.2.3.4 are blocked.", "details": [{"reason": "API_KEY_IP_ADDRESS_BLOCKED"}]}}))
+assert "sites web" in _msg(_gerr(403, {"error": {"message": "Requests from referer <empty> are blocked.", "details": [{"reason": "API_KEY_HTTP_REFERRER_BLOCKED"}]}}))
+assert "Books API n'est pas activée" in _msg(_gerr(403, {"error": {"message": "Books API has not been used in project 123 before or it is disabled.", "errors": [{"reason": "accessNotConfigured"}]}}))
+assert "autorise pas Books API" in _msg(_gerr(403, {"error": {"message": "Requests to this API books method are blocked.", "details": [{"reason": "API_KEY_SERVICE_BLOCKED"}]}}))
+assert "invalide" in _msg(_gerr(400, {"error": {"message": "API key not valid. Please pass a valid API key.", "details": [{"reason": "API_KEY_INVALID"}]}}))
+assert "quota" in _msg(_gerr(429, {})).lower()
+assert "« Something odd »" in _msg(_gerr(403, {"error": {"message": "Something odd"}})) and "erreur 403" in _msg(_gerr(403, {}))      # message inconnu : on l'affiche tel quel
+assert _msg(_ue2.HTTPError("u", 403, "x", {}, None)).startswith("Google Books : clé refusée")                                         # corps illisible
+assert sources.test_google_key("K") == (True, "Clé valide : Google Books répond.")
+ok, m = sources.test_google_key("BAD"); assert not ok and "Google Books" in m
+assert not sources.test_google_key("")[0]
+from catalogue import ai as _ai2
+_real2 = _ai2.post_json
+def _mk(code, body):
+    def f(*a, **k): raise _ue2.HTTPError("u", code, "x", {}, _io2.BytesIO(_j2.dumps(body).encode()))
+    return f
+try:
+    _ai2.post_json = lambda *a, **k: {"content": []}; assert _ai2.test_key("sk-ant-x")[0]
+    _ai2.post_json = _mk(401, {"error": {"message": "invalid x-api-key"}}); ok, m = _ai2.test_key("sk-ant-x"); assert not ok and "refusée" in m
+    _ai2.post_json = _mk(400, {"error": {"message": "Your credit balance is too low to access the Anthropic API."}}); ok, m = _ai2.test_key("sk-ant-x"); assert not ok and "crédit" in m
+    _ai2.post_json = _mk(429, {"error": {"message": "rate"}}); ok, m = _ai2.test_key("sk-ant-x"); assert not ok and "trop de demandes" in m
+    def _net(*a, **k): raise OSError("réseau")
+    _ai2.post_json = _net; ok, m = _ai2.test_key("sk-ant-x"); assert not ok and "internet" in m
+    assert not _ai2.test_key("")[0]
+finally:
+    _ai2.post_json = _real2
+print("OK clés Google / Claude")
+

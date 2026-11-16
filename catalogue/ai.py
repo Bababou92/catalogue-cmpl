@@ -166,3 +166,36 @@ def describe(book, key, max_chars=420, model=None):
         if netfail >= 3:                                      # trois coupures de suite : inutile d'essayer l'autre modèle
             raise AINetworkError(last)
     raise AIError(last or "échec de la génération")
+
+
+def test_key(key):
+    """Vérifie la clé Claude avec un appel minimal (quelques jetons, soit moins d'un centième de centime). Retourne (ok, message)."""
+    key = (key or "").strip()
+    if not key:
+        return False, "Pas de clé à tester."
+    last = "modèle indisponible"
+    for m in MODELS:
+        try:
+            post_json(key, m, "Réponds seulement : ok.", "ok", 16)
+            return True, "Clé valide : Claude répond et le compte a du crédit."
+        except urllib.error.HTTPError as e:
+            msg = _error_text(e)
+            if e.code == 401:
+                return False, "Clé refusée : vérifie qu'elle est recopiée en entier (elle commence par sk-ant-)."
+            if e.code == 403:
+                return False, "Clé non autorisée pour cet accès" + (f" ({msg})" if msg else "") + "."
+            if e.code == 402 or "credit balance" in msg.lower():
+                return False, "Clé valide, mais plus de crédit sur le compte (console.anthropic.com, Billing)."
+            if e.code == 429:
+                return False, "Clé valide, mais trop de demandes en ce moment : réessaie dans une minute."
+            if e.code in (500, 502, 503, 529):
+                return False, "Le service Claude est momentanément occupé : réessaie dans une minute."
+            if e.code in (400, 404) and ("model" in msg.lower() or e.code == 404):
+                last = "modèle indisponible : " + msg
+                continue                                           # on tente le modèle suivant
+            return False, f"Claude : {msg or 'erreur ' + str(e.code)}"
+        except OSError:
+            return False, "Pas de connexion internet : impossible de tester la clé pour l'instant."
+        except Exception as e:
+            return False, "Réponse illisible : " + str(e)
+    return False, "Claude : " + last
