@@ -2194,7 +2194,7 @@ function updRender(u){
     say(`<b>Nouvelle version ${esc(u.latest.version)} disponible</b> (tu as la ${esc(u.version)})${n ? " — " + esc(n.split("\n")[0]).slice(0, 140) : ""}`,
       `<button class="primary" id="u-go">Mettre à jour</button><button id="u-later">Plus tard</button>`);
     $("u-go").onclick = updStart; $("u-later").onclick = () => { updDismissed = true; hideBar(); };
-    if (!u.can_apply) $("u-go").title = "La mise à jour automatique marche dans le programme .exe";
+    if (!u.can_apply) $("u-go").title = "La mise à jour automatique fonctionne dans le programme .exe";
   } else if (u.state === "downloading") {
     say(`Téléchargement de la mise à jour… ${Math.round((u.progress || 0) * 100)} %`, `<div class="bar"><i style="width:${Math.round((u.progress || 0) * 100)}%"></i></div><button id="u-cancel">Annuler</button>`);
     $("u-cancel").onclick = () => api("/api/update/cancel", {}).then(updRender);

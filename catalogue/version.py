@@ -1,3 +1,3 @@
 """Numéro de version."""
-VERSION = "0.13.1"
+VERSION = "1.0.0"
 REPO = "Bababou92/catalogue-cmpl"

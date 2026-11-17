@@ -9,7 +9,7 @@ from pptx.enum.text import MSO_ANCHOR, MSO_AUTO_SIZE, PP_ALIGN
 from pptx.oxml.ns import qn
 from pptx.util import Emu, Mm, Pt
 
-from . import fonts
+from . import fonts, textfit
 from .model import Page, Pic, Rect, TextBox
 from .textfit import MM_PER_PT
 
@@ -89,6 +89,11 @@ def _add_text(slide, tb: TextBox):
         if para.left_mm or para.first_mm:
             pPr.set("marL", str(int(round((para.left_mm + 0) * 36000))))
             pPr.set("indent", str(int(round(para.first_mm * 36000))))
+        txt_runs = [r for r in para.runs if r.text]
+        if txt_runs:
+            # interligne exact, celui de la mise en page : PowerPoint place alors les lignes exactement comme l'aperçu
+            ls = etree.SubElement(pPr, qn("a:lnSpc"))
+            etree.SubElement(ls, qn("a:spcPts")).set("val", str(int(round(max(textfit.line_height_pt(r) for r in txt_runs) * 100))))
         if para.space_before_pt:
             spc = etree.SubElement(pPr, qn("a:spcBef"))
             etree.SubElement(spc, qn("a:spcPts")).set("val", str(int(round(para.space_before_pt * 100))))

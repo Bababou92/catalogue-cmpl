@@ -41,6 +41,27 @@ def clean_text(text):
     return t.replace("\ue000", "\xa0").strip()
 
 
+_DANGLING = {"de", "des", "du", "d'", "la", "le", "les", "l'", "un", "une", "et", "ou", "à", "au", "aux", "en", "pour", "sur",
+             "par", "avec", "dans", "of", "the", "and"}
+
+
+def clean_collection(text):
+    """Collection propre : la BnF donne parfois une sous-collection tronquée (« Tout en fiches. L'essentiel de ») ;
+    on retire alors ce dernier morceau qui se termine sur un mot appelant une suite."""
+    t = clean_text(text).strip(" .,;:-–—")
+    for _ in range(3):
+        last = re.split(r"[\s']", t.lower())[-1] if t else ""
+        last2 = t.lower().rsplit(" ", 1)[-1]
+        if not t or (last not in _DANGLING and last2 not in _DANGLING):
+            break
+        parts = re.split(r"\s*[.;,:]\s+|\s+[-–—]\s+", t)
+        if len(parts) > 1:
+            t = t[: len(t) - len(parts[-1])].rstrip(" .,;:-–—")
+        else:
+            t = t.rsplit(" ", 1)[0].rstrip(" .,;:-–—") if " " in t else t
+    return t
+
+
 def _paras_height(paras, width_mm):
     return textfit.layout(paras, width_mm / MM_PER_PT)[1] * MM_PER_PT if paras else 0.0
 
@@ -113,9 +134,12 @@ def entry_layout(book, x, y, col_w=COL_W):
     text_w = col_w - cover_w - COVER_GAP
 
     # --- à droite de la couverture : titre, auteurs, début du résumé
-    title = (book.get("titre") or "").strip() or ("(titre à saisir)" if str(book.get("isbn", "")).startswith("MAN-") else f"(titre à saisir) {book.get('isbn', '')}")
+    title = clean_text(book.get("titre")) or ("(titre à saisir)" if str(book.get("isbn", "")).startswith("MAN-") else f"(titre à saisir) {book.get('isbn', '')}")
     head = [Para([_run(title, TITLE_PT, bold=True, color=BLACK if book.get("titre") else "#B3261E")], align="l")]
     for i, a in enumerate(book.get("auteurs") or []):
+        a = re.sub(r",(?=\S)", ", ", clean_text(a))                # « Nom,Prénom » -> « Nom, Prénom »
+        if not a:
+            continue
         head.append(Para([_run(a, AUTHOR_PT + 0.5, italic=True, color=GREY)], align="l", space_before_pt=3.0 if i == 0 else 0.0))
     head_h = _paras_height(head, text_w)
 
@@ -143,8 +167,8 @@ def entry_layout(book, x, y, col_w=COL_W):
         below.append(Para([_run(rest_txt, TEXT_PT)], align="l"))
     if book.get("date"):
         below.append(Para([_run(book["date"], META_PT)], align="l", space_before_pt=1.5 if below else 0.0))
-    if book.get("collection"):
-        below.append(Para([_run("Collection : " + book["collection"], META_PT + 0.5, italic=True)], align="l"))
+    if clean_collection(book.get("collection")):
+        below.append(Para([_run("Collection : " + clean_collection(book["collection"]), META_PT + 0.5, italic=True)], align="l"))
     if book.get("editeur"):
         below.append(Para([_run("Éditeur : " + book["editeur"], EDIT_PT, bold=True, italic=True)], align="l", space_before_pt=1.0))
     fl = format_line(book)

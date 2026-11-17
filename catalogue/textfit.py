@@ -134,14 +134,11 @@ def _tokens(para: Para):
     for run in para.runs:
         buf = ""
         for ch in run.text:
-            if ch == " " or ch == " ":
+            if ch == " ":                                   # l'insécable (\xa0) reste collée au mot : jamais de coupure
                 if buf:
                     toks.append(Piece(buf, run, run_width(run, buf)))
                     buf = ""
-                if ch == " ":
-                    toks.append(Piece(" ", run, run_width(run, " "), True))
-                else:
-                    buf += ch
+                toks.append(Piece(" ", run, run_width(run, " "), True))
             else:
                 buf += ch
                 if ch == "/" and len(buf) > 1:                  # coupure possible après une barre oblique (MARTIN/DUPONT/…)

@@ -70,6 +70,21 @@ def _draw_textbox(img, tb: TextBox, dpi):
         if line.bullet is not None:
             _draw_run_text(d, (inset_pt + line.bullet_x_pt) * scale, base, line.bullet.text, line.bullet.run, scale, dpi)
         x = (inset_pt + line.x_pt) * scale
+        if not line.extra_space_pt:
+            # ligne non justifiée : chaque suite de morceaux de même style est dessinée d'un bloc, pour que les
+            # espaces gardent la largeur que la police leur donne (pas d'écarts dus aux arrondis mot par mot)
+            seg, seg_run, seg_w = "", None, 0.0
+            for piece in line.pieces + [None]:
+                if piece is None or piece.run is not seg_run:
+                    if seg.strip():
+                        _draw_run_text(d, x, base, seg, seg_run, scale, dpi)
+                    x += seg_w * scale
+                    if piece is None:
+                        break
+                    seg, seg_run, seg_w = "", piece.run, 0.0
+                seg += piece.text
+                seg_w += piece.width
+            continue
         for piece in line.pieces:
             if piece.is_space:
                 x += (piece.width + line.extra_space_pt) * scale
@@ -112,6 +127,14 @@ def _draw_pic(img, pic: Pic, dpi):
 
 
 def render_page(page: Page, dpi=300, crop=True):
+    if dpi < 200:
+        # petite résolution (aperçu) : dessin en double résolution puis réduction, pour un texte fidèle au PDF
+        big = _render(page, dpi * 2, crop)
+        return big.resize((max(1, round(big.width / 2)), max(1, round(big.height / 2))), Image.LANCZOS)
+    return _render(page, dpi, crop)
+
+
+def _render(page: Page, dpi, crop):
     W, H = round(_px(page.w, dpi)), round(_px(page.h, dpi))
     img = Image.new("RGB", (W, H), page.bg)
     d = ImageDraw.Draw(img)
